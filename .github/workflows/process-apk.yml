@@ -1,0 +1,56 @@
+name: Process APK with Suzi Brand
+
+on:
+  push:
+    branches: [ "**" ]
+    paths:
+      - '**.apk'
+      - 'm.py'
+      - 'apktool.jar'
+  workflow_dispatch:
+
+jobs:
+  process-apk:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Set up Java
+      uses: actions/setup-java@v4
+      with:
+        distribution: 'temurin'
+        java-version: '21'
+        
+    - name: Make script executable
+      run: chmod +x m.py
+      
+    - name: Process APK files
+      run: |
+        for apk in *.apk; do
+          if [ -f "$apk" ] && [[ ! "$apk" =~ _out\.apk$ ]] && [[ ! "$apk" =~ _s\.apk$ ]]; then
+            echo "Processing $apk..."
+            python3 m.py "$apk"
+          fi
+        done
+        
+    - name: Upload processed APKs
+      uses: actions/upload-artifact@v4
+      with:
+        name: processed-apks-suzi
+        path: '*_out.apk'
+        if-no-files-found: warn
+        
+    - name: Commit processed APKs (if any)
+      run: |
+        git config --local user.email "github-actions[bot]@users.noreply.github.com"
+        git config --local user.name "github-actions[bot]"
+        git add '*_out.apk' || true
+        git diff --staged --quiet || git commit -m "🔐 Processed APK with Suzi brand signature"
+        
+    - name: Push changes
+      uses: ad-m/github-push-action@master
+      with:
+        github_token: ${{ secrets.GITHUB_TOKEN }}
+        branch: ${{ github.ref }}
