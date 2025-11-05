@@ -1,0 +1,15 @@
+# Suzi APK Processor - Dependencies
+
+# برای اجرای نسخه عادی (development)
+# بدون نیاز به چیز خاصی - فقط Python 3.6+
+
+# برای build نسخه محافظت شده
+cython>=3.0.0
+pyinstaller>=6.0.0
+setuptools>=68.0.0
+wheel>=0.41.0
+
+# اختیاری - برای development
+# pytest>=7.4.0
+# black>=23.7.0
+# flake8>=6.1.0

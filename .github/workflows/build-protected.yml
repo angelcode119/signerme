@@ -1,0 +1,130 @@
+name: Build Protected Executable
+
+on:
+  push:
+    branches: [ "main", "master" ]
+    tags:
+      - 'v*'
+  workflow_dispatch:
+    inputs:
+      build_all:
+        description: 'Build for all platforms'
+        required: false
+        default: 'true'
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    name: Build on ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        include:
+          - os: ubuntu-latest
+            platform: linux
+            artifact_name: suzi-apk
+            asset_name: suzi-apk-linux-x64
+          
+          - os: windows-latest
+            platform: windows
+            artifact_name: suzi-apk.exe
+            asset_name: suzi-apk-windows-x64.exe
+          
+          - os: macos-latest
+            platform: macos
+            artifact_name: suzi-apk
+            asset_name: suzi-apk-macos-x64
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.11'
+        
+    - name: Set up Java (for tools)
+      uses: actions/setup-java@v4
+      with:
+        distribution: 'temurin'
+        java-version: '21'
+        
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install cython pyinstaller setuptools wheel
+        
+    - name: Setup tools
+      run: |
+        python setup_tools.py || echo "Setup tools warning"
+        
+    - name: Build protected executable
+      run: |
+        python build_protected.py
+        
+    - name: Test executable
+      run: |
+        ls -la dist/ || dir dist\
+        
+    - name: Upload artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: ${{ matrix.asset_name }}
+        path: |
+          dist/${{ matrix.artifact_name }}
+          dist/tools/
+          dist/README.md
+        if-no-files-found: error
+        
+    - name: Create Release (on tag)
+      if: startsWith(github.ref, 'refs/tags/v')
+      uses: softprops/action-gh-release@v1
+      with:
+        files: |
+          dist/${{ matrix.artifact_name }}
+          dist/README.md
+        draft: false
+        prerelease: false
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        
+    - name: Upload to release
+      if: startsWith(github.ref, 'refs/tags/v')
+      uses: actions/upload-release-asset@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        upload_url: ${{ github.event.release.upload_url }}
+        asset_path: ./dist/${{ matrix.artifact_name }}
+        asset_name: ${{ matrix.asset_name }}
+        asset_content_type: application/octet-stream
+
+  package:
+    name: Create Distribution Package
+    needs: build
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Download all artifacts
+      uses: actions/download-artifact@v4
+      with:
+        path: artifacts
+        
+    - name: Display structure
+      run: ls -R artifacts
+      
+    - name: Create package
+      run: |
+        mkdir -p package
+        cp -r artifacts/* package/
+        cd package
+        tar -czf ../suzi-apk-all-platforms.tar.gz *
+        
+    - name: Upload package
+      uses: actions/upload-artifact@v4
+      with:
+        name: suzi-apk-all-platforms
+        path: suzi-apk-all-platforms.tar.gz
