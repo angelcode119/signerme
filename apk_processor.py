@@ -1,0 +1,360 @@
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+"""
+Suzi Brand - APK Processor
+منطق اصلی پردازش و امضای APK
+
+این ماژول شامل کلاس‌ها و توابع اصلی برای:
+- تغییر Bit Flag در APK (بدون باز کردن فایل‌ها)
+- ساخت Keystore با برند Suzi
+- امضای APK با jarsigner یا apksigner
+"""
+
+import os
+import sys
+import struct
+import subprocess
+import random
+import string
+import hashlib
+import tempfile
+import shutil
+from typing import Tuple, Optional
+
+
+class SuziAPKProcessor:
+    """
+    کلاس اصلی پردازش APK با برند Suzi
+    """
+    
+    def __init__(self, use_jarsigner: bool = True, verbose: bool = False):
+        """
+        مقداردهی اولیه
+        
+        Args:
+            use_jarsigner: استفاده از jarsigner به جای apksigner (پیش‌فرض: True)
+            verbose: نمایش پیام‌های جزئیات (پیش‌فرض: False)
+        """
+        self.use_jarsigner = use_jarsigner
+        self.verbose = verbose
+        self.temp_files = []  # لیست فایل‌های موقت برای پاکسازی
+    
+    def log(self, message: str):
+        """نمایش پیام اگر verbose فعال باشه"""
+        if self.verbose:
+            print(f"[Suzi APK] {message}")
+    
+    def generate_random_string(self, length: int = 10) -> str:
+        """
+        تولید رشته تصادفی
+        
+        Args:
+            length: طول رشته (پیش‌فرض: 10)
+            
+        Returns:
+            رشته تصادفی شامل حروف و اعداد
+        """
+        return ''.join(random.choice(string.ascii_letters + string.digits) for _ in range(length))
+    
+    def generate_password(self, length: int = 16) -> str:
+        """
+        تولید پسورد تصادفی
+        
+        Args:
+            length: طول پسورد (پیش‌فرض: 16)
+            
+        Returns:
+            پسورد تصادفی قوی
+        """
+        chars = string.ascii_letters + string.digits + "!@#$%^&*"
+        return ''.join(random.choice(chars) for _ in range(length))
+    
+    def create_keystore(self) -> Tuple[str, str, str]:
+        """
+        ساخت keystore با برند Suzi
+        
+        Returns:
+            Tuple[keystore_path, password, alias]
+        """
+        # ساخت نام فایل keystore با prefix suzi
+        ks_name = f"suzi_{hashlib.md5(str(random.getrandbits(128)).encode()).hexdigest()[:8]}.keystore"
+        keystore_path = os.path.join(tempfile.gettempdir(), ks_name)
+        
+        # تولید پسورد و alias
+        password = self.generate_password()
+        alias = "suzi_" + self.generate_random_string()
+        
+        self.log(f"Creating keystore: {keystore_path}")
+        self.log(f"Alias: {alias}")
+        
+        # اگر keystore از قبل نداریم، بسازش
+        if not os.path.exists(keystore_path):
+            cmd = [
+                "keytool", "-genkey", "-v",
+                "-keystore", keystore_path,
+                "-alias", alias,
+                "-keyalg", "RSA",
+                "-keysize", "2048",
+                "-validity", "10000",
+                "-storepass", password,
+                "-keypass", password,
+                "-dname", "CN=suzi, O=Suzi Brand, C=IR"
+            ]
+            
+            result = subprocess.run(
+                cmd,
+                stdout=subprocess.DEVNULL if not self.verbose else None,
+                stderr=subprocess.DEVNULL if not self.verbose else None
+            )
+            
+            if result.returncode != 0:
+                raise RuntimeError("Failed to create keystore")
+            
+            self.log("✅ Keystore created successfully")
+            self.temp_files.append(keystore_path)
+        
+        return keystore_path, password, alias
+    
+    def modify_bit_flags(self, input_apk: str, output_apk: str) -> str:
+        """
+        تغییر Bit Flag در APK (بدون باز کردن فایل‌ها)
+        این تغییر باعث میشه APK به عنوان encrypted شناخته بشه
+        
+        Args:
+            input_apk: مسیر فایل APK ورودی
+            output_apk: مسیر فایل APK خروجی
+            
+        Returns:
+            مسیر فایل APK خروجی
+            
+        Raises:
+            FileNotFoundError: اگر فایل ورودی پیدا نشد
+            RuntimeError: اگر ساختار APK نامعتبر بود
+        """
+        if not os.path.exists(input_apk):
+            raise FileNotFoundError(f"Input APK not found: {input_apk}")
+        
+        self.log(f"Modifying bit flags: {input_apk} -> {output_apk}")
+        
+        # خواندن فایل APK
+        with open(input_apk, 'rb') as f:
+            data = f.read()
+        
+        # پیدا کردن End of Central Directory record
+        eocd_offset = data.rfind(b'\x50\x4B\x05\x06')
+        if eocd_offset == -1:
+            raise RuntimeError("Invalid APK structure: EOCD not found")
+        
+        # خواندن اطلاعات Central Directory
+        cd_size = struct.unpack_from('<I', data, eocd_offset + 12)[0]
+        cd_offset = struct.unpack_from('<I', data, eocd_offset + 16)[0]
+        
+        # ایجاد نسخه قابل تغییر
+        modified_data = bytearray(data)
+        
+        # پیمایش Central Directory و تغییر flag ها
+        position = cd_offset
+        modified_count = 0
+        
+        while position < cd_offset + cd_size:
+            # چک کردن Central Directory File Header signature
+            if data[position:position+4] != b'\x50\x4B\x01\x02':
+                break
+            
+            # آدرس bit flag
+            flag_offset = position + 8
+            current_flag = struct.unpack_from('<H', data, flag_offset)[0]
+            
+            # اگر bit 0 (encryption) فعال نیست، فعالش کن
+            if not (current_flag & 0x0001):
+                new_flag = current_flag | 0x0001
+                struct.pack_into('<H', modified_data, flag_offset, new_flag)
+                modified_count += 1
+            
+            # حرکت به file header بعدی
+            filename_length = struct.unpack_from('<H', data, position + 28)[0]
+            extra_length = struct.unpack_from('<H', data, position + 30)[0]
+            comment_length = struct.unpack_from('<H', data, position + 32)[0]
+            position += 46 + filename_length + extra_length + comment_length
+        
+        self.log(f"Modified {modified_count} file entries")
+        
+        # نوشتن فایل خروجی
+        with open(output_apk, 'wb') as f:
+            f.write(modified_data)
+        
+        self.log(f"✅ Bit flags modified successfully")
+        self.temp_files.append(output_apk)
+        
+        return output_apk
+    
+    def sign_apk(self, input_apk: str, keystore: str, password: str, 
+                 alias: str, output_apk: Optional[str] = None) -> str:
+        """
+        امضای APK با keystore
+        
+        Args:
+            input_apk: مسیر فایل APK ورودی
+            keystore: مسیر فایل keystore
+            password: پسورد keystore
+            alias: alias کلید در keystore
+            output_apk: مسیر فایل APK خروجی (اختیاری)
+            
+        Returns:
+            مسیر فایل APK امضا شده
+            
+        Raises:
+            FileNotFoundError: اگر فایل ورودی پیدا نشد
+            RuntimeError: اگر امضا ناموفق بود
+        """
+        if not os.path.exists(input_apk):
+            raise FileNotFoundError(f"Input APK not found: {input_apk}")
+        
+        if output_apk is None:
+            output_apk = input_apk.replace(".apk", "_signed.apk")
+        
+        self.log(f"Signing APK: {input_apk} -> {output_apk}")
+        
+        if self.use_jarsigner:
+            # استفاده از jarsigner (Linux compatible)
+            shutil.copy2(input_apk, output_apk)
+            
+            cmd = [
+                "jarsigner",
+                "-verbose" if self.verbose else "-sigalg", 
+                "SHA256withRSA" if not self.verbose else "",
+                "-digestalg", "SHA-256",
+                "-keystore", keystore,
+                "-storepass", password,
+                "-keypass", password,
+                output_apk,
+                alias
+            ]
+            # حذف المنت‌های خالی
+            cmd = [c for c in cmd if c]
+            
+            if self.verbose:
+                cmd.insert(1, "-verbose")
+            
+        else:
+            # استفاده از apksigner
+            cmd = [
+                "apksigner", "sign",
+                "--ks", keystore,
+                "--ks-pass", f"pass:{password}",
+                "--ks-key-alias", alias,
+                "--out", output_apk,
+                input_apk
+            ]
+        
+        result = subprocess.run(
+            cmd,
+            stdout=subprocess.DEVNULL if not self.verbose else None,
+            stderr=subprocess.DEVNULL if not self.verbose else None
+        )
+        
+        if result.returncode != 0:
+            raise RuntimeError(f"Failed to sign APK (exit code: {result.returncode})")
+        
+        self.log("✅ APK signed successfully")
+        self.temp_files.append(output_apk)
+        
+        return output_apk
+    
+    def process_apk(self, input_apk: str, output_apk: Optional[str] = None,
+                   clean_temp: bool = True) -> str:
+        """
+        پردازش کامل APK: تغییر bit flag + امضا
+        
+        Args:
+            input_apk: مسیر فایل APK ورودی
+            output_apk: مسیر فایل APK خروجی (اختیاری)
+            clean_temp: پاکسازی فایل‌های موقت (پیش‌فرض: True)
+            
+        Returns:
+            مسیر فایل APK نهایی
+        """
+        if not os.path.exists(input_apk):
+            raise FileNotFoundError(f"Input APK not found: {input_apk}")
+        
+        base_name = os.path.splitext(os.path.basename(input_apk))[0]
+        
+        if output_apk is None:
+            output_apk = f"{base_name}_out.apk"
+        
+        self.log(f"Processing APK: {input_apk}")
+        self.log(f"Output: {output_apk}")
+        
+        # مرحله 1: تغییر Bit Flag
+        temp_modified = f"{base_name}_modified.apk"
+        self.modify_bit_flags(input_apk, temp_modified)
+        
+        # مرحله 2: ساخت keystore
+        keystore, password, alias = self.create_keystore()
+        
+        # مرحله 3: امضای APK
+        temp_signed = f"{base_name}_signed.apk"
+        self.sign_apk(temp_modified, keystore, password, alias, temp_signed)
+        
+        # جابجایی فایل نهایی
+        if os.path.exists(output_apk):
+            os.remove(output_apk)
+        shutil.move(temp_signed, output_apk)
+        
+        # پاکسازی فایل‌های موقت
+        if clean_temp:
+            self.cleanup()
+        
+        self.log(f"✅ APK processing completed: {output_apk}")
+        
+        return output_apk
+    
+    def cleanup(self):
+        """پاکسازی فایل‌های موقت"""
+        for temp_file in self.temp_files:
+            if os.path.exists(temp_file):
+                try:
+                    os.remove(temp_file)
+                    self.log(f"Cleaned up: {temp_file}")
+                except Exception as e:
+                    self.log(f"Failed to clean up {temp_file}: {e}")
+        self.temp_files.clear()
+    
+    def __del__(self):
+        """Destructor - پاکسازی خودکار"""
+        self.cleanup()
+
+
+# توابع helper برای استفاده ساده‌تر
+def process_apk(input_apk: str, output_apk: Optional[str] = None, 
+                verbose: bool = False) -> str:
+    """
+    تابع helper برای پردازش سریع APK
+    
+    Args:
+        input_apk: مسیر فایل APK ورودی
+        output_apk: مسیر فایل APK خروجی (اختیاری)
+        verbose: نمایش پیام‌های جزئیات
+        
+    Returns:
+        مسیر فایل APK پردازش شده
+    """
+    processor = SuziAPKProcessor(verbose=verbose)
+    return processor.process_apk(input_apk, output_apk)
+
+
+if __name__ == "__main__":
+    # مثال استفاده
+    if len(sys.argv) < 2:
+        print("Usage: python3 apk_processor.py <input.apk> [output.apk]")
+        sys.exit(1)
+    
+    input_file = sys.argv[1]
+    output_file = sys.argv[2] if len(sys.argv) > 2 else None
+    
+    try:
+        result = process_apk(input_file, output_file, verbose=True)
+        print(f"\n✅ Success! Output: {result}")
+    except Exception as e:
+        print(f"\n❌ Error: {e}")
+        sys.exit(1)
