@@ -56,16 +56,15 @@ class SuziAPKProcessor:
     کلاس اصلی پردازش APK با برند Suzi
     """
     
-    def __init__(self, use_jarsigner: bool = True, verbose: bool = False, auto_setup: bool = True):
+    def __init__(self, use_jarsigner: bool = False, verbose: bool = False, auto_setup: bool = True):
         """
         مقداردهی اولیه
         
         Args:
-            use_jarsigner: استفاده از jarsigner (پیش‌فرض: True - برای encrypted files)
+            use_jarsigner: استفاده از jarsigner (پیش‌فرض: False - از uber-apk-signer استفاده می‌شود)
             verbose: نمایش پیام‌های جزئیات (پیش‌فرض: False)
             auto_setup: نصب خودکار ابزارها در صورت نیاز (پیش‌فرض: True)
         """
-        # برای کار با encrypted files، باید از jarsigner استفاده کنیم
         self.use_jarsigner = use_jarsigner
         self.use_python_signer = False
         
@@ -80,13 +79,18 @@ class SuziAPKProcessor:
         
         # مسیرهای ابزارها
         self.apktool_jar = self.tools_dir / "apktool.jar"
+        self.uber_apk_signer = self.tools_dir / "uber-apk-signer.jar"
         
         # تشخیص پلتفرم
         self.platform = platform.system().lower()
         
         # لاگ نوع signer
         if self.use_jarsigner:
-            self.log("استفاده از jarsigner (می‌تونه encrypted files رو sign کنه)")
+            self.log("استفاده از jarsigner")
+        elif self.uber_apk_signer.exists():
+            self.log("استفاده از uber-apk-signer (standalone - بدون نیاز به Android SDK!)")
+        else:
+            self.log("استفاده از jarsigner (fallback)")
     
     def log(self, message: str):
         """نمایش پیام اگر verbose فعال باشه"""
@@ -288,8 +292,54 @@ class SuziAPKProcessor:
             except Exception as e:
                 raise RuntimeError(f"Python signer failed: {e}")
         
-        elif self.use_jarsigner:
-            # استفاده از jarsigner
+        elif self.uber_apk_signer.exists() and not self.use_jarsigner:
+            # استفاده از uber-apk-signer (standalone, می‌تونه با encrypted files کار کنه!)
+            self.log("استفاده از uber-apk-signer...")
+            
+            cmd = [
+                "java", "-jar", str(self.uber_apk_signer),
+                "-a", input_apk,
+                "--ks", keystore,
+                "--ksPass", password,
+                "--ksAlias", alias,
+                "--ksKeyPass", password,
+                "-o", os.path.dirname(output_apk)
+            ]
+            
+            if self.verbose:
+                cmd.append("-v")
+            
+            # اجرا
+            result = subprocess.run(
+                cmd,
+                capture_output=True,
+                text=True
+            )
+            
+            if result.returncode != 0:
+                error_msg = f"Failed to sign APK with uber-apk-signer (exit code: {result.returncode})\n"
+                error_msg += f"Command: {' '.join(cmd)}\n"
+                if result.stdout:
+                    error_msg += f"STDOUT: {result.stdout}\n"
+                if result.stderr:
+                    error_msg += f"STDERR: {result.stderr}\n"
+                raise RuntimeError(error_msg)
+            
+            # uber-apk-signer فایل رو با پسوند -aligned-signed.apk ذخیره می‌کنه
+            base_name = os.path.splitext(os.path.basename(input_apk))[0]
+            signed_file = os.path.join(os.path.dirname(output_apk), f"{base_name}-aligned-signed.apk")
+            
+            if os.path.exists(signed_file):
+                # جابجایی به output_apk
+                shutil.move(signed_file, output_apk)
+                self.log("✅ APK signed successfully with uber-apk-signer")
+                self.temp_files.append(output_apk)
+                return output_apk
+            else:
+                raise RuntimeError(f"Signed APK not found: {signed_file}")
+            
+        else:
+            # استفاده از jarsigner (fallback)
             # کپی کردن فایل
             try:
                 shutil.copy2(input_apk, output_apk)
@@ -317,17 +367,6 @@ class SuziAPKProcessor:
             
             if self.verbose:
                 cmd.insert(1, "-verbose")
-            
-        else:
-            # استفاده از apksigner
-            cmd = [
-                "apksigner", "sign",
-                "--ks", keystore,
-                "--ks-pass", f"pass:{password}",
-                "--ks-key-alias", alias,
-                "--out", output_apk,
-                input_apk
-            ]
         
         result = subprocess.run(
             cmd,

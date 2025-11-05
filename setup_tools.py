@@ -24,11 +24,9 @@ TOOLS_DIR.mkdir(exist_ok=True)
 APKTOOL_URL = "https://github.com/iBotPeaches/Apktool/releases/download/v2.9.3/apktool_2.9.3.jar"
 APKTOOL_PATH = TOOLS_DIR / "apktool.jar"
 
-# Android Build Tools - برای apksigner
-BUILD_TOOLS_VERSION = "34.0.0"
-COMMANDLINE_TOOLS_LINUX = "https://dl.google.com/android/repository/commandlinetools-linux-11076708_latest.zip"
-COMMANDLINE_TOOLS_MAC = "https://dl.google.com/android/repository/commandlinetools-mac-11076708_latest.zip"
-COMMANDLINE_TOOLS_WIN = "https://dl.google.com/android/repository/commandlinetools-win-11076708_latest.zip"
+# uber-apk-signer - standalone apksigner (بدون نیاز به Android SDK!)
+UBER_APK_SIGNER_URL = "https://github.com/patrickfav/uber-apk-signer/releases/download/v1.3.0/uber-apk-signer-1.3.0.jar"
+UBER_APK_SIGNER_PATH = TOOLS_DIR / "uber-apk-signer.jar"
 
 
 def log(message, emoji="ℹ️"):
@@ -128,69 +126,22 @@ def setup_apktool():
         return False
 
 
-def setup_apksigner():
-    """نصب apksigner از Android SDK"""
-    current_platform = detect_platform()
-    
-    # چک کردن اگر قبلاً نصب شده
-    if current_platform == "windows":
-        apksigner_path = TOOLS_DIR / "windows" / "apksigner.jar"
-    else:
-        apksigner_path = TOOLS_DIR / "linux" / "apksigner"
-    
-    if apksigner_path.exists():
-        log(f"✅ apksigner قبلاً نصب شده", "✅")
+def setup_uber_apk_signer():
+    """نصب uber-apk-signer (standalone apksigner)"""
+    if UBER_APK_SIGNER_PATH.exists():
+        log(f"✅ uber-apk-signer قبلاً نصب شده: {UBER_APK_SIGNER_PATH}", "✅")
         return True
     
-    log("📦 دانلود Android SDK Command Line Tools...", "📦")
-    log("⚠️  این ممکنه چند دقیقه طول بکشه...", "⚠️")
+    log("📦 نصب uber-apk-signer...", "📦")
+    success = download_file(UBER_APK_SIGNER_URL, UBER_APK_SIGNER_PATH, "uber-apk-signer.jar")
     
-    # انتخاب URL بر اساس پلتفرم
-    if current_platform == "linux":
-        tools_url = COMMANDLINE_TOOLS_LINUX
-    elif current_platform == "macos":
-        tools_url = COMMANDLINE_TOOLS_MAC
-    elif current_platform == "windows":
-        tools_url = COMMANDLINE_TOOLS_WIN
+    if success and UBER_APK_SIGNER_PATH.exists():
+        log(f"✅ uber-apk-signer نصب شد: {UBER_APK_SIGNER_PATH}", "✅")
+        log("ℹ️  این یک standalone apksigner است - نیازی به Android SDK نیست!", "✅")
+        return True
     else:
-        log("❌ پلتفرم شناخته نشده", "❌")
+        log("❌ نصب uber-apk-signer ناموفق بود", "❌")
         return False
-    
-    # دانلود
-    import tempfile
-    import zipfile
-    
-    with tempfile.TemporaryDirectory() as tmpdir:
-        tmpdir = Path(tmpdir)
-        zip_path = tmpdir / "commandlinetools.zip"
-        
-        if not download_file(tools_url, zip_path, "SDK Command Line Tools"):
-            log("❌ دانلود ناموفق بود", "❌")
-            return False
-        
-        # استخراج
-        log("📂 در حال استخراج...", "📂")
-        try:
-            with zipfile.ZipFile(zip_path, 'r') as zip_ref:
-                zip_ref.extractall(tmpdir)
-            
-            # پیدا کردن apksigner در فایل‌های استخراج شده
-            # معمولاً در build-tools قرار داره
-            log("🔍 جستجو برای apksigner...", "🔍")
-            
-            # ساخت پوشه‌های مقصد
-            (TOOLS_DIR / "windows").mkdir(parents=True, exist_ok=True)
-            (TOOLS_DIR / "linux").mkdir(parents=True, exist_ok=True)
-            
-            # نوت: SDK Command Line Tools به build-tools نیاز داره
-            # برای سادگی، از jarsigner استفاده می‌کنیم که با JDK می‌آد
-            log("ℹ️  apksigner نیاز به Android SDK کامل داره", "ℹ️")
-            log("✅ از jarsigner (با Java JDK) استفاده می‌کنیم", "✅")
-            return True
-            
-        except Exception as e:
-            log(f"❌ خطا در استخراج: {e}", "❌")
-            return False
 
 
 def create_wrapper_scripts():
@@ -300,22 +251,20 @@ def main():
         log("\n⚠️  بعد از نصب Java، این اسکریپت رو دوباره اجرا کنید", "⚠️")
         return False
     
-    # نصب apktool
+    # نصب ابزارها
     log("\n" + "="*60, "")
     log("نصب ابزارها...", "🔧")
     
-    success = setup_apktool()
+    apktool_ok = setup_apktool()
+    apksigner_ok = setup_uber_apk_signer()
     
-    if not success:
-        log("\n❌ نصب ناموفق بود", "❌")
+    if not apktool_ok:
+        log("\n❌ نصب apktool ناموفق بود", "❌")
         return False
     
-    # توضیح apksigner
-    log("\n" + "="*60, "")
-    log("ℹ️  درباره apksigner:", "ℹ️")
-    log("   apksigner جزء Android SDK Build Tools است", "")
-    log("   برای سادگی از jarsigner استفاده می‌کنیم", "")
-    log("   jarsigner با Java JDK می‌آید و نیازی به نصب جداگانه نیست", "")
+    if not apksigner_ok:
+        log("\n⚠️  نصب uber-apk-signer ناموفق بود", "⚠️")
+        log("   از jarsigner به عنوان fallback استفاده می‌شود", "")
     
     # ساخت wrapper scripts
     log("\n" + "="*60, "")
@@ -328,7 +277,9 @@ def main():
     
     log("\n✅ ابزارهای نصب شده:", "")
     log(f"  • apktool: {APKTOOL_PATH}", "")
-    log(f"  • jarsigner: از Java JDK", "")
+    if UBER_APK_SIGNER_PATH.exists():
+        log(f"  • uber-apk-signer: {UBER_APK_SIGNER_PATH}", "")
+    log(f"  • jarsigner (fallback): از Java JDK", "")
     log(f"  • keytool: از Java JDK", "")
     
     log("\n🚀 آماده استفاده!", "")
