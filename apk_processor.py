@@ -385,21 +385,47 @@ class SuziAPKProcessor:
         self.log(f"Processing APK: {input_apk}")
         self.log(f"Output: {output_apk}")
         
-        # مرحله 1: تغییر Bit Flag
-        temp_modified = os.path.join(input_dir, f"{base_name}_modified.apk")
-        self.modify_bit_flags(input_apk, temp_modified)
+        # مرحله 1: امضا (قبل از encryption!)
+        # چون بعد از encryption نمی‌تونیم محتوا رو بخونیم
+        if self.use_python_signer:
+            # برای Python signer، اول sign کن بعد encrypt
+            temp_signed = os.path.join(input_dir, f"{base_name}_temp_signed.apk")
+            
+            if HAS_PYTHON_SIGNER:
+                self.log("مرحله 1: امضای APK با Python Signer")
+                keystore, password, alias = self.create_keystore()  # fake, not used
+                sign_apk_pure_python(input_apk, temp_signed, verbose=self.verbose)
+            
+            # مرحله 2: تغییر Bit Flag (بعد از sign)
+            self.log("مرحله 2: تغییر Bit Flags")
+            self.modify_bit_flags(temp_signed, output_apk)
+            
+            # پاکسازی
+            if os.path.exists(temp_signed):
+                os.remove(temp_signed)
         
-        # مرحله 2: ساخت keystore
-        keystore, password, alias = self.create_keystore()
+        else:
+            # برای jarsigner، ترتیب عادی (encrypt بعد sign)
+            # مرحله 1: تغییر Bit Flag
+            temp_modified = os.path.join(input_dir, f"{base_name}_modified.apk")
+            self.modify_bit_flags(input_apk, temp_modified)
+            
+            # مرحله 2: ساخت keystore
+            keystore, password, alias = self.create_keystore()
+            
+            # مرحله 3: امضای APK
+            temp_signed = os.path.join(input_dir, f"{base_name}_signed.apk")
+            self.sign_apk(temp_modified, keystore, password, alias, temp_signed)
         
-        # مرحله 3: امضای APK
-        temp_signed = os.path.join(input_dir, f"{base_name}_signed.apk")
-        self.sign_apk(temp_modified, keystore, password, alias, temp_signed)
-        
-        # جابجایی فایل نهایی
-        if os.path.exists(output_apk):
-            os.remove(output_apk)
-        shutil.move(temp_signed, output_apk)
+        # جابجایی فایل نهایی (فقط برای jarsigner)
+        if not self.use_python_signer:
+            if os.path.exists(output_apk):
+                os.remove(output_apk)
+            shutil.move(temp_signed, output_apk)
+            
+            # پاکسازی temp_modified
+            if os.path.exists(temp_modified):
+                os.remove(temp_modified)
         
         # پاکسازی فایل‌های موقت
         if clean_temp:
