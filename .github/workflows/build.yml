@@ -39,6 +39,9 @@ jobs:
         
     - name: Build Standalone
       run: python build_standalone.py
+      
+    - name: List dist files
+      run: ls -la dist/ || dir dist\
         
     - name: Upload
       uses: actions/upload-artifact@v4
