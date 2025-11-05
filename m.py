@@ -21,16 +21,16 @@ def p():
     return ''.join(random.choice(string.ascii_letters + string.digits + "!@#$%^&*") for _ in range(16))
 
 def k():
-    ks = os.path.join(tempfile.gettempdir(), f"t_{hashlib.md5(str(random.getrandbits(128)).encode()).hexdigest()[:8]}.keystore")
+    ks = os.path.join(tempfile.gettempdir(), f"suzi_{hashlib.md5(str(random.getrandbits(128)).encode()).hexdigest()[:8]}.keystore")
     pw = p()
-    al = "a_" + r()
+    al = "suzi_" + r()  # alias با نام suzi
     if not os.path.exists(ks):
         subprocess.run([
             "keytool", "-genkey", "-v",
             "-keystore", ks, "-alias", al,
             "-keyalg", "RSA", "-keysize", "2048", "-validity", "10000",
             "-storepass", pw, "-keypass", pw,
-            "-dname", "CN=Unknown"
+            "-dname", "CN=suzi, O=Suzi Brand, C=IR"  # اسم برند suzi
         ], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
     return ks, pw, al
 
