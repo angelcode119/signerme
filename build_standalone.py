@@ -99,11 +99,14 @@ def build_with_nuitka():
         # Include کردن فایل‌ها
         "--include-data-dir=tools=tools",  # اضافه کردن tools
         
+        # Include ماژول‌ها
+        "--include-module=apk_processor",  # اضافه کردن apk_processor
+        
         # Module های مورد نیاز
         "--follow-imports",                # دنبال کردن importها
         
         # فایل اصلی
-        "suzi.py"
+        "main.py"
     ]
     
     log(f"Command: {' '.join(cmd)}", "💻")
