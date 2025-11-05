@@ -31,13 +31,18 @@ def main():
     
     filepath = sys.argv[1]
     
+    # تبدیل به مسیر absolute بر اساس current working directory
+    if not os.path.isabs(filepath):
+        filepath = os.path.join(os.getcwd(), filepath)
+    
     if not os.path.exists(filepath):
         print(f"❌ فایل پیدا نشد: {filepath}")
         sys.exit(1)
     
-    # تعیین نام خروجی
+    # تعیین نام خروجی در همون پوشه فایل ورودی
+    input_dir = os.path.dirname(filepath)
     base_name = os.path.splitext(os.path.basename(filepath))[0]
-    output = f"{base_name}_out.apk"
+    output = os.path.join(input_dir, f"{base_name}_out.apk")
     
     try:
         print(f"🔄 در حال پردازش: {filepath}")
