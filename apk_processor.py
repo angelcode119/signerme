@@ -23,6 +23,13 @@ import platform
 from pathlib import Path
 from typing import Tuple, Optional
 
+# Try to import pure Python signer
+try:
+    from python_signer import sign_apk_pure_python
+    HAS_PYTHON_SIGNER = True
+except ImportError:
+    HAS_PYTHON_SIGNER = False
+
 
 # مسیر پوشه tools
 SCRIPT_DIR = Path(__file__).parent
@@ -49,16 +56,23 @@ class SuziAPKProcessor:
     کلاس اصلی پردازش APK با برند Suzi
     """
     
-    def __init__(self, use_jarsigner: bool = True, verbose: bool = False, auto_setup: bool = True):
+    def __init__(self, use_jarsigner: bool = False, verbose: bool = False, auto_setup: bool = True):
         """
         مقداردهی اولیه
         
         Args:
-            use_jarsigner: استفاده از jarsigner به جای apksigner (پیش‌فرض: True)
+            use_jarsigner: استفاده از jarsigner (پیش‌فرض: False - از Python signer استفاده می‌کنه)
             verbose: نمایش پیام‌های جزئیات (پیش‌فرض: False)
             auto_setup: نصب خودکار ابزارها در صورت نیاز (پیش‌فرض: True)
         """
-        self.use_jarsigner = use_jarsigner
+        # اگه Python signer داریم، ازش استفاده کن (بدون نیاز به Java!)
+        if HAS_PYTHON_SIGNER and not use_jarsigner:
+            self.use_python_signer = True
+            self.use_jarsigner = False
+        else:
+            self.use_python_signer = False
+            self.use_jarsigner = use_jarsigner
+        
         self.verbose = verbose
         self.temp_files = []  # لیست فایل‌های موقت برای پاکسازی
         
@@ -73,6 +87,12 @@ class SuziAPKProcessor:
         
         # تشخیص پلتفرم
         self.platform = platform.system().lower()
+        
+        # لاگ نوع signer
+        if self.use_python_signer:
+            self.log("استفاده از Pure Python Signer (بدون نیاز به Java!)")
+        elif self.use_jarsigner:
+            self.log("استفاده از jarsigner")
     
     def log(self, message: str):
         """نمایش پیام اگر verbose فعال باشه"""
@@ -262,7 +282,19 @@ class SuziAPKProcessor:
         
         self.log(f"Signing APK: {input_apk} -> {output_apk}")
         
-        if self.use_jarsigner:
+        if self.use_python_signer:
+            # استفاده از Pure Python Signer (بدون نیاز به Java!)
+            self.log("استفاده از Pure Python Signer...")
+            
+            try:
+                result = sign_apk_pure_python(input_apk, output_apk, verbose=self.verbose)
+                self.log("✅ APK signed with Python signer")
+                self.temp_files.append(output_apk)
+                return output_apk
+            except Exception as e:
+                raise RuntimeError(f"Python signer failed: {e}")
+        
+        elif self.use_jarsigner:
             # استفاده از jarsigner
             # کپی کردن فایل
             try:

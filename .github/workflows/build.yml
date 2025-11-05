@@ -35,7 +35,7 @@ jobs:
         java-version: '21'
         
     - name: Install dependencies
-      run: pip install nuitka ordered-set zstandard
+      run: pip install cryptography nuitka ordered-set zstandard
         
     - name: Build Standalone
       run: python build_standalone.py

@@ -1,10 +1,10 @@
 # Suzi APK Processor - Dependencies
 
-# برای اجرای نسخه عادی (development)
-# بدون نیاز به چیز خاصی - فقط Python 3.6+
-
-# برای sign کردن با Python خالص (بدون نیاز به Java!)
+# ⭐ مهم - برای sign کردن بدون نیاز به Java!
 cryptography>=41.0.0
+
+# برای اجرای نسخه عادی (development)
+# cryptography نصب باشه کافیه!
 
 # برای build نسخه محافظت شده
 cython>=3.0.0
