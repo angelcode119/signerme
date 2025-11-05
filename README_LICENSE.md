@@ -75,10 +75,12 @@ python3 m.py your_app.apk
 در `LicenseChecker.java` خط 15:
 
 ```java
-private static final String LICENSE_URL = "https://raw.githubusercontent.com/USERNAME/REPO/main/license.json";
+private static final String LICENSE_URL = "https://raw.githubusercontent.com/angelcode119/signerverify/main/license.json";
 ```
 
-آدرس رو با ریپوی خودتون جایگزین کنید.
+**آدرس فعلی:** `https://raw.githubusercontent.com/angelcode119/signerverify/main/license.json`
+
+**نکته:** از raw.githubusercontent.com استفاده می‌شه، نه github.com/blob/
 
 ### افزودن فیلدهای بیشتر به License
 

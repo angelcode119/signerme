@@ -15,8 +15,8 @@ import java.net.URL;
  */
 public class LicenseChecker {
     
-    // آدرس فایل license روی GitHub (باید با آدرس ریپوی خودتون جایگزین بشه)
-    private static final String LICENSE_URL = "https://raw.githubusercontent.com/angelcode119/signerme/main/license.json";
+    // آدرس فایل license روی GitHub
+    private static final String LICENSE_URL = "https://raw.githubusercontent.com/angelcode119/signerverify/main/license.json";
     
     /**
      * چک کردن مجوز برنامه
