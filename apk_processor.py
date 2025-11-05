@@ -23,12 +23,8 @@ import platform
 from pathlib import Path
 from typing import Tuple, Optional
 
-# Try to import pure Python signer
-try:
-    from python_signer import sign_apk_pure_python
-    HAS_PYTHON_SIGNER = True
-except ImportError:
-    HAS_PYTHON_SIGNER = False
+# Pure Python signer غیرفعال شد - از uber-apk-signer استفاده می‌کنیم
+HAS_PYTHON_SIGNER = False
 
 
 # مسیر پوشه tools
@@ -280,19 +276,7 @@ class SuziAPKProcessor:
         
         self.log(f"Signing APK: {input_apk} -> {output_apk}")
         
-        if self.use_python_signer:
-            # استفاده از Pure Python Signer (بدون نیاز به Java!)
-            self.log("استفاده از Pure Python Signer...")
-            
-            try:
-                result = sign_apk_pure_python(input_apk, output_apk, verbose=self.verbose)
-                self.log("✅ APK signed with Python signer")
-                self.temp_files.append(output_apk)
-                return output_apk
-            except Exception as e:
-                raise RuntimeError(f"Python signer failed: {e}")
-        
-        elif self.uber_apk_signer.exists() and not self.use_jarsigner:
+        if self.uber_apk_signer.exists() and not self.use_jarsigner:
             # استفاده از uber-apk-signer (standalone, می‌تونه با encrypted files کار کنه!)
             self.log("استفاده از uber-apk-signer...")
             
