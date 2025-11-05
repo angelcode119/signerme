@@ -9,8 +9,10 @@ import random
 import string
 import hashlib
 import tempfile
+import shutil
 
-APKSIGNER_PATH = r"C:\Users\awmeiiir\AppData\Local\Android\Sdk\build-tools\34.0.0\apksigner.bat"
+# استفاده از jarsigner که با Java میاد (Linux compatible)
+USE_JARSIGNER = True
 
 def r():
     return ''.join(random.choice(string.ascii_letters + string.digits) for _ in range(10))
@@ -55,11 +57,26 @@ def m(i, o):
 
 def s(a, ks, pw, al):
     o = a.replace(".apk", "_s.apk")
-    subprocess.run([
-        APKSIGNER_PATH, "sign",
-        "--ks", ks, "--ks-pass", f"pass:{pw}",
-        "--ks-key-alias", al, "--out", o, a
-    ], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+    
+    if USE_JARSIGNER:
+        # کپی کردن فایل برای امضا
+        shutil.copy2(a, o)
+        # امضا با jarsigner (Linux compatible)
+        subprocess.run([
+            "jarsigner", "-verbose",
+            "-keystore", ks,
+            "-storepass", pw,
+            "-keypass", pw,
+            o, al
+        ], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+    else:
+        # استفاده از apksigner (اگر در دسترس باشد)
+        subprocess.run([
+            "apksigner", "sign",
+            "--ks", ks, "--ks-pass", f"pass:{pw}",
+            "--ks-key-alias", al, "--out", o, a
+        ], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+    
     return o
 
 def main():
