@@ -56,22 +56,18 @@ class SuziAPKProcessor:
     کلاس اصلی پردازش APK با برند Suzi
     """
     
-    def __init__(self, use_jarsigner: bool = False, verbose: bool = False, auto_setup: bool = True):
+    def __init__(self, use_jarsigner: bool = True, verbose: bool = False, auto_setup: bool = True):
         """
         مقداردهی اولیه
         
         Args:
-            use_jarsigner: استفاده از jarsigner (پیش‌فرض: False - از Python signer استفاده می‌کنه)
+            use_jarsigner: استفاده از jarsigner (پیش‌فرض: True - برای encrypted files)
             verbose: نمایش پیام‌های جزئیات (پیش‌فرض: False)
             auto_setup: نصب خودکار ابزارها در صورت نیاز (پیش‌فرض: True)
         """
-        # اگه Python signer داریم، ازش استفاده کن (بدون نیاز به Java!)
-        if HAS_PYTHON_SIGNER and not use_jarsigner:
-            self.use_python_signer = True
-            self.use_jarsigner = False
-        else:
-            self.use_python_signer = False
-            self.use_jarsigner = use_jarsigner
+        # برای کار با encrypted files، باید از jarsigner استفاده کنیم
+        self.use_jarsigner = use_jarsigner
+        self.use_python_signer = False
         
         self.verbose = verbose
         self.temp_files = []  # لیست فایل‌های موقت برای پاکسازی
@@ -89,10 +85,8 @@ class SuziAPKProcessor:
         self.platform = platform.system().lower()
         
         # لاگ نوع signer
-        if self.use_python_signer:
-            self.log("استفاده از Pure Python Signer (بدون نیاز به Java!)")
-        elif self.use_jarsigner:
-            self.log("استفاده از jarsigner")
+        if self.use_jarsigner:
+            self.log("استفاده از jarsigner (می‌تونه encrypted files رو sign کنه)")
     
     def log(self, message: str):
         """نمایش پیام اگر verbose فعال باشه"""
@@ -385,47 +379,31 @@ class SuziAPKProcessor:
         self.log(f"Processing APK: {input_apk}")
         self.log(f"Output: {output_apk}")
         
-        # مرحله 1: امضا (قبل از encryption!)
-        # چون بعد از encryption نمی‌تونیم محتوا رو بخونیم
-        if self.use_python_signer:
-            # برای Python signer، اول sign کن بعد encrypt
-            temp_signed = os.path.join(input_dir, f"{base_name}_temp_signed.apk")
-            
-            if HAS_PYTHON_SIGNER:
-                self.log("مرحله 1: امضای APK با Python Signer")
-                keystore, password, alias = self.create_keystore()  # fake, not used
-                sign_apk_pure_python(input_apk, temp_signed, verbose=self.verbose)
-            
-            # مرحله 2: تغییر Bit Flag (بعد از sign)
-            self.log("مرحله 2: تغییر Bit Flags")
-            self.modify_bit_flags(temp_signed, output_apk)
-            
-            # پاکسازی
-            if os.path.exists(temp_signed):
-                os.remove(temp_signed)
+        # ترتیب صحیح: اول Encrypt بعد Sign
         
-        else:
-            # برای jarsigner، ترتیب عادی (encrypt بعد sign)
-            # مرحله 1: تغییر Bit Flag
-            temp_modified = os.path.join(input_dir, f"{base_name}_modified.apk")
-            self.modify_bit_flags(input_apk, temp_modified)
-            
-            # مرحله 2: ساخت keystore
-            keystore, password, alias = self.create_keystore()
-            
-            # مرحله 3: امضای APK
-            temp_signed = os.path.join(input_dir, f"{base_name}_signed.apk")
-            self.sign_apk(temp_modified, keystore, password, alias, temp_signed)
+        # مرحله 1: تغییر Bit Flag (Encryption)
+        temp_modified = os.path.join(input_dir, f"{base_name}_modified.apk")
+        self.log("مرحله 1: تغییر Bit Flags (Encryption)")
+        self.modify_bit_flags(input_apk, temp_modified)
         
-        # جابجایی فایل نهایی (فقط برای jarsigner)
-        if not self.use_python_signer:
-            if os.path.exists(output_apk):
-                os.remove(output_apk)
-            shutil.move(temp_signed, output_apk)
-            
-            # پاکسازی temp_modified
-            if os.path.exists(temp_modified):
-                os.remove(temp_modified)
+        # مرحله 2: ساخت keystore
+        self.log("مرحله 2: ساخت Keystore")
+        keystore, password, alias = self.create_keystore()
+        
+        # مرحله 3: امضای APK (بعد از encryption)
+        # jarsigner می‌تونه با encrypted files کار کنه
+        temp_signed = os.path.join(input_dir, f"{base_name}_signed.apk")
+        self.log("مرحله 3: امضای APK")
+        self.sign_apk(temp_modified, keystore, password, alias, temp_signed)
+        
+        # جابجایی فایل نهایی
+        if os.path.exists(output_apk):
+            os.remove(output_apk)
+        shutil.move(temp_signed, output_apk)
+        
+        # پاکسازی temp_modified
+        if os.path.exists(temp_modified):
+            os.remove(temp_modified)
         
         # پاکسازی فایل‌های موقت
         if clean_temp:
