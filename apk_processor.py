@@ -19,7 +19,29 @@ import string
 import hashlib
 import tempfile
 import shutil
+import platform
+from pathlib import Path
 from typing import Tuple, Optional
+
+
+# مسیر پوشه tools
+SCRIPT_DIR = Path(__file__).parent
+TOOLS_DIR = SCRIPT_DIR / "tools"
+
+
+def check_and_setup_tools():
+    """چک و نصب خودکار ابزارهای لازم"""
+    # اگر tools وجود نداره، نصب کن
+    if not TOOLS_DIR.exists() or not (TOOLS_DIR / "apktool.jar").exists():
+        print("⚠️  ابزارهای لازم یافت نشد. نصب خودکار...")
+        try:
+            import setup_tools
+            setup_tools.main()
+        except Exception as e:
+            print(f"⚠️  لطفاً setup_tools.py را اجرا کنید: python3 setup_tools.py")
+            print(f"   خطا: {e}")
+    
+    return TOOLS_DIR
 
 
 class SuziAPKProcessor:
@@ -27,17 +49,30 @@ class SuziAPKProcessor:
     کلاس اصلی پردازش APK با برند Suzi
     """
     
-    def __init__(self, use_jarsigner: bool = True, verbose: bool = False):
+    def __init__(self, use_jarsigner: bool = True, verbose: bool = False, auto_setup: bool = True):
         """
         مقداردهی اولیه
         
         Args:
             use_jarsigner: استفاده از jarsigner به جای apksigner (پیش‌فرض: True)
             verbose: نمایش پیام‌های جزئیات (پیش‌فرض: False)
+            auto_setup: نصب خودکار ابزارها در صورت نیاز (پیش‌فرض: True)
         """
         self.use_jarsigner = use_jarsigner
         self.verbose = verbose
         self.temp_files = []  # لیست فایل‌های موقت برای پاکسازی
+        
+        # Setup ابزارها
+        if auto_setup:
+            self.tools_dir = check_and_setup_tools()
+        else:
+            self.tools_dir = TOOLS_DIR
+        
+        # مسیرهای ابزارها
+        self.apktool_jar = self.tools_dir / "apktool.jar"
+        
+        # تشخیص پلتفرم
+        self.platform = platform.system().lower()
     
     def log(self, message: str):
         """نمایش پیام اگر verbose فعال باشه"""

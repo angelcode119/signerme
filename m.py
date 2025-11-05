@@ -2,56 +2,67 @@
 # -*- coding: utf-8 -*-
 """
 Suzi Brand - APK Processor Runner
-اسکریپت اجرایی ساده برای پردازش APK
+رانر فوق‌العاده ساده برای پردازش APK
 
-این فایل فقط یک wrapper ساده برای apk_processor است
-منطق اصلی در apk_processor.py قرار داره
+استفاده:
+    from m import process
+    process(filepath="app.apk")
 """
 
 import sys
 import os
 
-# Import کردن منطق اصلی
-from apk_processor import process_apk
+# Import منطق اصلی
+from apk_processor import SuziAPKProcessor
+
+
+def process(filepath, output=None, verbose=False):
+    """
+    تابع ساده برای پردازش APK - فقط filepath بده!
+    
+    Args:
+        filepath: مسیر فایل APK
+        output: نام فایل خروجی (اختیاری)
+        verbose: نمایش جزئیات (اختیاری)
+    
+    Returns:
+        مسیر فایل پردازش شده
+    
+    مثال:
+        from m import process
+        result = process(filepath="app.apk")
+        print(result)  # app_out.apk
+    """
+    if not os.path.exists(filepath):
+        raise FileNotFoundError(f"فایل پیدا نشد: {filepath}")
+    
+    processor = SuziAPKProcessor(verbose=verbose)
+    
+    if output is None:
+        base = os.path.splitext(os.path.basename(filepath))[0]
+        output = f"{base}_out.apk"
+    
+    return processor.process_apk(filepath, output)
 
 
 def main():
-    """تابع اصلی runner"""
-    # چک کردن آرگومان‌ها
+    """تابع اصلی برای استفاده از command line"""
     if len(sys.argv) != 2:
         print("❌ استفاده نادرست!")
         print("✅ استفاده صحیح: python3 m.py <input.apk>")
-        print("\nمثال:")
-        print("  python3 m.py app.apk")
+        print("\nیا در کد Python:")
+        print("    from m import process")
+        print("    process(filepath='app.apk')")
         sys.exit(1)
     
-    input_apk = sys.argv[1]
-    
-    # چک کردن وجود فایل
-    if not os.path.exists(input_apk):
-        print(f"❌ فایل پیدا نشد: {input_apk}")
-        sys.exit(1)
-    
-    # تعیین نام فایل خروجی
-    base_name = os.path.splitext(os.path.basename(input_apk))[0]
-    output_apk = f"{base_name}_out.apk"
+    filepath = sys.argv[1]
     
     try:
-        # پردازش APK با استفاده از منطق اصلی
-        print(f"🔄 در حال پردازش: {input_apk}")
-        result = process_apk(input_apk, output_apk, verbose=False)
+        print(f"🔄 در حال پردازش: {filepath}")
+        result = process(filepath=filepath, verbose=False)
         print(f"✅ تمام! خروجی: {result}")
-        
-    except FileNotFoundError as e:
-        print(f"❌ فایل پیدا نشد: {e}")
-        sys.exit(1)
-        
-    except RuntimeError as e:
-        print(f"❌ خطا در پردازش: {e}")
-        sys.exit(1)
-        
     except Exception as e:
-        print(f"❌ خطای غیرمنتظره: {e}")
+        print(f"❌ خطا: {e}")
         sys.exit(1)
 
 
