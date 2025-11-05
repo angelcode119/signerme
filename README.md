@@ -42,7 +42,7 @@ brew install openjdk          # macOS
 pip install -r requirements.txt
 ```
 
-**نکته:** فایل executable فقط Java نیاز داره! `uber-apk-signer.jar` bundle شده ✨
+**نکته:** فایل executable فقط Java نیاز داره! `apksigner.jar` اصلی Android bundle شده ✨
 
 ---
 
@@ -65,8 +65,8 @@ python build_protected.py
 ## ✨ ویژگی‌ها
 
 - ✅ API یک خطی: `suzi.process("app.apk")`
-- ✅ **Standalone package:** uber-apk-signer.jar bundle شده (فقط Java نیاز!)
-- ✅ **بدون نیاز به Android SDK!** همه چیز داخل یک فایل
+- ✅ **Standalone package:** apksigner.jar اصلی Android bundle شده (فقط Java نیاز!)
+- ✅ **بدون نیاز به نصب Android SDK!** همه چیز داخل یک فایل
 - ✅ نسخه محافظت شده: کد به C کامپایل شده
 - ✅ کراس‌پلتفرم: Linux, Windows, macOS
 - ✅ بدون پسوند Python

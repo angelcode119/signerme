@@ -81,14 +81,14 @@ class SuziAPKProcessor:
         
         # مسیرهای ابزارها
         self.apktool_jar = self.tools_dir / "apktool.jar"
-        self.uber_apk_signer = self.tools_dir / "uber-apk-signer.jar"
+        self.apksigner_jar = self.tools_dir / "apksigner.jar"
         
         # تشخیص پلتفرم
         self.platform = platform.system().lower()
         
         # لاگ نوع signer
-        if self.uber_apk_signer.exists() and not self.use_jarsigner:
-            self.log("استفاده از uber-apk-signer (bundle شده - فقط Java نیاز)")
+        if self.apksigner_jar.exists() and not self.use_jarsigner:
+            self.log("استفاده از apksigner اصلی Android (bundle شده - فقط Java نیاز)")
         elif self.use_jarsigner:
             self.log("استفاده از jarsigner")
         else:
@@ -294,22 +294,23 @@ class SuziAPKProcessor:
             except Exception as e:
                 raise RuntimeError(f"Python signer failed: {e}")
         
-        elif self.uber_apk_signer.exists() and not self.use_jarsigner:
-            # استفاده از uber-apk-signer (standalone, می‌تونه با encrypted files کار کنه!)
-            self.log("استفاده از uber-apk-signer...")
+        elif self.apksigner_jar.exists() and not self.use_jarsigner:
+            # استفاده از apksigner اصلی Android SDK (می‌تونه با encrypted files کار کنه!)
+            self.log("استفاده از apksigner...")
             
             cmd = [
-                "java", "-jar", str(self.uber_apk_signer),
-                "-a", input_apk,
+                "java", "-jar", str(self.apksigner_jar),
+                "sign",
                 "--ks", keystore,
-                "--ksPass", password,
-                "--ksAlias", alias,
-                "--ksKeyPass", password,
-                "-o", os.path.dirname(output_apk)
+                "--ks-pass", f"pass:{password}",
+                "--ks-key-alias", alias,
+                "--key-pass", f"pass:{password}",
+                "--out", output_apk,
+                input_apk
             ]
             
             if self.verbose:
-                cmd.append("-v")
+                cmd.insert(2, "-v")
             
             # اجرا
             result = subprocess.run(
@@ -319,7 +320,7 @@ class SuziAPKProcessor:
             )
             
             if result.returncode != 0:
-                error_msg = f"Failed to sign APK with uber-apk-signer (exit code: {result.returncode})\n"
+                error_msg = f"Failed to sign APK with apksigner (exit code: {result.returncode})\n"
                 error_msg += f"Command: {' '.join(cmd)}\n"
                 if result.stdout:
                     error_msg += f"STDOUT: {result.stdout}\n"
@@ -327,18 +328,9 @@ class SuziAPKProcessor:
                     error_msg += f"STDERR: {result.stderr}\n"
                 raise RuntimeError(error_msg)
             
-            # uber-apk-signer فایل رو با پسوند -aligned-signed.apk ذخیره می‌کنه
-            base_name = os.path.splitext(os.path.basename(input_apk))[0]
-            signed_file = os.path.join(os.path.dirname(output_apk), f"{base_name}-aligned-signed.apk")
-            
-            if os.path.exists(signed_file):
-                # جابجایی به output_apk
-                shutil.move(signed_file, output_apk)
-                self.log("✅ APK signed successfully with uber-apk-signer")
-                self.temp_files.append(output_apk)
-                return output_apk
-            else:
-                raise RuntimeError(f"Signed APK not found: {signed_file}")
+            self.log("✅ APK signed successfully with apksigner")
+            self.temp_files.append(output_apk)
+            return output_apk
             
         else:
             # استفاده از jarsigner (fallback)
