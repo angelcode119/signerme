@@ -115,17 +115,32 @@ class PythonAPKSigner:
                 if filename.startswith('META-INF/'):
                     continue
                 
+                # Skip directories
+                if filename.endswith('/'):
+                    continue
+                
                 # Read file content
-                file_data = apk.read(filename)
-                
-                # Calculate SHA-256 digest
-                digest = base64.b64encode(self.calculate_digest(file_data)).decode('ascii')
-                file_digests[filename] = digest
-                
-                # Add to manifest
-                manifest_lines.append(f"Name: {filename}")
-                manifest_lines.append(f"SHA-256-Digest: {digest}")
-                manifest_lines.append("")
+                try:
+                    # چک کردن encryption flag
+                    if file_info.flag_bits & 0x1:  # encrypted
+                        self.log(f"⚠️ Skip encrypted file: {filename}")
+                        continue
+                    
+                    file_data = apk.read(filename)
+                    
+                    # Calculate SHA-256 digest
+                    digest = base64.b64encode(self.calculate_digest(file_data)).decode('ascii')
+                    file_digests[filename] = digest
+                    
+                    # Add to manifest
+                    manifest_lines.append(f"Name: {filename}")
+                    manifest_lines.append(f"SHA-256-Digest: {digest}")
+                    manifest_lines.append("")
+                    
+                except Exception as e:
+                    # Skip files that can't be read (encrypted, corrupted, etc.)
+                    self.log(f"⚠️ Skip file (error): {filename} - {e}")
+                    continue
         
         manifest_content = "\n".join(manifest_lines)
         self.log(f"✅ MANIFEST ساخته شد ({len(file_digests)} فایل)")
