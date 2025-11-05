@@ -40,7 +40,19 @@ jobs:
     - name: Build
       run: python build_protected.py
         
-    - name: Cleanup
+    - name: Cleanup (Windows)
+      if: runner.os == 'Windows'
+      run: |
+        if (Test-Path build) { Remove-Item -Recurse -Force build }
+        if (Test-Path __pycache__) { Remove-Item -Recurse -Force __pycache__ }
+        Remove-Item -Force *.c -ErrorAction SilentlyContinue
+        Remove-Item -Force *.so -ErrorAction SilentlyContinue
+        Remove-Item -Force *.pyd -ErrorAction SilentlyContinue
+        Remove-Item -Force suzi_apk.py -ErrorAction SilentlyContinue
+      shell: pwsh
+        
+    - name: Cleanup (Unix)
+      if: runner.os != 'Windows'
       run: |
         rm -rf build __pycache__ *.c *.so *.pyd suzi_apk.py || true
         
