@@ -65,6 +65,15 @@ jobs:
       run: |
         python build_protected.py
         
+    - name: Cleanup build files
+      run: |
+        # پاک کردن فایل‌های موقت و اضافی
+        rm -rf build/ || true
+        rm -f *.c *.so *.pyd *.o suzi_apk.py || true
+        rm -rf __pycache__/ || true
+        find . -name "*.pyc" -delete || true
+        find . -name "__pycache__" -type d -exec rm -rf {} + || true
+        
     - name: Test executable
       run: |
         ls -la dist/ || dir dist\
