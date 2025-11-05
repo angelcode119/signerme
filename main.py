@@ -31,9 +31,24 @@ def main():
     
     filepath = sys.argv[1]
     
-    # تبدیل به مسیر absolute بر اساس current working directory
+    # تبدیل به مسیر absolute
+    # استفاده از realpath برای حل کردن symlink ها
     if not os.path.isabs(filepath):
-        filepath = os.path.join(os.getcwd(), filepath)
+        # اگه مسیر نسبی هست، نسبت به working directory فعلی resolve کن
+        # نه نسبت به مسیر executable!
+        import subprocess
+        # گرفتن working directory واقعی
+        current_dir = os.environ.get('PWD') or os.environ.get('CD')
+        if not current_dir:
+            # fallback
+            current_dir = os.path.dirname(os.path.abspath(sys.argv[0]))
+            # اگه sys.argv[0] خود executable هست، parent directory رو بگیر
+            if current_dir.endswith('.exe') or os.path.isfile(current_dir):
+                current_dir = os.path.dirname(current_dir)
+        
+        filepath = os.path.join(current_dir, filepath)
+    
+    filepath = os.path.abspath(filepath)
     
     if not os.path.exists(filepath):
         print(f"❌ فایل پیدا نشد: {filepath}")
