@@ -35,10 +35,10 @@ jobs:
         java-version: '21'
         
     - name: Install dependencies
-      run: pip install cython pyinstaller
+      run: pip install nuitka ordered-set zstandard
         
-    - name: Build
-      run: python build_protected.py
+    - name: Build Standalone
+      run: python build_standalone.py
         
     - name: Cleanup (Windows)
       if: runner.os == 'Windows'
