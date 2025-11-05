@@ -16,24 +16,12 @@ import zipfile
 from datetime import datetime, timezone
 from pathlib import Path
 
-# Check and install cryptography if needed
-try:
-    from cryptography import x509
-    from cryptography.x509.oid import NameOID
-    from cryptography.hazmat.primitives import hashes, serialization
-    from cryptography.hazmat.primitives.asymmetric import rsa, padding
-    from cryptography.hazmat.backends import default_backend
-except ImportError:
-    print("⚠️  کتابخانه cryptography نصب نیست!")
-    print("📦 در حال نصب...")
-    import subprocess
-    import sys
-    subprocess.check_call([sys.executable, "-m", "pip", "install", "cryptography"])
-    from cryptography import x509
-    from cryptography.x509.oid import NameOID
-    from cryptography.hazmat.primitives import hashes, serialization
-    from cryptography.hazmat.primitives.asymmetric import rsa, padding
-    from cryptography.hazmat.backends import default_backend
+# Import cryptography (must be bundled with Nuitka)
+from cryptography import x509
+from cryptography.x509.oid import NameOID
+from cryptography.hazmat.primitives import hashes, serialization
+from cryptography.hazmat.primitives.asymmetric import rsa, padding
+from cryptography.hazmat.backends import default_backend
 
 
 class PythonAPKSigner:

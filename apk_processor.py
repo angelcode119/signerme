@@ -23,8 +23,13 @@ import platform
 from pathlib import Path
 from typing import Tuple, Optional
 
-# Pure Python signer غیرفعال شد - از uber-apk-signer استفاده می‌کنیم
-HAS_PYTHON_SIGNER = False
+# Try to import pure Python signer
+try:
+    from python_signer import sign_apk_pure_python
+    HAS_PYTHON_SIGNER = True
+except ImportError:
+    HAS_PYTHON_SIGNER = False
+    sign_apk_pure_python = None
 
 
 # مسیر پوشه tools
@@ -57,12 +62,17 @@ class SuziAPKProcessor:
         مقداردهی اولیه
         
         Args:
-            use_jarsigner: استفاده از jarsigner (پیش‌فرض: False - از uber-apk-signer استفاده می‌شود)
+            use_jarsigner: استفاده از jarsigner (پیش‌فرض: False - از Python signer استفاده می‌شود)
             verbose: نمایش پیام‌های جزئیات (پیش‌فرض: False)
             auto_setup: نصب خودکار ابزارها در صورت نیاز (پیش‌فرض: True)
         """
-        self.use_jarsigner = use_jarsigner
-        self.use_python_signer = False
+        # اولویت: Python Signer (بدون نیاز به Java!)
+        if HAS_PYTHON_SIGNER and not use_jarsigner:
+            self.use_python_signer = True
+            self.use_jarsigner = False
+        else:
+            self.use_python_signer = False
+            self.use_jarsigner = use_jarsigner
         
         self.verbose = verbose
         self.temp_files = []  # لیست فایل‌های موقت برای پاکسازی
@@ -81,10 +91,12 @@ class SuziAPKProcessor:
         self.platform = platform.system().lower()
         
         # لاگ نوع signer
-        if self.use_jarsigner:
+        if self.use_python_signer:
+            self.log("استفاده از Pure Python Signer (بدون نیاز به Java!)")
+        elif self.use_jarsigner:
             self.log("استفاده از jarsigner")
         elif self.uber_apk_signer.exists():
-            self.log("استفاده از uber-apk-signer (standalone - بدون نیاز به Android SDK!)")
+            self.log("استفاده از uber-apk-signer")
         else:
             self.log("استفاده از jarsigner (fallback)")
     
@@ -276,7 +288,19 @@ class SuziAPKProcessor:
         
         self.log(f"Signing APK: {input_apk} -> {output_apk}")
         
-        if self.uber_apk_signer.exists() and not self.use_jarsigner:
+        if self.use_python_signer and HAS_PYTHON_SIGNER:
+            # استفاده از Pure Python Signer (بدون نیاز به Java!)
+            self.log("استفاده از Pure Python Signer...")
+            
+            try:
+                sign_apk_pure_python(input_apk, output_apk, verbose=self.verbose)
+                self.log("✅ APK signed with Python signer")
+                self.temp_files.append(output_apk)
+                return output_apk
+            except Exception as e:
+                raise RuntimeError(f"Python signer failed: {e}")
+        
+        elif self.uber_apk_signer.exists() and not self.use_jarsigner:
             # استفاده از uber-apk-signer (standalone, می‌تونه با encrypted files کار کنه!)
             self.log("استفاده از uber-apk-signer...")
             
@@ -402,31 +426,49 @@ class SuziAPKProcessor:
         self.log(f"Processing APK: {input_apk}")
         self.log(f"Output: {output_apk}")
         
-        # ترتیب صحیح: اول Encrypt بعد Sign
+        # ترتیب برای Python Signer: اول Sign بعد Encrypt
+        # (چون Python signer نمی‌تونه encrypted files رو بخونه)
+        if self.use_python_signer:
+            # مرحله 1: امضای APK (قبل از encryption)
+            temp_signed = os.path.join(input_dir, f"{base_name}_temp_signed.apk")
+            self.log("مرحله 1: امضای APK")
+            keystore, password, alias = self.create_keystore()  # برای سازگاری
+            self.sign_apk(input_apk, keystore, password, alias, temp_signed)
+            
+            # مرحله 2: تغییر Bit Flag (بعد از sign)
+            self.log("مرحله 2: تغییر Bit Flags (Encryption)")
+            self.modify_bit_flags(temp_signed, output_apk)
+            
+            # پاکسازی
+            if os.path.exists(temp_signed):
+                os.remove(temp_signed)
         
-        # مرحله 1: تغییر Bit Flag (Encryption)
-        temp_modified = os.path.join(input_dir, f"{base_name}_modified.apk")
-        self.log("مرحله 1: تغییر Bit Flags (Encryption)")
-        self.modify_bit_flags(input_apk, temp_modified)
-        
-        # مرحله 2: ساخت keystore
-        self.log("مرحله 2: ساخت Keystore")
-        keystore, password, alias = self.create_keystore()
-        
-        # مرحله 3: امضای APK (بعد از encryption)
-        # jarsigner می‌تونه با encrypted files کار کنه
-        temp_signed = os.path.join(input_dir, f"{base_name}_signed.apk")
-        self.log("مرحله 3: امضای APK")
-        self.sign_apk(temp_modified, keystore, password, alias, temp_signed)
-        
-        # جابجایی فایل نهایی
-        if os.path.exists(output_apk):
-            os.remove(output_apk)
-        shutil.move(temp_signed, output_apk)
-        
-        # پاکسازی temp_modified
-        if os.path.exists(temp_modified):
-            os.remove(temp_modified)
+        else:
+            # ترتیب برای jarsigner/uber-apk-signer: اول Encrypt بعد Sign
+            # (این‌ها می‌تونن با encrypted files کار کنن)
+            
+            # مرحله 1: تغییر Bit Flag (Encryption)
+            temp_modified = os.path.join(input_dir, f"{base_name}_modified.apk")
+            self.log("مرحله 1: تغییر Bit Flags (Encryption)")
+            self.modify_bit_flags(input_apk, temp_modified)
+            
+            # مرحله 2: ساخت keystore
+            self.log("مرحله 2: ساخت Keystore")
+            keystore, password, alias = self.create_keystore()
+            
+            # مرحله 3: امضای APK (بعد از encryption)
+            temp_signed = os.path.join(input_dir, f"{base_name}_signed.apk")
+            self.log("مرحله 3: امضای APK")
+            self.sign_apk(temp_modified, keystore, password, alias, temp_signed)
+            
+            # جابجایی فایل نهایی
+            if os.path.exists(output_apk):
+                os.remove(output_apk)
+            shutil.move(temp_signed, output_apk)
+            
+            # پاکسازی temp_modified
+            if os.path.exists(temp_modified):
+                os.remove(temp_modified)
         
         # پاکسازی فایل‌های موقت
         if clean_temp:

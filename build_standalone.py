@@ -101,6 +101,8 @@ def build_with_nuitka():
         
         # Include ماژول‌ها
         "--include-module=apk_processor",  # اضافه کردن apk_processor
+        "--include-module=python_signer",  # اضافه کردن python_signer
+        "--include-package=cryptography",  # اضافه کردن cryptography
         
         # Module های مورد نیاز
         "--follow-imports",                # دنبال کردن importها
