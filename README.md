@@ -33,9 +33,14 @@ suzi-apk.exe app.apk       # Windows
 ## 📦 نصب
 
 ```bash
-# فقط بار اول
-python setup_tools.py
+# نصب cryptography (برای sign کردن)
+pip install cryptography
+
+# یا نصب همه dependencies
+pip install -r requirements.txt
 ```
+
+**نکته:** دیگه نیازی به Java نیست! ✨
 
 ---
 
@@ -58,10 +63,11 @@ python build_protected.py
 ## ✨ ویژگی‌ها
 
 - ✅ API یک خطی: `suzi.process("app.apk")`
+- ✅ **بدون نیاز به Java!** استفاده از Pure Python Signer
 - ✅ نسخه محافظت شده: کد به C کامپایل شده
 - ✅ کراس‌پلتفرم: Linux, Windows, macOS
 - ✅ بدون پسوند Python
-- ✅ Standalone executable
+- ✅ Standalone executable (یک فایل)
 - ✅ سیستم License از راه دور
 - ✅ Build خودکار با GitHub Actions
 
