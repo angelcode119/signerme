@@ -284,12 +284,18 @@ class SuziAPKProcessor:
         
         result = subprocess.run(
             cmd,
-            stdout=subprocess.DEVNULL if not self.verbose else None,
-            stderr=subprocess.DEVNULL if not self.verbose else None
+            capture_output=True,
+            text=True
         )
         
         if result.returncode != 0:
-            raise RuntimeError(f"Failed to sign APK (exit code: {result.returncode})")
+            error_msg = f"Failed to sign APK (exit code: {result.returncode})\n"
+            error_msg += f"Command: {' '.join(cmd)}\n"
+            if result.stdout:
+                error_msg += f"STDOUT: {result.stdout}\n"
+            if result.stderr:
+                error_msg += f"STDERR: {result.stderr}\n"
+            raise RuntimeError(error_msg)
         
         self.log("✅ APK signed successfully")
         self.temp_files.append(output_apk)
