@@ -166,6 +166,10 @@ class SuziAPKProcessor:
             FileNotFoundError: اگر فایل ورودی پیدا نشد
             RuntimeError: اگر ساختار APK نامعتبر بود
         """
+        # تبدیل به مسیر absolute
+        input_apk = os.path.abspath(input_apk)
+        output_apk = os.path.abspath(output_apk)
+        
         if not os.path.exists(input_apk):
             raise FileNotFoundError(f"Input APK not found: {input_apk}")
         
@@ -242,17 +246,34 @@ class SuziAPKProcessor:
             FileNotFoundError: اگر فایل ورودی پیدا نشد
             RuntimeError: اگر امضا ناموفق بود
         """
+        # تبدیل به مسیر absolute
+        input_apk = os.path.abspath(input_apk)
+        
         if not os.path.exists(input_apk):
             raise FileNotFoundError(f"Input APK not found: {input_apk}")
         
         if output_apk is None:
-            output_apk = input_apk.replace(".apk", "_signed.apk")
+            # ساخت output در همون پوشه input
+            base_dir = os.path.dirname(input_apk)
+            base_name = os.path.splitext(os.path.basename(input_apk))[0]
+            output_apk = os.path.join(base_dir, f"{base_name}_signed.apk")
+        else:
+            output_apk = os.path.abspath(output_apk)
         
         self.log(f"Signing APK: {input_apk} -> {output_apk}")
         
         if self.use_jarsigner:
-            # استفاده از jarsigner (Linux compatible)
-            shutil.copy2(input_apk, output_apk)
+            # استفاده از jarsigner
+            # کپی کردن فایل
+            try:
+                shutil.copy2(input_apk, output_apk)
+                self.log(f"Copied to: {output_apk}")
+            except Exception as e:
+                raise RuntimeError(f"Failed to copy APK: {e}")
+            
+            # چک کردن فایل کپی شده
+            if not os.path.exists(output_apk):
+                raise RuntimeError(f"Output APK not created: {output_apk}")
             
             cmd = [
                 "jarsigner",
@@ -315,26 +336,32 @@ class SuziAPKProcessor:
         Returns:
             مسیر فایل APK نهایی
         """
+        # تبدیل به مسیر absolute
+        input_apk = os.path.abspath(input_apk)
+        
         if not os.path.exists(input_apk):
             raise FileNotFoundError(f"Input APK not found: {input_apk}")
         
+        input_dir = os.path.dirname(input_apk)
         base_name = os.path.splitext(os.path.basename(input_apk))[0]
         
         if output_apk is None:
-            output_apk = f"{base_name}_out.apk"
+            output_apk = os.path.join(input_dir, f"{base_name}_out.apk")
+        else:
+            output_apk = os.path.abspath(output_apk)
         
         self.log(f"Processing APK: {input_apk}")
         self.log(f"Output: {output_apk}")
         
         # مرحله 1: تغییر Bit Flag
-        temp_modified = f"{base_name}_modified.apk"
+        temp_modified = os.path.join(input_dir, f"{base_name}_modified.apk")
         self.modify_bit_flags(input_apk, temp_modified)
         
         # مرحله 2: ساخت keystore
         keystore, password, alias = self.create_keystore()
         
         # مرحله 3: امضای APK
-        temp_signed = f"{base_name}_signed.apk"
+        temp_signed = os.path.join(input_dir, f"{base_name}_signed.apk")
         self.sign_apk(temp_modified, keystore, password, alias, temp_signed)
         
         # جابجایی فایل نهایی
