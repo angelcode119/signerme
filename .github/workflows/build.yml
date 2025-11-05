@@ -40,8 +40,14 @@ jobs:
     - name: Build Standalone
       run: python build_standalone.py
       
-    - name: List dist files
-      run: ls -la dist/ || dir dist\
+    - name: List dist files (Unix)
+      if: runner.os != 'Windows'
+      run: ls -la dist/
+      
+    - name: List dist files (Windows)
+      if: runner.os == 'Windows'
+      run: dir dist
+      shell: cmd
         
     - name: Upload
       uses: actions/upload-artifact@v4
