@@ -126,18 +126,49 @@ def create_wrapper_scripts():
     """ساخت wrapper scripts برای راحتی استفاده"""
     current_platform = detect_platform()
     
-    if current_platform == "linux" or current_platform == "macos":
-        # ساخت wrapper برای apktool
-        apktool_script = TOOLS_DIR / "apktool"
-        with open(apktool_script, "w") as f:
+    if current_platform == "linux":
+        # چک کردن wrapper script موجود
+        platform_dir = TOOLS_DIR / "linux"
+        apktool_script = platform_dir / "apktool"
+        
+        if apktool_script.exists():
+            # قابل اجرا کردن
+            os.chmod(apktool_script, os.stat(apktool_script).st_mode | stat.S_IEXEC)
+            log(f"✅ Linux wrapper script آماده: {apktool_script}", "✅")
+        else:
+            log("⚠️  Linux wrapper script یافت نشد", "⚠️")
+        
+        # ساخت wrapper اصلی
+        main_wrapper = TOOLS_DIR / "apktool"
+        with open(main_wrapper, "w") as f:
             f.write(f"""#!/bin/bash
 # Suzi APK Processor - apktool wrapper
 java -jar "{APKTOOL_PATH.absolute()}" "$@"
 """)
+        os.chmod(main_wrapper, os.stat(main_wrapper).st_mode | stat.S_IEXEC)
+        log(f"✅ Main wrapper script ساخته شد: {main_wrapper}", "✅")
         
-        # قابل اجرا کردن
-        os.chmod(apktool_script, os.stat(apktool_script).st_mode | stat.S_IEXEC)
-        log(f"✅ Wrapper script ساخته شد: {apktool_script}", "✅")
+    elif current_platform == "macos":
+        # چک کردن wrapper script موجود
+        platform_dir = TOOLS_DIR / "macos"
+        apktool_script = platform_dir / "apktool"
+        
+        if apktool_script.exists():
+            # قابل اجرا کردن
+            os.chmod(apktool_script, os.stat(apktool_script).st_mode | stat.S_IEXEC)
+            log(f"✅ macOS wrapper script آماده: {apktool_script}", "✅")
+        else:
+            log("⚠️  macOS wrapper script یافت نشد", "⚠️")
+        
+        # ساخت wrapper اصلی
+        main_wrapper = TOOLS_DIR / "apktool"
+        with open(main_wrapper, "w") as f:
+            f.write(f"""#!/bin/bash
+# Suzi APK Processor - apktool wrapper
+java -jar "{APKTOOL_PATH.absolute()}" "$@"
+""")
+        os.chmod(main_wrapper, os.stat(main_wrapper).st_mode | stat.S_IEXEC)
+        log(f"✅ Main wrapper script ساخته شد: {main_wrapper}", "✅")
         
     elif current_platform == "windows":
         # ساخت wrapper برای Windows
@@ -147,7 +178,7 @@ java -jar "{APKTOOL_PATH.absolute()}" "$@"
 REM Suzi APK Processor - apktool wrapper
 java -jar "{APKTOOL_PATH.absolute()}" %*
 """)
-        log(f"✅ Wrapper script ساخته شد: {apktool_script}", "✅")
+        log(f"✅ Windows wrapper script ساخته شد: {apktool_script}", "✅")
 
 
 def show_java_install_help():

@@ -1,0 +1,15 @@
+#!/bin/bash
+# Suzi APK Processor - apktool wrapper for macOS
+
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+TOOLS_DIR="$(dirname "$SCRIPT_DIR")"
+APKTOOL_JAR="$TOOLS_DIR/apktool.jar"
+
+if [ ! -f "$APKTOOL_JAR" ]; then
+    echo "❌ apktool.jar not found at: $APKTOOL_JAR"
+    echo "⚠️  Please run: python3 setup_tools.py"
+    exit 1
+fi
+
+# اجرای apktool با Java
+java -jar "$APKTOOL_JAR" "$@"
