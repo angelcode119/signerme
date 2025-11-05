@@ -33,11 +33,16 @@ suzi-apk.exe app.apk       # Windows
 ## 📦 نصب
 
 ```bash
-# فقط برای development
+# نیاز به Java (فقط!)
+sudo apt install default-jdk  # Ubuntu/Debian
+# یا
+brew install openjdk          # macOS
+
+# برای development
 pip install -r requirements.txt
 ```
 
-**نکته:** فایل executable هیچ چیز روی سیستم نیاز نداره! ✨
+**نکته:** فایل executable فقط Java نیاز داره! `uber-apk-signer.jar` bundle شده ✨
 
 ---
 
@@ -60,15 +65,15 @@ python build_protected.py
 ## ✨ ویژگی‌ها
 
 - ✅ API یک خطی: `suzi.process("app.apk")`
-- ✅ **کاملاً standalone:** بدون نیاز به Java، Android SDK، یا هیچ چیز دیگه!
-- ✅ **Pure Python Signer:** استفاده از cryptography برای signing
+- ✅ **Standalone package:** uber-apk-signer.jar bundle شده (فقط Java نیاز!)
+- ✅ **بدون نیاز به Android SDK!** همه چیز داخل یک فایل
 - ✅ نسخه محافظت شده: کد به C کامپایل شده
 - ✅ کراس‌پلتفرم: Linux, Windows, macOS
 - ✅ بدون پسوند Python
 - ✅ Standalone executable (یک فایل)
 - ✅ سیستم License از راه دور
 - ✅ Build خودکار با GitHub Actions
-- ✅ Encryption + Signing: اول امضا، بعد رمزگذاری (برای standalone)
+- ✅ Encryption + Signing: اول رمزگذاری، بعد امضا
 
 ---
 
