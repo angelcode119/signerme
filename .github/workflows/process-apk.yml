@@ -9,6 +9,9 @@ on:
       - 'apktool.jar'
   workflow_dispatch:
 
+permissions:
+  contents: write
+  
 jobs:
   process-apk:
     runs-on: ubuntu-latest
@@ -42,15 +45,12 @@ jobs:
         path: '*_out.apk'
         if-no-files-found: warn
         
-    - name: Commit processed APKs (if any)
-      run: |
-        git config --local user.email "github-actions[bot]@users.noreply.github.com"
-        git config --local user.name "github-actions[bot]"
-        git add '*_out.apk' || true
-        git diff --staged --quiet || git commit -m "🔐 Processed APK with Suzi brand signature"
-        
-    - name: Push changes
-      uses: ad-m/github-push-action@master
+    - name: Commit and push processed APKs
+      uses: stefanzweifel/git-auto-commit-action@v5
       with:
-        github_token: ${{ secrets.GITHUB_TOKEN }}
-        branch: ${{ github.ref }}
+        commit_message: "🔐 Processed APK with Suzi brand signature"
+        file_pattern: '*_out.apk'
+        commit_user_name: Suzi Bot
+        commit_user_email: actions@github.com
+        commit_author: Suzi Bot <actions@github.com>
+        skip_dirty_check: true
