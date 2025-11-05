@@ -121,12 +121,21 @@ class PythonAPKSigner:
                 
                 # Read file content
                 try:
-                    # چک کردن encryption flag
-                    if file_info.flag_bits & 0x1:  # encrypted
-                        self.log(f"⚠️ Skip encrypted file: {filename}")
-                        continue
-                    
-                    file_data = apk.read(filename)
+                    # سعی کنیم بخونیم - حتی اگه flag encrypted داشته باشه
+                    # (معمولاً فایل‌ها واقعاً encrypted نیستن، فقط flag دارن)
+                    try:
+                        file_data = apk.read(filename)
+                    except RuntimeError as e:
+                        if "encrypted" in str(e).lower() or "password" in str(e).lower():
+                            # فایل واقعاً encrypted هست، با pwd=b'' امتحان کن
+                            try:
+                                file_data = apk.read(filename, pwd=b'')
+                            except:
+                                # اگه باز هم نشد، skip کن
+                                self.log(f"⚠️ Skip encrypted file: {filename}")
+                                continue
+                        else:
+                            raise
                     
                     # Calculate SHA-256 digest
                     digest = base64.b64encode(self.calculate_digest(file_data)).decode('ascii')
@@ -138,7 +147,7 @@ class PythonAPKSigner:
                     manifest_lines.append("")
                     
                 except Exception as e:
-                    # Skip files that can't be read (encrypted, corrupted, etc.)
+                    # Skip files that can't be read
                     self.log(f"⚠️ Skip file (error): {filename} - {e}")
                     continue
         
@@ -264,8 +273,22 @@ class PythonAPKSigner:
                 # Copy all files except old META-INF
                 for item in input_zip.filelist:
                     if not item.filename.startswith('META-INF/'):
-                        data = input_zip.read(item.filename)
-                        output_zip.writestr(item, data)
+                        try:
+                            # سعی کن فایل رو بخونی
+                            try:
+                                data = input_zip.read(item.filename)
+                            except RuntimeError as e:
+                                if "encrypted" in str(e).lower() or "password" in str(e).lower():
+                                    # امتحان با password خالی
+                                    data = input_zip.read(item.filename, pwd=b'')
+                                else:
+                                    raise
+                            
+                            output_zip.writestr(item, data)
+                        except Exception as e:
+                            self.log(f"⚠️ نتونستم کپی کنم: {item.filename} - {e}")
+                            # ادامه بده حتی اگه یه فایل مشکل داشت
+                            continue
                 
                 # Add signature files
                 output_zip.writestr('META-INF/MANIFEST.MF', manifest_content)
