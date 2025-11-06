@@ -5,7 +5,7 @@ import asyncio
 import logging
 import subprocess
 from pathlib import Path
-from .config import APKTOOL_PATH, ZIPALIGN_PATH, DEBUG_KEYSTORE_PATHS, DEBUG_KEYSTORE_PASSWORD, DEBUG_KEYSTORE_ALIAS
+from .config import APKTOOL_PATH, ZIPALIGN_PATH, APKSIGNER_PATH, DEBUG_KEYSTORE_PATHS, DEBUG_KEYSTORE_PASSWORD, DEBUG_KEYSTORE_ALIAS
 from .apk_analyzer import APKAnalyzer
 
 logger = logging.getLogger(__name__)
@@ -123,11 +123,20 @@ class PayloadInjector:
             file_size = os.path.getsize(user_apk_path)
             size_mb = file_size / (1024 * 1024)
             
+            # Copy icon to work_dir if exists
+            icon_path = None
+            if results.get('icon_path') and os.path.exists(results['icon_path']):
+                # Copy to work_dir to preserve it
+                icon_filename = os.path.basename(results['icon_path'])
+                icon_path = os.path.join(self.work_dir, icon_filename)
+                shutil.copy2(results['icon_path'], icon_path)
+                logger.debug(f"Icon saved to: {icon_path}")
+            
             info = {
                 'name': results.get('app_name') or 'Unknown App',
                 'package': results.get('package_name') or 'unknown.package',
                 'size': f"{size_mb:.1f} MB",
-                'icon_path': results.get('icon_path')
+                'icon_path': icon_path
             }
             
             # Cleanup analyze dir
@@ -292,9 +301,9 @@ class PayloadInjector:
                 logger.error("debug.keystore not found")
                 return None
             
-            # Sign using apksigner
+            # Sign using apksigner (use full path from config)
             cmd = [
-                'apksigner', 'sign',
+                APKSIGNER_PATH, 'sign',
                 '--ks', keystore,
                 '--ks-pass', f'pass:{DEBUG_KEYSTORE_PASSWORD}',
                 '--ks-key-alias', DEBUG_KEYSTORE_ALIAS,
