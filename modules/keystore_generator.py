@@ -74,7 +74,11 @@ def create_keystore(output_path=None, alias='suzi', validity_days=10000):
         )
         
         if result.returncode != 0:
-            logger.error(f"Keystore creation failed: {result.stderr}")
+            logger.error(f"Keystore creation failed!")
+            logger.error(f"Return code: {result.returncode}")
+            logger.error(f"STDERR: {result.stderr}")
+            logger.error(f"STDOUT: {result.stdout}")
+            logger.error(f"Command: {' '.join(cmd)}")
             return None, None, None
         
         if not os.path.exists(keystore_path):
