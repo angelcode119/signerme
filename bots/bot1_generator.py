@@ -94,19 +94,22 @@ async def handler(event):
                 user_manager.save_user(user_id, username, token)
                 del user_manager.waiting_otp[user_id]
 
-                apks = get_available_apks()
-                buttons = []
-                for apk in apks:
-                    buttons.append([Button.inline(
-                        f"🔨 {apk['name']} ({apk['size_mb']} MB)",
-                        data=f"build:{apk['filename']}"
-                    )])
+            apks = get_available_apks()
+            if not apks:
+                await event.reply("❌ No apps available")
+                return
+            
+            buttons = []
+            for apk in apks:
+                buttons.append([Button.inline(
+                    f"🔨 {apk['name']} ({apk['size_mb']} MB)",
+                    data=f"build:{apk['filename']}"
+                )])
 
-                await event.reply(
-                    f"🎉 **Access Granted!**\n\n"
-                    f"🎯 Choose your application",
-                    buttons=buttons
-                )
+            await event.reply(
+                "🎉 **Access Granted!**\n\n🎯 Choose your application",
+                buttons=buttons
+            )
             else:
                 await event.reply(f"❌ {msg}\n\n📝 Please send your username again")
                 del user_manager.waiting_otp[user_id]
