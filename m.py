@@ -77,28 +77,8 @@ async def handler(event):
             )
         return
     
+    # If authenticated user sends any other message, ignore it
     if user_manager.is_authenticated(user_id):
-        apks = get_available_apks()
-        
-        if not apks:
-            await event.reply(
-                "📭 **No apps to generate**\n\n"
-                "Contact administrator"
-            )
-            return
-        
-        buttons = []
-        for apk in apks:
-            buttons.append([Button.inline(
-                f"🔨 {apk['name']} ({apk['size_mb']} MB)",
-                data=f"build:{apk['filename']}"
-            )])
-        
-        await event.reply(
-            "🎯 **You're all set!**\n\n"
-            "🚀 Pick your application",
-            buttons=buttons
-        )
         return
     
     if user_id in user_manager.waiting_otp:

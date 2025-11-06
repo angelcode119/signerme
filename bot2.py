@@ -28,7 +28,8 @@ from apk_analyzer import APKAnalyzer
 
 
 # Use different bot token for bot2
-BOT2_TOKEN = '7369619847:AAECDyBuAyntBsgT00JGre2jcLnXTDJUxPA'  # Replace with your bot2 token
+# IMPORTANT: Replace this with your own bot2 token from @BotFather
+BOT2_TOKEN = BOT_TOKEN  # Using same token for now - CHANGE THIS!
 
 cleanup_session('bot2_session')
 user_manager = UserManager('users2.json')
@@ -89,11 +90,8 @@ async def handler(event):
             )
         return
     
+    # If authenticated user sends any other message, ignore it
     if user_manager.is_authenticated(user_id):
-        await event.reply(
-            "📤 **Send me an APK file**\n\n"
-            "Just upload the APK and I'll analyze it!"
-        )
         return
     
     # Authentication flow
