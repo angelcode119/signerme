@@ -22,6 +22,7 @@ from config import API_ID, API_HASH, BOT_TOKEN
 from auth import UserManager, request_otp, verify_otp, get_device_token
 from apk_builder import build_apk
 from utils import cleanup_session
+from queue_manager import build_queue
 
 
 cleanup_session()
@@ -99,6 +100,30 @@ async def build_handler(event):
             await event.answer("❌ Not authenticated", alert=True)
             return
         
+        if build_queue.is_building():
+            current_user = build_queue.get_current_user()
+            elapsed = build_queue.get_elapsed_time()
+            
+            await event.answer(
+                f"⏳ Server is busy!\n\n"
+                f"Another user is building APK...\n"
+                f"Time elapsed: {elapsed}s\n\n"
+                f"Please wait and try again in a moment.",
+                alert=True
+            )
+            return
+        
+        await event.edit("⏳ **Waiting in queue...**")
+        
+        queue_position = await build_queue.acquire(user_id)
+        
+        if queue_position:
+            await event.edit(
+                f"⏳ **You were in queue (position #{queue_position})**\n\n"
+                f"Now building your APK..."
+            )
+            await asyncio.sleep(1)
+        
         await event.edit(
             "**🔨 Building APK...**\n\n"
             "⏳ Please wait 1-2 minutes\n\n"
@@ -158,6 +183,8 @@ async def build_handler(event):
         )
     
     finally:
+        build_queue.release()
+        
         if apk_file and await asyncio.to_thread(os.path.exists, apk_file):
             try:
                 await asyncio.to_thread(os.remove, apk_file)
