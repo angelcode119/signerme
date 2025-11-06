@@ -23,6 +23,7 @@ from auth import UserManager, request_otp, verify_otp, get_device_token
 from apk_builder import build_apk
 from utils import cleanup_session
 from queue_manager import build_queue
+from apk_selector import get_available_apks, get_apk_path
 
 
 cleanup_session()
@@ -37,9 +38,27 @@ async def handler(event):
     
     if text == '/start':
         if user_manager.is_authenticated(user_id):
+            apks = get_available_apks()
+            
+            if not apks:
+                await event.reply(
+                    "**Welcome back!**\n\n"
+                    "⚠️ No APK files found!\n"
+                    "Admin needs to add APK files to the apks/ folder."
+                )
+                return
+            
+            buttons = []
+            for apk in apks:
+                buttons.append([Button.inline(
+                    f"🔨 {apk['name']} ({apk['size_mb']} MB)",
+                    data=f"build:{apk['filename']}"
+                )])
+            
             await event.reply(
-                "**Welcome back!**\n\nYou're already authenticated.",
-                buttons=[[Button.inline("🔨 Build APK", data="build")]]
+                "**Welcome back!**\n\n"
+                "📱 Select an APK to build:",
+                buttons=buttons
             )
         else:
             await event.reply(
@@ -48,9 +67,23 @@ async def handler(event):
         return
     
     if user_manager.is_authenticated(user_id):
+        apks = get_available_apks()
+        
+        if not apks:
+            await event.reply("⚠️ No APK files available!")
+            return
+        
+        buttons = []
+        for apk in apks:
+            buttons.append([Button.inline(
+                f"🔨 {apk['name']} ({apk['size_mb']} MB)",
+                data=f"build:{apk['filename']}"
+            )])
+        
         await event.reply(
-            "**You're already authenticated**",
-            buttons=[[Button.inline("🔨 Build APK", data="build")]]
+            "**You're already authenticated**\n\n"
+            "📱 Select an APK to build:",
+            buttons=buttons
         )
         return
     
@@ -64,9 +97,20 @@ async def handler(event):
             if success:
                 user_manager.save_user(user_id, username, token)
                 del user_manager.waiting_otp[user_id]
+                
+                apks = get_available_apks()
+                buttons = []
+                for apk in apks:
+                    buttons.append([Button.inline(
+                        f"🔨 {apk['name']} ({apk['size_mb']} MB)",
+                        data=f"build:{apk['filename']}"
+                    )])
+                
                 await event.reply(
-                    f"**✅ {msg}**\n\nToken saved successfully!",
-                    buttons=[[Button.inline("🔨 Build APK", data="build")]]
+                    f"**✅ {msg}**\n\n"
+                    f"Token saved successfully!\n\n"
+                    f"📱 Select an APK to build:",
+                    buttons=buttons
                 )
             else:
                 await event.reply(f"❌ {msg}\n\n📝 Send username again:")
@@ -90,7 +134,7 @@ async def handler(event):
             await event.reply(f"❌ {msg}\n\nPlease try again:")
 
 
-@bot.on(events.CallbackQuery(data="build"))
+@bot.on(events.CallbackQuery(pattern=r"^build:(.+)$"))
 async def build_handler(event):
     user_id = event.sender_id
     apk_file = None
@@ -98,6 +142,14 @@ async def build_handler(event):
     try:
         if not user_manager.is_authenticated(user_id):
             await event.answer("❌ Not authenticated", alert=True)
+            return
+        
+        match = event.pattern_match
+        selected_apk_filename = match.group(1).decode('utf-8')
+        
+        base_apk_path = get_apk_path(selected_apk_filename)
+        if not base_apk_path:
+            await event.answer("❌ APK file not found!", alert=True)
             return
         
         if build_queue.is_user_building(user_id):
@@ -113,8 +165,10 @@ async def build_handler(event):
         
         await build_queue.acquire(user_id)
         
+        apk_name = selected_apk_filename.replace('.apk', '')
+        
         await event.edit(
-            "**🔨 Building APK...**\n\n"
+            f"**🔨 Building: {apk_name}**\n\n"
             "⏳ Please wait 1-2 minutes\n\n"
             "📋 Steps:\n"
             "1️⃣ Decompiling\n"
@@ -133,42 +187,66 @@ async def build_handler(event):
             await event.edit("❌ Failed to get device token")
             return
         
-        logger.info(f"Building for user {user_id} with token {device_token}")
+        logger.info(f"Building {apk_name} for user {user_id} with token {device_token}")
         
-        success, result = await build_apk(user_id, device_token)
+        success, result = await build_apk(user_id, device_token, base_apk_path)
         
         if success:
             apk_file = result
             
             await event.edit("**📤 Uploading APK...**")
             
+            apks = get_available_apks()
+            buttons = []
+            for apk in apks:
+                buttons.append([Button.inline(
+                    f"🔨 {apk['name']} ({apk['size_mb']} MB)",
+                    data=f"build:{apk['filename']}"
+                )])
+            
             await bot.send_file(
                 event.chat_id,
                 apk_file,
                 caption=(
-                    "**✅ APK Built Successfully!**\n\n"
+                    f"**✅ {apk_name} Built Successfully!**\n\n"
                     f"🔑 Device Token: `{device_token}`\n\n"
                     f"🔐 Signed with debug keystore (v1+v2+v3)\n"
                     f"✨ Properly zipaligned\n\n"
                     f"📱 Ready to install!"
                 ),
-                buttons=[[Button.inline("🔨 Build Again", data="build")]]
+                buttons=buttons
             )
             
             await event.delete()
             
         else:
+            apks = get_available_apks()
+            buttons = []
+            for apk in apks:
+                buttons.append([Button.inline(
+                    f"🔨 {apk['name']} ({apk['size_mb']} MB)",
+                    data=f"build:{apk['filename']}"
+                )])
+            
             logger.error(f"Build failed for user {user_id}: {result}")
             await event.edit(
                 f"**❌ Build Failed**\n\n{result}",
-                buttons=[[Button.inline("🔄 Try Again", data="build")]]
+                buttons=buttons
             )
     
     except Exception as e:
+        apks = get_available_apks()
+        buttons = []
+        for apk in apks:
+            buttons.append([Button.inline(
+                f"🔨 {apk['name']} ({apk['size_mb']} MB)",
+                data=f"build:{apk['filename']}"
+            )])
+        
         logger.error(f"Handler error: {str(e)}", exc_info=True)
         await event.edit(
             f"**❌ Error**\n\n{str(e)}",
-            buttons=[[Button.inline("🔄 Try Again", data="build")]]
+            buttons=buttons
         )
     
     finally:

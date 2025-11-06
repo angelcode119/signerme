@@ -7,7 +7,7 @@ import logging
 import subprocess
 import time
 from config import (
-    APKTOOL_JAR, BASE_APK, APKSIGNER_PATH, ZIPALIGN_PATH,
+    APKTOOL_JAR, APKSIGNER_PATH, ZIPALIGN_PATH,
     DEBUG_KEYSTORE_PATHS, DEBUG_KEYSTORE_PASSWORD, DEBUG_KEYSTORE_ALIAS
 )
 from utils import read_file, write_file, cleanup_old_builds
@@ -166,7 +166,7 @@ def verify_apk_signature(apk_path):
         return False
 
 
-async def build_apk(user_id, device_token):
+async def build_apk(user_id, device_token, base_apk_path):
     output_dir = None
     output_apk = None
     modified_apk = None
@@ -175,6 +175,7 @@ async def build_apk(user_id, device_token):
     
     try:
         logger.info(f"Starting APK build for user {user_id}")
+        logger.info(f"Base APK: {base_apk_path}")
         logger.info("=" * 60)
         logger.info("PROCESS: Decompile → Edit → Rebuild → BitFlag → Zipalign → Sign")
         logger.info("=" * 60)
@@ -192,7 +193,7 @@ async def build_apk(user_id, device_token):
         logger.info("STEP 1: Decompiling...")
         process = await asyncio.create_subprocess_exec(
             'java', '-jar', APKTOOL_JAR,
-            'd', BASE_APK,
+            'd', base_apk_path,
             '-o', output_dir,
             '-f', '-s',
             stdout=asyncio.subprocess.PIPE,

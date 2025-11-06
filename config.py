@@ -9,7 +9,6 @@ BOT_IDENTIFIER = "Generator Apk"
 
 USERS_FILE = Path("users.json")
 APKTOOL_JAR = "apktool.jar"
-BASE_APK = "app.apk"
 
 APKSIGNER_PATH = r"C:\Users\awmeiiir\AppData\Local\Android\Sdk\build-tools\34.0.0\apksigner.bat"
 ZIPALIGN_PATH = r"C:\Users\awmeiiir\AppData\Local\Android\Sdk\build-tools\34.0.0\zipalign.exe"
