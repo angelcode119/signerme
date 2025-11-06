@@ -30,7 +30,7 @@ async def handle_custom_build_start(event, bot, user_manager):
     step = theme_manager.get_current_step(user_id)
     step_info = theme_manager.get_step_description(step)
     if step_info.get('is_color', False):
-        format_text = "Send color in format"
+        format_text = "Send color" format"
     else:
         format_text = "Send your value"
 
@@ -61,7 +61,7 @@ async def handle_theme_input(event, bot, user_manager):
             step_info = theme_manager.get_step_description(next_step)
 
             if step_info.get('is_color', False):
-                format_text = "Send color in
+                format_text = "Send color"
             else:
                 format_text = "Send your value"
 
@@ -89,7 +89,7 @@ async def handle_theme_input(event, bot, user_manager):
         step_info = theme_manager.get_step_description(result)
 
         if step_info.get('is_color', False):
-            format_text = "Send color in
+            format_text = "Send color"
         else:
             format_text = "Send your value"
 
