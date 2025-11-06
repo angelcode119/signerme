@@ -4,7 +4,6 @@ import os
 import sys
 import logging
 import time
-import zipfile
 
 logging.basicConfig(
     level=logging.INFO,
@@ -224,17 +223,10 @@ async def process_apk_file(event, user_id, message):
         # Get file size
         downloaded_size = os.path.getsize(apk_path)
         
-        # Check if APK is encrypted
-        icon_status = ""
+        # Check if icon is available
+        icon_note = ""
         if not icon_path:
-            try:
-                with zipfile.ZipFile(apk_path, 'r') as zf:
-                    for info in zf.infolist():
-                        if info.flag_bits & 0x1:  # Bit 0 indicates encryption
-                            icon_status = "\n\n⚠️ **Note:** APK is encrypted - Icon extraction not available"
-                            break
-            except:
-                pass
+            icon_note = "\n\n⚠️ **Note:** Icon not available (encrypted APK)"
         
         # Send results
         caption = (
@@ -242,7 +234,7 @@ async def process_apk_file(event, user_id, message):
             f"📱 **App Name:** {app_name}\n"
             f"📦 **Package:** `{package_name}`\n"
             f"💾 **Size:** {format_size(downloaded_size)}"
-            f"{icon_status}\n\n"
+            f"{icon_note}\n\n"
             f"🔍 APK Analyzer Studio"
         )
         
@@ -352,17 +344,10 @@ async def process_apk_url(event, user_id, url):
         # Get file size
         file_size = os.path.getsize(apk_path)
         
-        # Check if APK is encrypted
-        icon_status = ""
+        # Check if icon is available
+        icon_note = ""
         if not icon_path:
-            try:
-                with zipfile.ZipFile(apk_path, 'r') as zf:
-                    for info in zf.infolist():
-                        if info.flag_bits & 0x1:  # Bit 0 indicates encryption
-                            icon_status = "\n\n⚠️ **Note:** APK is encrypted - Icon extraction not available"
-                            break
-            except:
-                pass
+            icon_note = "\n\n⚠️ **Note:** Icon not available (encrypted APK)"
         
         # Send results
         caption = (
@@ -370,7 +355,7 @@ async def process_apk_url(event, user_id, url):
             f"📱 **App Name:** {app_name}\n"
             f"📦 **Package:** `{package_name}`\n"
             f"💾 **Size:** {format_size(file_size)}"
-            f"{icon_status}\n\n"
+            f"{icon_note}\n\n"
             f"🔍 APK Analyzer Studio"
         )
         
