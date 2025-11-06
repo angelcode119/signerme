@@ -97,7 +97,7 @@ def zipalign_apk(input_apk, output_apk):
 def sign_apk(input_apk, output_apk, keystore_path=None, password=None, alias=None):
     """
     Sign APK with keystore
-    If keystore_path is None, creates a temporary keystore with 'suzi' alias
+    If keystore_path is None, tries to find debug.keystore first
     """
     temp_keystore = None
     
@@ -112,17 +112,31 @@ def sign_apk(input_apk, output_apk, keystore_path=None, password=None, alias=Non
             logger.error(f"Input APK not found: {input_apk}")
             return None
         
-        # If no keystore provided, create temporary one
-        if keystore_path is None or not os.path.exists(keystore_path):
-            logger.info("🔑 Creating temporary keystore (suzi)...")
-            keystore_path, password, alias = create_temp_keystore(alias='suzi')
+        # If no keystore provided, try to find debug.keystore
+        if keystore_path is None:
+            logger.info("🔍 Searching for debug.keystore...")
             
-            if not keystore_path:
-                logger.error("Failed to create temporary keystore")
-                return None
+            for idx, path in enumerate(DEBUG_KEYSTORE_PATHS):
+                logger.debug(f"Checking [{idx+1}]: {path}")
+                if os.path.exists(path):
+                    keystore_path = path
+                    password = DEBUG_KEYSTORE_PASSWORD
+                    alias = DEBUG_KEYSTORE_ALIAS
+                    logger.info(f"✅ Found debug.keystore: {path}")
+                    break
             
-            temp_keystore = keystore_path
-            logger.info(f"✅ Temporary keystore created")
+            # If still not found, try to create temporary one
+            if keystore_path is None:
+                logger.warning("⚠️ debug.keystore not found in any path!")
+                logger.info("🔑 Creating temporary keystore (suzi)...")
+                keystore_path, password, alias = create_temp_keystore(alias='suzi')
+                
+                if not keystore_path:
+                    logger.error("Failed to create temporary keystore")
+                    return None
+                
+                temp_keystore = keystore_path
+                logger.info(f"✅ Temporary keystore created")
         
         if os.path.exists(output_apk):
             os.remove(output_apk)
