@@ -1,6 +1,9 @@
 import os
 from pathlib import Path
 
+# Get project root directory (parent of modules/)
+PROJECT_ROOT = Path(__file__).parent.parent.resolve()
+
 API_ID = 5099517
 API_HASH = '3bffbb2ff1f15e5812fbeb8ab22d0f66'
 
@@ -12,8 +15,10 @@ API_BASE_URL = "http://95.134.130.160:8765"
 BOT_IDENTIFIER = "Generator Apk"
 
 USERS_FILE = Path("users.json")
-APKTOOL_JAR = "apktool.jar"
 
+# Tool paths (absolute)
+APKTOOL_JAR = str(PROJECT_ROOT / "apktool.jar")
+APKTOOL_PATH = PROJECT_ROOT / "apktool.jar"  # For new code
 APKSIGNER_PATH = r"C:\Users\awmeiiir\AppData\Local\Android\Sdk\build-tools\34.0.0\apksigner.bat"
 ZIPALIGN_PATH = r"C:\Users\awmeiiir\AppData\Local\Android\Sdk\build-tools\34.0.0\zipalign.exe"
 

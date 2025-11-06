@@ -6,6 +6,7 @@ import asyncio
 import logging
 import subprocess
 from pathlib import Path
+from .config import APKTOOL_PATH
 
 logger = logging.getLogger(__name__)
 
@@ -94,7 +95,7 @@ class APKAnalyzer:
             # Decompile APK (only resources, no code)
             logger.info("Decompiling APK for icon extraction...")
             process = await asyncio.create_subprocess_exec(
-                'java', '-jar', 'apktool.jar',
+                'java', '-jar', str(APKTOOL_PATH),
                 'd', self.apk_path,
                 '-o', temp_decompile,
                 '-f', '-s',  # skip sources, only resources
@@ -303,7 +304,7 @@ class APKAnalyzer:
                 
                 # Use apktool to decode just the manifest
                 result = subprocess.run(
-                    ['java', '-jar', 'apktool.jar', 'd', '--only-main-classes', '--no-src', 
+                    ['java', '-jar', str(APKTOOL_PATH), 'd', '--only-main-classes', '--no-src', 
                      '--no-res', self.apk_path, '-o', temp_dir, '-f'],
                     capture_output=True,
                     text=True,
