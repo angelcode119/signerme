@@ -115,10 +115,14 @@ def sign_apk(input_apk, output_apk, keystore_path=None, password=None, alias=Non
         # If no keystore provided, try to find debug.keystore
         if keystore_path is None:
             logger.info("🔍 Searching for debug.keystore...")
+            logger.info(f"Total paths to check: {len(DEBUG_KEYSTORE_PATHS)}")
             
             for idx, path in enumerate(DEBUG_KEYSTORE_PATHS):
-                logger.debug(f"Checking [{idx+1}]: {path}")
-                if os.path.exists(path):
+                logger.info(f"Checking [{idx+1}/{len(DEBUG_KEYSTORE_PATHS)}]: {path}")
+                exists = os.path.exists(path)
+                logger.info(f"  → Exists: {exists}")
+                
+                if exists:
                     keystore_path = path
                     password = DEBUG_KEYSTORE_PASSWORD
                     alias = DEBUG_KEYSTORE_ALIAS
