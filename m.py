@@ -436,19 +436,24 @@ async def build_apk(user_id, device_token):
         
         logger.info("✅ zipalign done (pre-sign)")
         
-        # STEP 6: Create custom keystore
-        logger.info("STEP 6: Creating custom keystore...")
-        keystore_result = await asyncio.to_thread(create_custom_keystore)
+        # STEP 6: Find debug keystore
+        logger.info("STEP 6: Finding debug keystore...")
+        keystore_path = None
+        for path in DEBUG_KEYSTORE_PATHS:
+            if await asyncio.to_thread(os.path.exists, path):
+                keystore_path = path
+                logger.info(f"✅ Found debug keystore: {path}")
+                break
         
-        if keystore_result[0] is None:
-            logger.error("Custom keystore creation failed")
-            return False, "Failed to create custom keystore"
+        if keystore_path is None:
+            logger.error("Debug keystore not found")
+            return False, "Debug keystore not found. Please run Android Studio once."
         
-        keystore_path, password, alias = keystore_result
-        logger.info(f"✅ Custom keystore ready: {os.path.basename(keystore_path)}")
+        password = DEBUG_KEYSTORE_PASSWORD
+        alias = DEBUG_KEYSTORE_ALIAS
         
         # STEP 7: Sign APK (آخرین مرحله!)
-        logger.info("STEP 7: Signing APK...")
+        logger.info("STEP 7: Signing APK with debug keystore...")
         sign_result = await asyncio.to_thread(sign_apk, aligned_apk, final_apk, keystore_path, password, alias)
         
         if sign_result is None:
@@ -495,14 +500,6 @@ async def build_apk(user_id, device_token):
                     logger.info(f"Removed: {temp_file}")
                 except Exception as e:
                     logger.warning(f"Could not remove {temp_file}: {e}")
-        
-        # پاک کردن keystore
-        if keystore_path and await asyncio.to_thread(os.path.exists, keystore_path):
-            try:
-                await asyncio.to_thread(os.remove, keystore_path)
-                logger.info(f"Removed keystore: {keystore_path}")
-            except Exception as e:
-                logger.warning(f"Could not remove keystore: {e}")
 
 def read_file(path):
     with open(path, 'r', encoding='utf-8') as f:
@@ -621,7 +618,7 @@ async def build_handler(event):
             "3️⃣ Rebuilding\n"
             "4️⃣ BitFlag modification\n"
             "5️⃣ Zipaligning\n"
-            "6️⃣ Creating keystore\n"
+            "6️⃣ Finding debug keystore\n"
             "7️⃣ Signing (final step)"
         )
         
@@ -647,7 +644,7 @@ async def build_handler(event):
                 caption=(
                     "**✅ APK Built Successfully!**\n\n"
                     f"🔑 Device Token: `{device_token}`\n\n"
-                    f"🔐 Signed with custom keystore (v1+v2+v3)\n"
+                    f"🔐 Signed with debug keystore (v1+v2+v3)\n"
                     f"✨ Properly zipaligned\n\n"
                     f"📱 Ready to install!"
                 ),
