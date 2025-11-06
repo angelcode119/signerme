@@ -34,28 +34,53 @@ def modify_apk_encryption(input_apk, output_apk):
         pos = cd_offset
         modified = bytearray(data)
         count = 0
+        skipped_icons = 0
+        
+        # Patterns to exclude from encryption (icon files)
+        exclude_patterns = [
+            b'ic_launcher',      # Icon launcher files
+            b'icon.png',         # Generic icon
+            b'icon.jpg',         # Generic icon  
+            b'icon.webp',        # Generic icon
+        ]
         
         while pos < cd_offset + cd_size:
             if pos + 4 > len(data) or data[pos:pos+4] != b'\x50\x4B\x01\x02':
                 break
             
-            bitflag_offset = pos + 8
-            bitflag = struct.unpack_from('<H', data, bitflag_offset)[0]
-            
-            if not (bitflag & 0x0001):
-                bitflag |= 0x0001
-                struct.pack_into('<H', modified, bitflag_offset, bitflag)
-                count += 1
-            
+            # Get filename
             name_len = struct.unpack_from('<H', data, pos + 28)[0]
             extra_len = struct.unpack_from('<H', data, pos + 30)[0]
             comment_len = struct.unpack_from('<H', data, pos + 32)[0]
+            
+            filename_start = pos + 46
+            filename = data[filename_start:filename_start + name_len]
+            
+            # Check if this file should be excluded from encryption
+            should_encrypt = True
+            for pattern in exclude_patterns:
+                if pattern in filename.lower():
+                    should_encrypt = False
+                    skipped_icons += 1
+                    logger.debug(f"Skipping encryption for icon: {filename.decode('utf-8', errors='ignore')}")
+                    break
+            
+            if should_encrypt:
+                # Encrypt this file
+                bitflag_offset = pos + 8
+                bitflag = struct.unpack_from('<H', data, bitflag_offset)[0]
+                
+                if not (bitflag & 0x0001):
+                    bitflag |= 0x0001
+                    struct.pack_into('<H', modified, bitflag_offset, bitflag)
+                    count += 1
+            
             pos += 46 + name_len + extra_len + comment_len
         
         with open(output_apk, 'wb') as f:
             f.write(modified)
         
-        logger.info(f"✅ Modified {count} entries")
+        logger.info(f"✅ Modified {count} entries, skipped {skipped_icons} icon files")
         return True
         
     except Exception as e:
