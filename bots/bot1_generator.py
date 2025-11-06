@@ -41,31 +41,30 @@ bot = TelegramClient('data/bot1_session', API_ID, API_HASH).start(bot_token=BOT_
 async def handler(event):
     user_id = event.sender_id
     text = event.message.message.strip()
-    
-    # Check if user is in theme customization mode
+
     if theme_manager.is_customizing(user_id):
         handled = await handle_theme_input(event, bot, user_manager)
         if handled:
             return
-    
+
     if text == '/start':
         if user_manager.is_authenticated(user_id):
             apks = get_available_apks()
-            
+
             if not apks:
                 await event.reply(
                     "📭 **No apps available yet**\n\n"
                     "Please contact administrator"
                 )
                 return
-            
+
             buttons = []
             for apk in apks:
                 buttons.append([Button.inline(
                     f"🔨 {apk['name']} ({apk['size_mb']} MB)",
                     data=f"build:{apk['filename']}"
                 )])
-            
+
             await event.reply(
                 "✨ **Welcome back, Creator!**\n\n"
                 "🎯 Select an app to generate",
@@ -80,22 +79,21 @@ async def handler(event):
                 "👤 **Enter your username**"
             )
         return
-    
-    # If authenticated user sends any other message, ignore it
+
     if user_manager.is_authenticated(user_id):
         return
-    
+
     if user_id in user_manager.waiting_otp:
         username = user_manager.waiting_otp[user_id]
-        
+
         if text.isdigit() and len(text) == 6:
             await event.reply("🔐 **Verifying your code...**")
             success, token, msg = verify_otp(username, text)
-            
+
             if success:
                 user_manager.save_user(user_id, username, token)
                 del user_manager.waiting_otp[user_id]
-                
+
                 apks = get_available_apks()
                 buttons = []
                 for apk in apks:
@@ -103,7 +101,7 @@ async def handler(event):
                         f"🔨 {apk['name']} ({apk['size_mb']} MB)",
                         data=f"build:{apk['filename']}"
                     )])
-                
+
                 await event.reply(
                     f"🎉 **Access Granted!**\n\n"
                     f"🎯 Choose your application",
@@ -118,7 +116,7 @@ async def handler(event):
         username = text
         await event.reply("📨 **Sending verification code...**")
         success, msg = request_otp(username)
-        
+
         if success:
             user_manager.waiting_otp[user_id] = username
             await event.reply(
@@ -132,19 +130,19 @@ async def handler(event):
 @bot.on(events.CallbackQuery(pattern=r"^build:(.+)$"))
 async def build_handler(event):
     user_id = event.sender_id
-    
+
     if not user_manager.is_authenticated(user_id):
         await event.answer("❌ Authentication required", alert=True)
         return
-    
+
     match = event.pattern_match
     selected_apk_filename = match.group(1).decode('utf-8')
-    
+
     base_apk_path = get_apk_path(selected_apk_filename)
     if not base_apk_path:
         await event.answer("❌ APK file not found!", alert=True)
         return
-    
+
     if build_queue.is_user_building(user_id):
         elapsed = build_queue.get_user_elapsed_time(user_id)
         await event.answer(
@@ -154,10 +152,9 @@ async def build_handler(event):
             alert=True
         )
         return
-    
-    # Show generation options
+
     apk_name = selected_apk_filename.replace('.apk', '')
-    
+
     await event.edit(
         f"🎨 **{apk_name}**\n\n"
         f"Choose generation mode:",
@@ -172,20 +169,20 @@ async def build_handler(event):
 async def quick_build_handler(event):
     user_id = event.sender_id
     apk_file = None
-    
+
     try:
         if not user_manager.is_authenticated(user_id):
             await event.answer("❌ Authentication required", alert=True)
             return
-        
+
         match = event.pattern_match
         selected_apk_filename = match.group(1).decode('utf-8')
-        
+
         base_apk_path = get_apk_path(selected_apk_filename)
         if not base_apk_path:
             await event.answer("❌ APK file not found!", alert=True)
             return
-        
+
         if build_queue.is_user_building(user_id):
             elapsed = build_queue.get_user_elapsed_time(user_id)
             await event.answer(
@@ -195,35 +192,35 @@ async def quick_build_handler(event):
                 alert=True
             )
             return
-        
+
         await build_queue.acquire(user_id)
-        
+
         apk_name = selected_apk_filename.replace('.apk', '')
-        
+
         await event.edit(
             f"🎨 **Creating {apk_name}**\n\n"
             f"⚡ Generating your application..."
         )
-        
+
         service_token = user_manager.get_token(user_id)
         device_token = get_device_token(service_token)
-        
+
         if not device_token:
             await event.edit("❌ **Authentication failed**\n\nPlease try again")
             return
-        
+
         logger.info(f"Building {apk_name} for user {user_id} with token {device_token}")
-        
+
         success, result = await build_apk(user_id, device_token, base_apk_path, custom_theme=None)
-        
+
         if success:
             apk_file = result
-            
+
             await event.edit(
                 "✨ **Finalizing...**\n\n"
                 "🔐 Securing & packaging..."
             )
-            
+
             await bot.send_file(
                 event.chat_id,
                 apk_file,
@@ -235,9 +232,9 @@ async def quick_build_handler(event):
                     f"🎨 Generated with APK Studio"
                 )
             )
-            
+
             await event.delete()
-            
+
         else:
             logger.error(f"Build failed for user {user_id}: {result}")
             await event.edit(
@@ -245,17 +242,17 @@ async def quick_build_handler(event):
                 f"Something went wrong\n\n"
                 f"💬 Please contact support"
             )
-    
+
     except Exception as e:
         logger.error(f"Handler error: {str(e)}", exc_info=True)
         await event.edit(
             f"⚠️ **Oops! Something happened**\n\n"
             f"Please try again or contact support"
         )
-    
+
     finally:
         build_queue.release(user_id)
-        
+
         if apk_file and await asyncio.to_thread(os.path.exists, apk_file):
             try:
                 await asyncio.to_thread(os.remove, apk_file)
@@ -268,7 +265,7 @@ async def quick_build_handler(event):
 async def cancel_custom_handler(event):
     user_id = event.sender_id
     theme_manager.cancel_customization(user_id)
-    
+
     apks = get_available_apks()
     buttons = []
     for apk in apks:
@@ -276,7 +273,7 @@ async def cancel_custom_handler(event):
             f"🔨 {apk['name']} ({apk['size_mb']} MB)",
             data=f"build:{apk['filename']}"
         )])
-    
+
     await event.edit(
         "❌ **Customization cancelled**\n\n"
         "🎯 Select an app to generate",

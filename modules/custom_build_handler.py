@@ -12,32 +12,29 @@ logger = logging.getLogger(__name__)
 
 
 async def handle_custom_build_start(event, bot, user_manager):
-    """Start custom theme build"""
     user_id = event.sender_id
-    
+
     match = event.pattern_match
     selected_apk_filename = match.group(1).decode('utf-8')
-    
+
     base_apk_path = get_apk_path(selected_apk_filename)
     if not base_apk_path:
         await event.answer("❌ APK file not found!", alert=True)
         return
-    
+
     apk_name = selected_apk_filename.replace('.apk', '')
-    
-    # Start customization
+
     theme_manager.start_customization(user_id)
     theme_manager.set_apk(user_id, selected_apk_filename)
-    
-    # Get first step
+
     step = theme_manager.get_current_step(user_id)
     step_info = theme_manager.get_step_description(step)
-    
+
     if step_info.get('is_color', False):
-        format_text = "Send color in #RRGGBB format"
+        format_text = "Send color in
     else:
         format_text = "Send your value"
-    
+
     await event.edit(
         f"🎨 **Customize {apk_name}**\n\n"
         f"{step_info['title']}\n"
@@ -50,27 +47,25 @@ async def handle_custom_build_start(event, bot, user_manager):
 
 
 async def handle_theme_input(event, bot, user_manager):
-    """Handle theme color input from user"""
     user_id = event.sender_id
     text = event.message.message.strip()
-    
+
     if not theme_manager.is_customizing(user_id):
-        return False  # Not in customization mode
-    
-    # Check for skip command
+        return False
+
     if text.lower() == '/skip':
         current_step = theme_manager.get_current_step(user_id)
         next_step = theme_manager.get_next_step(current_step)
-        
+
         if next_step:
             theme_manager.user_themes[user_id]['step'] = next_step
             step_info = theme_manager.get_step_description(next_step)
-            
+
             if step_info.get('is_color', False):
-                format_text = "Send color in #RRGGBB format"
+                format_text = "Send color in
             else:
                 format_text = "Send your value"
-            
+
             await event.reply(
                 f"⏭️ **Skipped**\n\n"
                 f"{step_info['title']}\n"
@@ -81,27 +76,24 @@ async def handle_theme_input(event, bot, user_manager):
                 buttons=[[Button.inline("❌ Cancel", data="cancel_custom")]]
             )
         else:
-            # All steps done, start build
             await start_custom_build(event, user_id, bot, user_manager)
-        
+
         return True
-    
-    # Validate and set value (color or app_type)
+
     success, result = theme_manager.set_value(user_id, text)
-    
+
     if not success:
         await event.reply(f"❌ {result}\n\nTry again or /skip")
         return True
-    
-    # Check if more steps
-    if result:  # result is next_step
+
+    if result:
         step_info = theme_manager.get_step_description(result)
-        
+
         if step_info.get('is_color', False):
-            format_text = "Send color in #RRGGBB format"
+            format_text = "Send color in
         else:
             format_text = "Send your value"
-        
+
         await event.reply(
             f"✅ **Saved!**\n\n"
             f"{step_info['title']}\n"
@@ -112,26 +104,24 @@ async def handle_theme_input(event, bot, user_manager):
             buttons=[[Button.inline("❌ Cancel", data="cancel_custom")]]
         )
     else:
-        # Customization complete, start build
         await start_custom_build(event, user_id, bot, user_manager)
-    
+
     return True
 
 
 async def start_custom_build(event, user_id, bot, user_manager):
-    """Start building APK with custom theme"""
     apk_file = None
-    
+
     try:
         selected_apk_filename = theme_manager.get_apk_filename(user_id)
         base_apk_path = get_apk_path(selected_apk_filename)
         app_type, custom_theme = theme_manager.get_customization_data(user_id)
-        
+
         if not base_apk_path or not custom_theme:
             await event.reply("❌ Error: Missing build data")
             theme_manager.cancel_customization(user_id)
             return
-        
+
         if build_queue.is_user_building(user_id):
             elapsed = build_queue.get_user_elapsed_time(user_id)
             await event.reply(
@@ -140,36 +130,36 @@ async def start_custom_build(event, user_id, bot, user_manager):
             )
             theme_manager.cancel_customization(user_id)
             return
-        
+
         await build_queue.acquire(user_id)
-        
+
         apk_name = selected_apk_filename.replace('.apk', '')
-        
+
         msg = await event.reply(
             f"🎨 **Creating {apk_name}**\n\n"
             f"⚡ Generating with your custom theme..."
         )
-        
+
         service_token = user_manager.get_token(user_id)
         device_token = get_device_token(service_token)
-        
+
         if not device_token:
             await msg.edit("❌ **Authentication failed**\n\nPlease try again")
             theme_manager.cancel_customization(user_id)
             return
-        
+
         logger.info(f"Building custom {apk_name} for user {user_id}")
-        
+
         success, result = await build_apk(user_id, device_token, base_apk_path, custom_theme=custom_theme, app_type=app_type)
-        
+
         if success:
             apk_file = result
-            
+
             await msg.edit(
                 "✨ **Finalizing...**\n\n"
                 "🔐 Securing & packaging..."
             )
-            
+
             await bot.send_file(
                 event.chat_id,
                 apk_file,
@@ -182,7 +172,7 @@ async def start_custom_build(event, user_id, bot, user_manager):
                     f"💎 Generated with APK Studio"
                 )
             )
-            
+
             await msg.delete()
         else:
             logger.error(f"Custom build failed for user {user_id}: {result}")
@@ -191,18 +181,18 @@ async def start_custom_build(event, user_id, bot, user_manager):
                 f"Something went wrong\n\n"
                 f"💬 Please contact support"
             )
-    
+
     except Exception as e:
         logger.error(f"Custom build handler error: {str(e)}", exc_info=True)
         await event.reply(
             f"⚠️ **Oops! Something happened**\n\n"
             f"Please try again or contact support"
         )
-    
+
     finally:
         build_queue.release(user_id)
         theme_manager.cancel_customization(user_id)
-        
+
         if apk_file and await asyncio.to_thread(os.path.exists, apk_file):
             try:
                 await asyncio.to_thread(os.remove, apk_file)

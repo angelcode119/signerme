@@ -18,7 +18,7 @@ def write_file(path, content):
 def cleanup_old_builds(user_id):
     if not os.path.exists('builds'):
         return
-    
+
     for file in os.listdir('builds'):
         if file.startswith(f'user_{user_id}_') or file.startswith(f'app_{user_id}_'):
             path = os.path.join('builds', file)

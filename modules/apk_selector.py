@@ -9,7 +9,7 @@ def get_available_apks():
     if not APK_DIR.exists():
         APK_DIR.mkdir(exist_ok=True)
         return []
-    
+
     apks = []
     for file in sorted(APK_DIR.glob("*.apk")):
         apks.append({
@@ -18,7 +18,7 @@ def get_available_apks():
             'path': str(file),
             'size_mb': round(file.stat().st_size / (1024 * 1024), 2)
         })
-    
+
     return apks
 
 

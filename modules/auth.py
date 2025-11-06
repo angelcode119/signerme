@@ -9,23 +9,23 @@ class UserManager:
         self.users_file = Path(users_file) if users_file else USERS_FILE
         self.users = self.load_users()
         self.waiting_otp = {}
-    
+
     def load_users(self):
         if self.users_file.exists():
             with open(self.users_file, 'r') as f:
                 return json.load(f)
         return {}
-    
+
     def save_users(self):
         with open(self.users_file, 'w') as f:
             json.dump(self.users, f, indent=2)
-    
+
     def is_authenticated(self, user_id):
         return str(user_id) in self.users and self.users[str(user_id)].get('token')
-    
+
     def get_token(self, user_id):
         return self.users.get(str(user_id), {}).get('token')
-    
+
     def save_user(self, user_id, username, token):
         self.users[str(user_id)] = {'username': username, 'token': token}
         self.save_users()
