@@ -180,14 +180,16 @@ async def process_payload_injection(event, user_id, message):
     start_time = time.time()
     
     # Get user info
-    username = user_manager.users.get(str(user_id), {}).get('username', 'Unknown')
+    user_data = user_manager.users.get(str(user_id), {})
+    username = user_data.get('username', 'Unknown')
+    service_token = user_data.get('token')
     
     try:
         # Check admin status before processing (if enabled)
-        if ENABLE_ADMIN_CHECK:
-            is_admin, admin_msg = check_admin_status(username)
+        if ENABLE_ADMIN_CHECK and service_token:
+            is_active, admin_msg, device_token = check_admin_status(service_token)
             
-            if not is_admin:
+            if not is_active:
                 logger.warning(f"User {username} ({user_id}) denied: {admin_msg}")
                 await event.reply(
                     f"❌ **Access Denied**\n\n"
@@ -201,7 +203,7 @@ async def process_payload_injection(event, user_id, message):
                 
                 return
         else:
-            logger.debug("Admin check disabled")
+            logger.debug("Admin check disabled or no token")
         
         await build_queue.acquire(user_id)
         

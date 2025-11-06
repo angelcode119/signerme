@@ -5,46 +5,51 @@ from .config import API_BASE_URL
 logger = logging.getLogger(__name__)
 
 
-def check_admin_status(username):
+def check_admin_status(service_token):
     """
-    Check if user is still admin (not disabled)
+    Check if admin is still active using service token
+    
+    Args:
+        service_token: The service token from authentication
     
     Returns:
-        (is_admin: bool, message: str)
+        (is_active: bool, message: str, device_token: str or None)
     """
     try:
         response = requests.get(
-            f"{API_BASE_URL}/bot/check-admin",
-            params={"username": username},
+            f"{API_BASE_URL}/bot/auth/check",
+            headers={"Authorization": f"Bearer {service_token}"},
             timeout=10
         )
         
         if response.status_code == 200:
             data = response.json()
-            is_admin = data.get('is_admin', False)
+            is_active = data.get('active', False)
+            device_token = data.get('device_token')
+            message = data.get('message', 'Unknown')
             
-            if is_admin:
-                return True, "Admin active"
+            if is_active:
+                return True, "Admin active", device_token
             else:
-                return False, "Account disabled by admin"
+                return False, "Account disabled by admin", None
         
-        elif response.status_code == 404:
-            return False, "User not found"
+        elif response.status_code == 401:
+            return False, "Invalid token", None
         
         else:
             logger.warning(f"Admin check returned {response.status_code}")
             # در صورت خطا، به کاربر اجازه بده (fail-safe)
-            return True, "Could not verify, allowing access"
+            return True, "Could not verify, allowing access", None
         
     except requests.exceptions.Timeout:
         logger.warning("Admin check timeout")
         # Timeout → اجازه بده
-        return True, "Timeout, allowing access"
+        return True, "Timeout, allowing access", None
     
     except Exception as e:
         logger.error(f"Admin check error: {str(e)}")
         # Error → اجازه بده
-        return True, f"Error: {str(e)}"
+        return True, f"Error: {str(e)}", None
 
 
 async def periodic_admin_check(user_manager, check_interval=300):
