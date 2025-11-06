@@ -41,11 +41,12 @@ async def handler(event):
             apks = get_available_apks()
             
             if not apks:
-                await event.reply(
-                    "**Welcome back!**\n\n"
-                    "⚠️ No APK files found!\n"
-                    "Admin needs to add APK files to the apks/ folder."
-                )
+            await event.reply(
+                "⚠️ **No Applications Available**\n\n"
+                "━━━━━━━━━━━━━━━━━━━━━━\n\n"
+                "Contact administrator\n\n"
+                "━━━━━━━━━━━━━━━━━━━━━━"
+            )
                 return
             
             buttons = []
@@ -56,21 +57,21 @@ async def handler(event):
                 )])
             
             await event.reply(
-                "🎉 **Welcome Back, Builder!**\n\n"
-                "━━━━━━━━━━━━━━━━━━━━━━\n"
-                "📱 **Choose Your Application:**\n"
-                "━━━━━━━━━━━━━━━━━━━━━━\n",
+                "🎉 **Welcome Back!**\n\n"
+                "━━━━━━━━━━━━━━━━━━━━━━\n\n"
+                "📱 **Choose Application**\n\n"
+                "━━━━━━━━━━━━━━━━━━━━━━",
                 buttons=buttons
             )
         else:
             await event.reply(
-                "🎯 **Welcome to Professional APK Builder!**\n\n"
-                "━━━━━━━━━━━━━━━━━━━━━━\n"
-                "🔐 Secure authentication required\n"
-                "⚡ Lightning fast build system\n"
-                "✨ Enterprise-grade signing\n"
+                "🎯 **Welcome to Professional APK Builder**\n\n"
                 "━━━━━━━━━━━━━━━━━━━━━━\n\n"
-                "👤 **Please send your username to begin:**"
+                "🔐 Secure & Fast\n"
+                "⚡ Enterprise Grade\n"
+                "✨ Professional Signing\n\n"
+                "━━━━━━━━━━━━━━━━━━━━━━\n\n"
+                "👤 **Send your username to start**"
             )
         return
     
@@ -78,7 +79,12 @@ async def handler(event):
         apks = get_available_apks()
         
         if not apks:
-            await event.reply("⚠️ No APK files available!")
+            await event.reply(
+                "⚠️ **No Applications**\n\n"
+                "━━━━━━━━━━━━━━━━━━━━━━\n\n"
+                "Contact administrator\n\n"
+                "━━━━━━━━━━━━━━━━━━━━━━"
+            )
             return
         
         buttons = []
@@ -90,9 +96,9 @@ async def handler(event):
         
         await event.reply(
             "✅ **Authentication Active**\n\n"
-            "━━━━━━━━━━━━━━━━━━━━━━\n"
-            "📱 **Choose Your Application:**\n"
-            "━━━━━━━━━━━━━━━━━━━━━━\n",
+            "━━━━━━━━━━━━━━━━━━━━━━\n\n"
+            "📱 **Choose Application**\n\n"
+            "━━━━━━━━━━━━━━━━━━━━━━",
             buttons=buttons
         )
         return
@@ -101,10 +107,7 @@ async def handler(event):
         username = user_manager.waiting_otp[user_id]
         
         if text.isdigit() and len(text) == 6:
-            await event.reply(
-                "🔍 **Verifying Authentication Code...**\n\n"
-                "⏳ Please wait..."
-            )
+            await event.reply("🔍 **Verifying...**")
             success, token, msg = verify_otp(username, text)
             
             if success:
@@ -120,35 +123,32 @@ async def handler(event):
                     )])
                 
                 await event.reply(
-                    f"✨ **{msg}**\n\n"
-                    f"━━━━━━━━━━━━━━━━━━━━━━\n"
-                    f"🎊 Authentication successful!\n"
-                    f"🔐 Secure session established\n"
+                    f"✅ **Authentication Successful**\n\n"
                     f"━━━━━━━━━━━━━━━━━━━━━━\n\n"
-                    f"📱 **Choose Your Application:**\n",
+                    f"📱 **Choose Application**\n\n"
+                    f"━━━━━━━━━━━━━━━━━━━━━━",
                     buttons=buttons
                 )
             else:
-                await event.reply(f"❌ {msg}\n\n📝 Send username again:")
+                await event.reply(f"❌ {msg}\n\n📝 Send username again")
                 del user_manager.waiting_otp[user_id]
         else:
-            await event.reply("❌ Invalid OTP\n\nPlease enter a valid 6-digit OTP code")
+            await event.reply("❌ **Invalid Code**\n\nEnter 6-digit OTP")
     else:
         username = text
-        await event.reply("⏳ Requesting OTP...")
+        await event.reply("⏳ **Requesting Code...**")
         success, msg = request_otp(username)
         
         if success:
             user_manager.waiting_otp[user_id] = username
             await event.reply(
-                f"✨ **{msg}**\n\n"
-                f"━━━━━━━━━━━━━━━━━━━━━━\n"
-                f"📬 Verification code sent!\n"
-                f"🔢 **Enter your 6-digit OTP:**\n"
+                f"✅ **Code Sent**\n\n"
+                f"━━━━━━━━━━━━━━━━━━━━━━\n\n"
+                f"🔢 **Enter 6-digit OTP**\n\n"
                 f"━━━━━━━━━━━━━━━━━━━━━━"
             )
         else:
-            await event.reply(f"❌ {msg}\n\nPlease try again:")
+            await event.reply(f"❌ {msg}\n\nTry again")
 
 
 @bot.on(events.CallbackQuery(pattern=r"^build:(.+)$"))
@@ -158,7 +158,7 @@ async def build_handler(event):
     
     try:
         if not user_manager.is_authenticated(user_id):
-            await event.answer("❌ Not authenticated", alert=True)
+            await event.answer("❌ Authentication required", alert=True)
             return
         
         match = event.pattern_match
@@ -173,9 +173,9 @@ async def build_handler(event):
             elapsed = build_queue.get_user_elapsed_time(user_id)
             
             await event.answer(
-                f"⏳ You already have a build in progress!\n\n"
-                f"Time elapsed: {elapsed}s\n\n"
-                f"Please wait for your current build to finish.",
+                f"⏳ Build in progress\n\n"
+                f"Elapsed: {elapsed}s\n\n"
+                f"Please wait...",
                 alert=True
             )
             return
@@ -185,17 +185,9 @@ async def build_handler(event):
         apk_name = selected_apk_filename.replace('.apk', '')
         
         await event.edit(
-            f"🚀 **Building: {apk_name}**\n\n"
-            f"━━━━━━━━━━━━━━━━━━━━━━\n"
-            f"⚡ **Build Process Started**\n"
+            f"🔨 **Building {apk_name}**\n\n"
             f"━━━━━━━━━━━━━━━━━━━━━━\n\n"
-            f"📦 Decompiling APK...\n"
-            f"✏️ Injecting configuration...\n"
-            f"🔧 Rebuilding package...\n"
-            f"🔐 Applying encryption...\n"
-            f"⚙️ Optimizing alignment...\n"
-            f"🔏 Digital signing...\n\n"
-            f"⏱️ **Estimated time: 1-2 minutes**\n"
+            f"⏳ Please wait...\n\n"
             f"━━━━━━━━━━━━━━━━━━━━━━"
         )
         
@@ -203,7 +195,7 @@ async def build_handler(event):
         device_token = get_device_token(service_token)
         
         if not device_token:
-            await event.edit("❌ Failed to get device token")
+            await event.edit("❌ **Authentication Failed**")
             return
         
         logger.info(f"Building {apk_name} for user {user_id} with token {device_token}")
@@ -214,8 +206,9 @@ async def build_handler(event):
             apk_file = result
             
             await event.edit(
-                "📤 **Finalizing Build...**\n\n"
-                "⬆️ Uploading your application...\n"
+                "🔏 **Signing & Uploading...**\n\n"
+                "━━━━━━━━━━━━━━━━━━━━━━\n\n"
+                "⏳ Almost done...\n\n"
                 "━━━━━━━━━━━━━━━━━━━━━━"
             )
             
@@ -223,21 +216,13 @@ async def build_handler(event):
                 event.chat_id,
                 apk_file,
                 caption=(
-                    f"✅ **Build Completed Successfully!**\n\n"
-                    f"━━━━━━━━━━━━━━━━━━━━━━\n"
-                    f"📦 **{apk_name}**\n"
+                    f"✅ **Build Completed**\n\n"
                     f"━━━━━━━━━━━━━━━━━━━━━━\n\n"
-                    f"🔐 **Security Features:**\n"
-                    f"   ✓ Digital signature (v1/v2/v3)\n"
-                    f"   ✓ Enterprise encryption\n"
-                    f"   ✓ Optimized alignment\n"
-                    f"   ✓ Secure authentication\n\n"
-                    f"📱 **Installation:**\n"
-                    f"   ✓ Ready to install\n"
-                    f"   ✓ No root required\n\n"
-                    f"━━━━━━━━━━━━━━━━━━━━━━\n"
-                    f"💎 Built with Professional Builder\n"
-                    f"━━━━━━━━━━━━━━━━━━━━━━"
+                    f"📦 **{apk_name}**\n\n"
+                    f"🔐 Signed & Encrypted\n"
+                    f"📱 Ready to Install\n\n"
+                    f"━━━━━━━━━━━━━━━━━━━━━━\n\n"
+                    f"💎 Professional Builder"
                 )
             )
             
@@ -247,12 +232,9 @@ async def build_handler(event):
             logger.error(f"Build failed for user {user_id}: {result}")
             await event.edit(
                 f"❌ **Build Failed**\n\n"
-                f"━━━━━━━━━━━━━━━━━━━━━━\n"
-                f"⚠️ **Error Details:**\n"
-                f"{result}\n\n"
-                f"💡 **Suggestions:**\n"
-                f"   • Contact support\n"
-                f"   • Try again later\n"
+                f"━━━━━━━━━━━━━━━━━━━━━━\n\n"
+                f"⚠️ An error occurred\n\n"
+                f"💬 Contact support\n\n"
                 f"━━━━━━━━━━━━━━━━━━━━━━"
             )
     
@@ -260,11 +242,9 @@ async def build_handler(event):
         logger.error(f"Handler error: {str(e)}", exc_info=True)
         await event.edit(
             f"⚠️ **System Error**\n\n"
-            f"━━━━━━━━━━━━━━━━━━━━━━\n"
-            f"❌ An unexpected error occurred\n\n"
-            f"🔧 **Technical Details:**\n"
-            f"{str(e)}\n\n"
-            f"💬 Please contact support\n"
+            f"━━━━━━━━━━━━━━━━━━━━━━\n\n"
+            f"❌ Unexpected error\n\n"
+            f"💬 Contact support\n\n"
             f"━━━━━━━━━━━━━━━━━━━━━━"
         )
     
