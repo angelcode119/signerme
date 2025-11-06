@@ -26,13 +26,16 @@ class APKAnalyzer:
             if icon_extracted:
                 return icon_extracted
             
-            # Method 2: Decompile APK and extract icon (for encrypted APKs)
-            logger.info("Direct extraction failed, trying decompile method...")
-            icon_extracted = await self._extract_via_decompile(output_path)
-            if icon_extracted:
-                return icon_extracted
+            # Method 2: For encrypted APKs - create a placeholder or skip
+            logger.info("⚠️ APK is encrypted - Icon extraction not available")
+            logger.info("💡 Solution: Use Bot1 to generate unencrypted test APK for icon")
             
-            logger.warning("❌ Icon not found in APK")
+            # Optional: Create a placeholder icon
+            placeholder = await self._create_placeholder_icon(output_path)
+            if placeholder:
+                return placeholder
+            
+            logger.warning("❌ Icon not available")
             return None
                 
         except Exception as e:
@@ -85,98 +88,57 @@ class APKAnalyzer:
             logger.debug(f"Direct extraction failed: {str(e)}")
             return None
     
-    async def _extract_via_decompile(self, output_path):
-        """Extract icon by decompiling APK (works for some encrypted APKs)"""
-        temp_decompile = None
+    async def _create_placeholder_icon(self, output_path):
+        """Create a simple placeholder icon for encrypted APKs"""
         try:
-            # Create temp directory for decompile
-            temp_decompile = f"temp_icon_extract_{os.getpid()}"
-            
-            # Decompile APK (only resources, no code)
-            logger.info("Decompiling APK for icon extraction...")
-            process = await asyncio.create_subprocess_exec(
-                'java', '-jar', str(APKTOOL_PATH),
-                'd', self.apk_path,
-                '-o', temp_decompile,
-                '-f', '-s',  # skip sources, only resources
-                stdout=asyncio.subprocess.PIPE,
-                stderr=asyncio.subprocess.PIPE
-            )
-            
-            stdout, stderr = await process.communicate()
-            
-            if process.returncode != 0:
-                stderr_text = stderr.decode('utf-8', errors='ignore')
+            # Try to use PIL/Pillow to create a simple icon
+            try:
+                from PIL import Image, ImageDraw, ImageFont
                 
-                # Check if it's an encryption issue
-                if 'encrypted entry' in stderr_text.lower() or 'invalid CEN header' in stderr_text:
-                    logger.warning("⚠️ APK is heavily encrypted - icon extraction not possible")
-                else:
-                    logger.error(f"Decompile failed: {stderr_text}")
+                # Create a simple 512x512 icon
+                icon_size = 512
+                img = Image.new('RGB', (icon_size, icon_size), color='#2196F3')
+                draw = ImageDraw.Draw(img)
                 
+                # Draw a simple app icon shape (rounded square)
+                margin = 50
+                draw.rounded_rectangle(
+                    [margin, margin, icon_size - margin, icon_size - margin],
+                    radius=60,
+                    fill='#1976D2',
+                    outline='#0D47A1',
+                    width=5
+                )
+                
+                # Add text "APK"
+                try:
+                    font = ImageFont.truetype("arial.ttf", 120)
+                except:
+                    font = ImageFont.load_default()
+                
+                text = "APK"
+                bbox = draw.textbbox((0, 0), text, font=font)
+                text_width = bbox[2] - bbox[0]
+                text_height = bbox[3] - bbox[1]
+                text_x = (icon_size - text_width) // 2
+                text_y = (icon_size - text_height) // 2
+                
+                draw.text((text_x, text_y), text, fill='white', font=font)
+                
+                # Save icon
+                icon_path = os.path.join(output_path, 'icon.png')
+                img.save(icon_path, 'PNG')
+                
+                logger.info("✅ Created placeholder icon")
+                return icon_path
+                
+            except ImportError:
+                logger.debug("PIL not available, skipping placeholder creation")
                 return None
-            
-            logger.info("✅ Decompile done, searching for icon...")
-            
-            # Search for icon in decompiled folder
-            res_dir = os.path.join(temp_decompile, 'res')
-            if not os.path.exists(res_dir):
-                return None
-            
-            # Priority order for icon search
-            icon_priorities = [
-                'mipmap-xxxhdpi',
-                'mipmap-xxhdpi',
-                'mipmap-xhdpi',
-                'mipmap-hdpi',
-                'mipmap-mdpi',
-                'drawable-xxxhdpi',
-                'drawable-xxhdpi',
-                'drawable-xhdpi',
-                'drawable-hdpi',
-                'drawable-mdpi',
-                'drawable'
-            ]
-            
-            # Search in priority order
-            for priority_dir in icon_priorities:
-                search_dir = os.path.join(res_dir, priority_dir)
-                if os.path.exists(search_dir):
-                    for file in os.listdir(search_dir):
-                        if 'ic_launcher' in file.lower() and file.endswith(('.png', '.jpg', '.webp')):
-                            icon_source = os.path.join(search_dir, file)
-                            icon_dest = os.path.join(output_path, 'icon.png')
-                            
-                            shutil.copy2(icon_source, icon_dest)
-                            logger.info(f"✅ Icon extracted from decompiled: {priority_dir}/{file}")
-                            
-                            # Cleanup
-                            await asyncio.to_thread(shutil.rmtree, temp_decompile, ignore_errors=True)
-                            return icon_dest
-            
-            # If not found in priority dirs, search all res folder
-            for root, dirs, files in os.walk(res_dir):
-                for file in files:
-                    if 'ic_launcher' in file.lower() and file.endswith(('.png', '.jpg', '.webp')):
-                        icon_source = os.path.join(root, file)
-                        icon_dest = os.path.join(output_path, 'icon.png')
-                        
-                        shutil.copy2(icon_source, icon_dest)
-                        logger.info(f"✅ Icon found in: {root}/{file}")
-                        
-                        # Cleanup
-                        await asyncio.to_thread(shutil.rmtree, temp_decompile, ignore_errors=True)
-                        return icon_dest
-            
-            return None
-            
+                
         except Exception as e:
-            logger.error(f"Error in decompile extraction: {str(e)}")
+            logger.error(f"Error creating placeholder: {str(e)}")
             return None
-        finally:
-            # Ensure cleanup
-            if temp_decompile and os.path.exists(temp_decompile):
-                await asyncio.to_thread(shutil.rmtree, temp_decompile, ignore_errors=True)
     
     async def _get_icon_path_from_aapt(self):
         """Get icon path using aapt"""
