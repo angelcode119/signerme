@@ -86,7 +86,7 @@ class APKAnalyzer:
             return None
     
     async def _extract_via_decompile(self, output_path):
-        """Extract icon by decompiling APK (works for encrypted APKs)"""
+        """Extract icon by decompiling APK (works for some encrypted APKs)"""
         temp_decompile = None
         try:
             # Create temp directory for decompile
@@ -106,7 +106,14 @@ class APKAnalyzer:
             stdout, stderr = await process.communicate()
             
             if process.returncode != 0:
-                logger.error(f"Decompile failed: {stderr.decode('utf-8', errors='ignore')}")
+                stderr_text = stderr.decode('utf-8', errors='ignore')
+                
+                # Check if it's an encryption issue
+                if 'encrypted entry' in stderr_text.lower() or 'invalid CEN header' in stderr_text:
+                    logger.warning("⚠️ APK is heavily encrypted - icon extraction not possible")
+                else:
+                    logger.error(f"Decompile failed: {stderr_text}")
+                
                 return None
             
             logger.info("✅ Decompile done, searching for icon...")
