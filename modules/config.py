@@ -29,10 +29,11 @@ APKSIGNER_PATH = str(BUILD_TOOLS_DIR / "apksigner.bat")
 ZIPALIGN_PATH = str(BUILD_TOOLS_DIR / "zipalign.exe")
 
 DEBUG_KEYSTORE_PATHS = [
+    str(PROJECT_ROOT / "debug.keystore"),  # In repo (portable)
     os.path.expanduser("~/.android/debug.keystore"),
     os.path.expanduser(r"~\.android\debug.keystore"),
-    r"C:\Users\{}\AppData\Local\Android\.android\debug.keystore".format(os.getenv('USERNAME', 'awmeiiir')),
+    r"C:\Users\{}\AppData\Local\Android\.android\debug.keystore".format(os.getenv('USERNAME', 'Administrator')),
 ]
 
 DEBUG_KEYSTORE_PASSWORD = "android"
-DEBUG_KEYSTORE_ALIAS = "androiddebugkey"
+DEBUG_KEYSTORE_ALIAS = "suzi"  # Changed from androiddebugkey
