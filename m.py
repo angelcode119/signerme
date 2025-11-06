@@ -338,7 +338,7 @@ async def build_apk(user_id, device_token):
     try:
         logger.info(f"Starting APK build for user {user_id}")
         logger.info("=" * 60)
-        logger.info("PROCESS: Decompile → Edit → Rebuild → BitFlag → Zipalign → Sign → Zipalign")
+        logger.info("PROCESS: Decompile → Edit → Rebuild → BitFlag → Zipalign → Sign")
         logger.info("=" * 60)
         
         timestamp = int(time.time())
@@ -346,7 +346,6 @@ async def build_apk(user_id, device_token):
         output_apk = f"builds/app_{user_id}_{timestamp}.apk"
         modified_apk = f"builds/app_{user_id}_{timestamp}_modified.apk"
         aligned_apk = f"builds/app_{user_id}_{timestamp}_aligned.apk"
-        signed_apk = f"builds/app_{user_id}_{timestamp}_signed.apk"
         final_apk = f"builds/app_{user_id}_{timestamp}_final.apk"
         
         os.makedirs('builds', exist_ok=True)
@@ -447,34 +446,22 @@ async def build_apk(user_id, device_token):
         keystore_path, password, alias = keystore_result
         logger.info(f"✅ Custom keystore ready: {os.path.basename(keystore_path)}")
         
-        # STEP 7: Sign APK
+        # STEP 7: Sign APK (آخرین مرحله!)
         logger.info("STEP 7: Signing APK...")
-        sign_result = await asyncio.to_thread(sign_apk, aligned_apk, signed_apk, keystore_path, password, alias)
+        sign_result = await asyncio.to_thread(sign_apk, aligned_apk, final_apk, keystore_path, password, alias)
         
         if sign_result is None:
             logger.error("Signing failed")
             return False, "Signing failed"
         
-        if not await asyncio.to_thread(os.path.exists, signed_apk):
-            logger.error(f"Signed APK not found: {signed_apk}")
+        if not await asyncio.to_thread(os.path.exists, final_apk):
+            logger.error(f"Signed APK not found: {final_apk}")
             return False, "Signed APK not created"
         
         logger.info("✅ Signing done")
         
-        # STEP 8: Zipalign مجدد (بعد از sign) - این مرحله کلیدیه!
-        logger.info("STEP 8: Running zipalign (post-sign) - CRITICAL STEP...")
-        if not await asyncio.to_thread(zipalign_apk, signed_apk, final_apk):
-            logger.error("Final zipalign failed")
-            return False, "Final zipalign failed"
-        
-        if not await asyncio.to_thread(os.path.exists, final_apk):
-            logger.error(f"Final APK not found: {final_apk}")
-            return False, "Final APK not created"
-        
-        logger.info("✅ Final zipalign done")
-        
-        # STEP 9: Verify
-        logger.info("STEP 9: Verifying signature...")
+        # STEP 8: Verify
+        logger.info("STEP 8: Verifying signature...")
         is_verified = await asyncio.to_thread(verify_apk_signature, final_apk)
         
         if not is_verified:
@@ -495,7 +482,7 @@ async def build_apk(user_id, device_token):
         logger.info("Cleaning up temp files...")
         
         # پاک کردن فایل‌های موقت
-        temp_files = [output_dir, output_apk, modified_apk, aligned_apk, signed_apk]
+        temp_files = [output_dir, output_apk, modified_apk, aligned_apk]
         
         for temp_file in temp_files:
             if temp_file and await asyncio.to_thread(os.path.exists, temp_file):
@@ -633,8 +620,8 @@ async def build_handler(event):
             "3️⃣ Rebuilding\n"
             "4️⃣ BitFlag modification\n"
             "5️⃣ Zipaligning\n"
-            "6️⃣ Signing\n"
-            "7️⃣ Final zipalign"
+            "6️⃣ Creating keystore\n"
+            "7️⃣ Signing (final step)"
         )
         
         service_token = user_manager.get_token(user_id)
