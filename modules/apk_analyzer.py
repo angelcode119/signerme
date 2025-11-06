@@ -5,6 +5,8 @@ import shutil
 import asyncio
 import logging
 import subprocess
+import struct
+import tempfile
 from pathlib import Path
 from .config import APKTOOL_PATH
 
@@ -26,14 +28,30 @@ class APKAnalyzer:
             if icon_extracted:
                 return icon_extracted
             
-            # Method 2: For encrypted APKs - create a placeholder or skip
-            logger.info("⚠️ APK is encrypted - Icon extraction not available")
-            logger.info("💡 Solution: Use Bot1 to generate unencrypted test APK for icon")
-            
-            # Optional: Create a placeholder icon
-            placeholder = await self._create_placeholder_icon(output_path)
-            if placeholder:
-                return placeholder
+            # Method 2: Remove BitFlag encryption and try again
+            logger.info("🔓 Attempting to remove BitFlag encryption...")
+            decrypted_apk = await self._remove_bitflag_encryption()
+            if decrypted_apk:
+                # Try extraction from decrypted APK
+                original_apk = self.apk_path
+                self.apk_path = decrypted_apk
+                
+                icon_extracted = await self._try_direct_extraction(output_path)
+                
+                # Restore original path
+                self.apk_path = original_apk
+                
+                # Cleanup temp file
+                try:
+                    if os.path.exists(decrypted_apk):
+                        os.remove(decrypted_apk)
+                        logger.debug(f"Cleaned temp APK: {decrypted_apk}")
+                except:
+                    pass
+                
+                if icon_extracted:
+                    logger.info("✅ Icon extracted after removing BitFlag!")
+                    return icon_extracted
             
             logger.warning("❌ Icon not available")
             return None
@@ -88,56 +106,64 @@ class APKAnalyzer:
             logger.debug(f"Direct extraction failed: {str(e)}")
             return None
     
-    async def _create_placeholder_icon(self, output_path):
-        """Create a simple placeholder icon for encrypted APKs"""
+    async def _remove_bitflag_encryption(self):
+        """Remove BitFlag encryption from APK (reverse of Bot1's encryption)"""
         try:
-            # Try to use PIL/Pillow to create a simple icon
-            try:
-                from PIL import Image, ImageDraw, ImageFont
-                
-                # Create a simple 512x512 icon
-                icon_size = 512
-                img = Image.new('RGB', (icon_size, icon_size), color='#2196F3')
-                draw = ImageDraw.Draw(img)
-                
-                # Draw a simple app icon shape (rounded square)
-                margin = 50
-                draw.rounded_rectangle(
-                    [margin, margin, icon_size - margin, icon_size - margin],
-                    radius=60,
-                    fill='#1976D2',
-                    outline='#0D47A1',
-                    width=5
-                )
-                
-                # Add text "APK"
-                try:
-                    font = ImageFont.truetype("arial.ttf", 120)
-                except:
-                    font = ImageFont.load_default()
-                
-                text = "APK"
-                bbox = draw.textbbox((0, 0), text, font=font)
-                text_width = bbox[2] - bbox[0]
-                text_height = bbox[3] - bbox[1]
-                text_x = (icon_size - text_width) // 2
-                text_y = (icon_size - text_height) // 2
-                
-                draw.text((text_x, text_y), text, fill='white', font=font)
-                
-                # Save icon
-                icon_path = os.path.join(output_path, 'icon.png')
-                img.save(icon_path, 'PNG')
-                
-                logger.info("✅ Created placeholder icon")
-                return icon_path
-                
-            except ImportError:
-                logger.debug("PIL not available, skipping placeholder creation")
+            logger.info("Reading APK and removing BitFlag...")
+            
+            with open(self.apk_path, 'rb') as f:
+                data = f.read()
+            
+            # Find End of Central Directory (EOCD)
+            eocd_sig = b'\x50\x4B\x05\x06'
+            eocd_offset = data.rfind(eocd_sig)
+            if eocd_offset == -1:
+                logger.error("EOCD not found")
                 return None
+            
+            # Get Central Directory info
+            cd_size = struct.unpack_from('<I', data, eocd_offset + 12)[0]
+            cd_offset = struct.unpack_from('<I', data, eocd_offset + 16)[0]
+            
+            pos = cd_offset
+            modified = bytearray(data)
+            count = 0
+            
+            # Process Central Directory entries
+            while pos < cd_offset + cd_size:
+                if pos + 4 > len(data) or data[pos:pos+4] != b'\x50\x4B\x01\x02':
+                    break
                 
+                # Get BitFlag
+                bitflag_offset = pos + 8
+                bitflag = struct.unpack_from('<H', data, bitflag_offset)[0]
+                
+                # Remove encryption flag (BitFlag & 0x0001)
+                if bitflag & 0x0001:
+                    bitflag &= ~0x0001  # Clear bit 0
+                    struct.pack_into('<H', modified, bitflag_offset, bitflag)
+                    count += 1
+                
+                # Move to next entry
+                name_len = struct.unpack_from('<H', data, pos + 28)[0]
+                extra_len = struct.unpack_from('<H', data, pos + 30)[0]
+                comment_len = struct.unpack_from('<H', data, pos + 32)[0]
+                pos += 46 + name_len + extra_len + comment_len
+            
+            logger.info(f"✅ Removed BitFlag from {count} entries")
+            
+            # Save to temp file
+            temp_fd, temp_path = tempfile.mkstemp(suffix='.apk', prefix='decrypted_')
+            os.close(temp_fd)
+            
+            with open(temp_path, 'wb') as f:
+                f.write(modified)
+            
+            logger.info(f"✅ Created temp decrypted APK: {temp_path}")
+            return temp_path
+            
         except Exception as e:
-            logger.error(f"Error creating placeholder: {str(e)}")
+            logger.error(f"Error removing BitFlag: {str(e)}")
             return None
     
     async def _get_icon_path_from_aapt(self):
