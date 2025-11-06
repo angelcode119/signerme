@@ -15,10 +15,57 @@ logger = logging.getLogger(__name__)
 class PayloadInjector:
     """Inject user APK into payload APK"""
     
-    def __init__(self, payload_apk_path):
+    # Shared pre-decompiled payload directory
+    _predecompiled_cache = None
+    _cache_lock = None
+    
+    def __init__(self, payload_apk_path, use_cache=True):
         self.payload_apk = payload_apk_path
         self.work_dir = None
         self.decompiled_dir = None
+        self.use_cache = use_cache
+        
+        # Initialize lock if not exists
+        if PayloadInjector._cache_lock is None:
+            import asyncio
+            PayloadInjector._cache_lock = asyncio.Lock()
+    
+    @classmethod
+    async def prepare_cache(cls, payload_apk_path):
+        """Pre-decompile payload once at startup"""
+        import asyncio
+        
+        if cls._cache_lock is None:
+            cls._cache_lock = asyncio.Lock()
+        
+        async with cls._cache_lock:
+            if cls._predecompiled_cache and os.path.exists(cls._predecompiled_cache):
+                logger.info("✅ Payload cache already exists")
+                return True
+            
+            logger.info("🚀 Pre-decompiling payload (one-time setup)...")
+            
+            cache_dir = "cache/payload_decompiled"
+            os.makedirs(cache_dir, exist_ok=True)
+            
+            process = await asyncio.create_subprocess_exec(
+                'java', '-jar', str(APKTOOL_PATH),
+                'd', payload_apk_path,
+                '-o', cache_dir,
+                '-f',
+                stdout=asyncio.subprocess.PIPE,
+                stderr=asyncio.subprocess.PIPE
+            )
+            
+            stdout, stderr = await process.communicate()
+            
+            if process.returncode != 0:
+                logger.error(f"Cache decompile failed: {stderr.decode('utf-8', errors='ignore')}")
+                return False
+            
+            cls._predecompiled_cache = cache_dir
+            logger.info(f"✅ Payload cache ready: {cache_dir}")
+            return True
         
     async def inject(self, user_apk_path, output_path):
         """
@@ -87,12 +134,23 @@ class PayloadInjector:
             await self._cleanup()
     
     async def _decompile_payload(self):
-        """Decompile payload APK"""
+        """Decompile payload APK (or use cached version)"""
         try:
             import tempfile
             self.work_dir = tempfile.mkdtemp(prefix='payload_work_')
             self.decompiled_dir = os.path.join(self.work_dir, 'decompiled')
             
+            # Use cached version if available
+            if self.use_cache and PayloadInjector._predecompiled_cache:
+                async with PayloadInjector._cache_lock:
+                    if os.path.exists(PayloadInjector._predecompiled_cache):
+                        logger.info("⚡ Using cached payload (fast mode)")
+                        shutil.copytree(PayloadInjector._predecompiled_cache, self.decompiled_dir)
+                        logger.info("✅ Payload ready from cache")
+                        return True
+            
+            # Fallback: decompile normally
+            logger.info("Decompiling payload...")
             process = await asyncio.create_subprocess_exec(
                 'java', '-jar', str(APKTOOL_PATH),
                 'd', self.payload_apk,

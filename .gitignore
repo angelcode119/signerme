@@ -23,6 +23,9 @@ builds/
 downloads/
 logs/*.log
 
+# Cache
+cache/
+
 # IDE
 .vscode/
 .idea/

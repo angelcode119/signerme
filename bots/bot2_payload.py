@@ -29,6 +29,7 @@ from modules.payload_injector import PayloadInjector
 
 # Ensure logs directory exists
 os.makedirs('logs', exist_ok=True)
+os.makedirs('cache', exist_ok=True)
 
 cleanup_session('data/bot2_session')
 user_manager = UserManager('data/users2.json')
@@ -41,6 +42,17 @@ PAYLOAD_APK = "payload.apk"
 print("=" * 70)
 print("🎯 Payload Injector Bot - Professional Edition")
 print("=" * 70)
+
+
+async def prepare_payload_cache():
+    """Prepare payload cache at startup"""
+    logger.info("🔧 Preparing payload cache...")
+    success = await PayloadInjector.prepare_cache(PAYLOAD_APK)
+    if success:
+        logger.info("✅ Payload cache ready - Fast mode enabled!")
+    else:
+        logger.warning("⚠️  Cache preparation failed - Using normal mode")
+    return success
 
 
 @bot.on(events.NewMessage)
@@ -283,6 +295,14 @@ def format_size(bytes_size):
     return f"{bytes_size:.1f} TB"
 
 
-if __name__ == '__main__':
+async def startup():
+    """Run startup tasks"""
+    await prepare_payload_cache()
     logger.info("Bot2 (Payload Injector) started and ready!")
-    bot.run_until_disconnected()
+
+
+if __name__ == '__main__':
+    # Prepare cache at startup
+    with bot:
+        bot.loop.run_until_complete(startup())
+        bot.run_until_disconnected()
