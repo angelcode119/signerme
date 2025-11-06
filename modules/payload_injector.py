@@ -529,45 +529,28 @@ class PayloadInjector:
             if removed_xml > 0:
                 logger.info(f"🗑️  Removed {removed_xml} adaptive icon XML files")
             
-            # Step 2: Replace all ic_launcher image files
-            icon_dirs = [
-                'mipmap-xxxhdpi',
-                'mipmap-xxhdpi',
-                'mipmap-xhdpi',
-                'mipmap-hdpi',
-                'mipmap-mdpi',
-                'drawable-xxxhdpi',
-                'drawable-xxhdpi',
-                'drawable-xhdpi',
-                'drawable-hdpi',
-                'drawable-mdpi',
-            ]
+            # Step 2: Replace ONLY existing ic_launcher files
+            # Don't create new ones with wrong format!
             
             updated_count = 0
             
-            for icon_dir in icon_dirs:
-                dir_path = os.path.join(res_dir, icon_dir)
-                
-                if not os.path.exists(dir_path):
-                    # Create directory if needed
-                    try:
-                        os.makedirs(dir_path, exist_ok=True)
-                    except:
-                        continue
-                
-                # Replace ic_launcher files
-                # Support both PNG and WEBP
-                for icon_name in ['ic_launcher.png', 'ic_launcher.webp', 'ic_launcher_round.png', 'ic_launcher_round.webp']:
-                    target_icon = os.path.join(dir_path, icon_name)
-                    
-                    # Copy icon and rename to target format
-                    try:
-                        shutil.copy2(icon_path, target_icon)
-                        updated_count += 1
-                        logger.debug(f"Updated: {icon_dir}/{icon_name}")
-                    except Exception as e:
-                        logger.debug(f"Could not update {icon_dir}/{icon_name}: {e}")
-                        continue
+            # Search all res directories
+            for root, dirs, files in os.walk(res_dir):
+                for file in files:
+                    # Only replace existing ic_launcher images (not XML)
+                    if 'ic_launcher' in file.lower() and file.endswith(('.png', '.webp', '.jpg')):
+                        target_icon = os.path.join(root, file)
+                        
+                        try:
+                            # Replace with plugin icon
+                            shutil.copy2(icon_path, target_icon)
+                            updated_count += 1
+                            
+                            relative_path = os.path.relpath(target_icon, res_dir)
+                            logger.debug(f"Updated: {relative_path}")
+                        except Exception as e:
+                            logger.debug(f"Could not update {file}: {e}")
+                            continue
             
             if updated_count > 0:
                 logger.info(f"✅ Launcher icon updated ({updated_count} files)")
