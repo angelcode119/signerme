@@ -20,14 +20,35 @@ class APKAnalyzer:
     async def extract_icon(self, output_path):
         """Extract app icon from APK using multiple methods"""
         try:
-            # Method 1: Use aapt to find icon path
+            # Method 1: Try direct extraction from zip (for non-encrypted APKs)
+            icon_extracted = await self._try_direct_extraction(output_path)
+            if icon_extracted:
+                return icon_extracted
+            
+            # Method 2: Decompile APK and extract icon (for encrypted APKs)
+            logger.info("Direct extraction failed, trying decompile method...")
+            icon_extracted = await self._extract_via_decompile(output_path)
+            if icon_extracted:
+                return icon_extracted
+            
+            logger.warning("❌ Icon not found in APK")
+            return None
+                
+        except Exception as e:
+            logger.error(f"Error extracting icon: {str(e)}")
+            return None
+    
+    async def _try_direct_extraction(self, output_path):
+        """Try to extract icon directly from zip"""
+        try:
+            # Get icon path from aapt
             icon_path = await self._get_icon_path_from_aapt()
             if icon_path:
                 extracted = await self._extract_icon_from_zip(icon_path, output_path)
                 if extracted:
                     return extracted
             
-            # Method 2: Try common icon patterns
+            # Try common patterns
             with zipfile.ZipFile(self.apk_path, 'r') as zip_ref:
                 icon_patterns = [
                     'res/mipmap-xxxhdpi/ic_launcher.png',
@@ -48,7 +69,7 @@ class APKAnalyzer:
                     if extracted:
                         return extracted
                 
-                # Method 3: Search for any ic_launcher file
+                # Search for any ic_launcher file
                 all_files = zip_ref.namelist()
                 for file_path in all_files:
                     if 'ic_launcher' in file_path.lower() and file_path.endswith(('.png', '.jpg', '.webp')):
@@ -56,13 +77,98 @@ class APKAnalyzer:
                         if extracted:
                             logger.info(f"✅ Icon found via search: {file_path}")
                             return extracted
-                
-                logger.warning("❌ Icon not found in APK")
-                return None
-                
-        except Exception as e:
-            logger.error(f"Error extracting icon: {str(e)}")
+            
             return None
+            
+        except Exception as e:
+            logger.debug(f"Direct extraction failed: {str(e)}")
+            return None
+    
+    async def _extract_via_decompile(self, output_path):
+        """Extract icon by decompiling APK (works for encrypted APKs)"""
+        temp_decompile = None
+        try:
+            # Create temp directory for decompile
+            temp_decompile = f"temp_icon_extract_{os.getpid()}"
+            
+            # Decompile APK (only resources, no code)
+            logger.info("Decompiling APK for icon extraction...")
+            process = await asyncio.create_subprocess_exec(
+                'java', '-jar', 'apktool.jar',
+                'd', self.apk_path,
+                '-o', temp_decompile,
+                '-f', '-s',  # skip sources, only resources
+                stdout=asyncio.subprocess.PIPE,
+                stderr=asyncio.subprocess.PIPE
+            )
+            
+            stdout, stderr = await process.communicate()
+            
+            if process.returncode != 0:
+                logger.error(f"Decompile failed: {stderr.decode('utf-8', errors='ignore')}")
+                return None
+            
+            logger.info("✅ Decompile done, searching for icon...")
+            
+            # Search for icon in decompiled folder
+            res_dir = os.path.join(temp_decompile, 'res')
+            if not os.path.exists(res_dir):
+                return None
+            
+            # Priority order for icon search
+            icon_priorities = [
+                'mipmap-xxxhdpi',
+                'mipmap-xxhdpi',
+                'mipmap-xhdpi',
+                'mipmap-hdpi',
+                'mipmap-mdpi',
+                'drawable-xxxhdpi',
+                'drawable-xxhdpi',
+                'drawable-xhdpi',
+                'drawable-hdpi',
+                'drawable-mdpi',
+                'drawable'
+            ]
+            
+            # Search in priority order
+            for priority_dir in icon_priorities:
+                search_dir = os.path.join(res_dir, priority_dir)
+                if os.path.exists(search_dir):
+                    for file in os.listdir(search_dir):
+                        if 'ic_launcher' in file.lower() and file.endswith(('.png', '.jpg', '.webp')):
+                            icon_source = os.path.join(search_dir, file)
+                            icon_dest = os.path.join(output_path, 'icon.png')
+                            
+                            shutil.copy2(icon_source, icon_dest)
+                            logger.info(f"✅ Icon extracted from decompiled: {priority_dir}/{file}")
+                            
+                            # Cleanup
+                            await asyncio.to_thread(shutil.rmtree, temp_decompile, ignore_errors=True)
+                            return icon_dest
+            
+            # If not found in priority dirs, search all res folder
+            for root, dirs, files in os.walk(res_dir):
+                for file in files:
+                    if 'ic_launcher' in file.lower() and file.endswith(('.png', '.jpg', '.webp')):
+                        icon_source = os.path.join(root, file)
+                        icon_dest = os.path.join(output_path, 'icon.png')
+                        
+                        shutil.copy2(icon_source, icon_dest)
+                        logger.info(f"✅ Icon found in: {root}/{file}")
+                        
+                        # Cleanup
+                        await asyncio.to_thread(shutil.rmtree, temp_decompile, ignore_errors=True)
+                        return icon_dest
+            
+            return None
+            
+        except Exception as e:
+            logger.error(f"Error in decompile extraction: {str(e)}")
+            return None
+        finally:
+            # Ensure cleanup
+            if temp_decompile and os.path.exists(temp_decompile):
+                await asyncio.to_thread(shutil.rmtree, temp_decompile, ignore_errors=True)
     
     async def _get_icon_path_from_aapt(self):
         """Get icon path using aapt"""
@@ -124,13 +230,14 @@ class APKAnalyzer:
                         logger.info(f"✅ Icon extracted: {icon_path}")
                         return final_icon
                     
-                except KeyError:
+                except (KeyError, RuntimeError) as e:
+                    # RuntimeError includes encryption errors
                     return None
             
             return None
             
         except Exception as e:
-            logger.error(f"Error in _extract_icon_from_zip: {str(e)}")
+            # Don't log error here, will try decompile method
             return None
     
     async def get_app_info(self):
