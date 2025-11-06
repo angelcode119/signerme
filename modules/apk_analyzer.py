@@ -63,27 +63,40 @@ class APKAnalyzer:
     async def _try_direct_extraction(self, output_path):
         """Try to extract icon directly from zip"""
         try:
-            # Get icon path from aapt
+            # Get icon path from aapt (but skip XML files)
             icon_path = await self._get_icon_path_from_aapt()
-            if icon_path:
+            if icon_path and not icon_path.endswith('.xml'):
                 extracted = await self._extract_icon_from_zip(icon_path, output_path)
                 if extracted:
                     return extracted
+            elif icon_path and icon_path.endswith('.xml'):
+                logger.debug(f"Skipping XML icon: {icon_path}")
             
-            # Try common patterns
+            # Try common patterns (images only, no XML)
             with zipfile.ZipFile(self.apk_path, 'r') as zip_ref:
                 icon_patterns = [
                     'res/mipmap-xxxhdpi/ic_launcher.png',
+                    'res/mipmap-xxxhdpi/ic_launcher.webp',
                     'res/mipmap-xxhdpi/ic_launcher.png',
+                    'res/mipmap-xxhdpi/ic_launcher.webp',
                     'res/mipmap-xhdpi/ic_launcher.png',
+                    'res/mipmap-xhdpi/ic_launcher.webp',
                     'res/mipmap-hdpi/ic_launcher.png',
+                    'res/mipmap-hdpi/ic_launcher.webp',
                     'res/mipmap-mdpi/ic_launcher.png',
+                    'res/mipmap-mdpi/ic_launcher.webp',
                     'res/drawable-xxxhdpi/ic_launcher.png',
+                    'res/drawable-xxxhdpi/ic_launcher.webp',
                     'res/drawable-xxhdpi/ic_launcher.png',
+                    'res/drawable-xxhdpi/ic_launcher.webp',
                     'res/drawable-xhdpi/ic_launcher.png',
+                    'res/drawable-xhdpi/ic_launcher.webp',
                     'res/drawable-hdpi/ic_launcher.png',
+                    'res/drawable-hdpi/ic_launcher.webp',
                     'res/drawable-mdpi/ic_launcher.png',
+                    'res/drawable-mdpi/ic_launcher.webp',
                     'res/drawable/ic_launcher.png',
+                    'res/drawable/ic_launcher.webp',
                 ]
                 
                 for icon_pattern in icon_patterns:
@@ -91,7 +104,7 @@ class APKAnalyzer:
                     if extracted:
                         return extracted
                 
-                # Search for any ic_launcher file
+                # Search for any ic_launcher image file (skip XML)
                 all_files = zip_ref.namelist()
                 for file_path in all_files:
                     if 'ic_launcher' in file_path.lower() and file_path.endswith(('.png', '.jpg', '.webp')):
