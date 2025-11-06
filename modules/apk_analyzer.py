@@ -18,30 +18,102 @@ class APKAnalyzer:
         self.temp_dir = None
     
     async def extract_icon(self, output_path):
-        """Extract app icon from APK"""
+        """Extract app icon from APK using multiple methods"""
         try:
+            # Method 1: Use aapt to find icon path
+            icon_path = await self._get_icon_path_from_aapt()
+            if icon_path:
+                extracted = await self._extract_icon_from_zip(icon_path, output_path)
+                if extracted:
+                    return extracted
+            
+            # Method 2: Try common icon patterns
             with zipfile.ZipFile(self.apk_path, 'r') as zip_ref:
-                # Common icon paths in APK
                 icon_patterns = [
                     'res/mipmap-xxxhdpi/ic_launcher.png',
                     'res/mipmap-xxhdpi/ic_launcher.png',
                     'res/mipmap-xhdpi/ic_launcher.png',
                     'res/mipmap-hdpi/ic_launcher.png',
+                    'res/mipmap-mdpi/ic_launcher.png',
                     'res/drawable-xxxhdpi/ic_launcher.png',
                     'res/drawable-xxhdpi/ic_launcher.png',
                     'res/drawable-xhdpi/ic_launcher.png',
                     'res/drawable-hdpi/ic_launcher.png',
+                    'res/drawable-mdpi/ic_launcher.png',
                     'res/drawable/ic_launcher.png',
                 ]
                 
-                # Try to find icon
-                for icon_path in icon_patterns:
-                    try:
-                        zip_ref.extract(icon_path, output_path)
-                        extracted_icon = os.path.join(output_path, icon_path)
+                for icon_pattern in icon_patterns:
+                    extracted = await self._extract_icon_from_zip(icon_pattern, output_path)
+                    if extracted:
+                        return extracted
+                
+                # Method 3: Search for any ic_launcher file
+                all_files = zip_ref.namelist()
+                for file_path in all_files:
+                    if 'ic_launcher' in file_path.lower() and file_path.endswith(('.png', '.jpg', '.webp')):
+                        extracted = await self._extract_icon_from_zip(file_path, output_path)
+                        if extracted:
+                            logger.info(f"✅ Icon found via search: {file_path}")
+                            return extracted
+                
+                logger.warning("❌ Icon not found in APK")
+                return None
+                
+        except Exception as e:
+            logger.error(f"Error extracting icon: {str(e)}")
+            return None
+    
+    async def _get_icon_path_from_aapt(self):
+        """Get icon path using aapt"""
+        try:
+            aapt_paths = [
+                r"C:\Users\awmeiiir\AppData\Local\Android\Sdk\build-tools\34.0.0\aapt2.exe",
+                r"C:\Users\awmeiiir\AppData\Local\Android\Sdk\build-tools\34.0.0\aapt.exe",
+                "aapt2",
+                "aapt"
+            ]
+            
+            for aapt in aapt_paths:
+                try:
+                    result = subprocess.run(
+                        [aapt, 'dump', 'badging', self.apk_path],
+                        capture_output=True,
+                        text=True,
+                        timeout=30
+                    )
+                    
+                    if result.returncode == 0:
+                        # Look for application-icon line
+                        icon_match = re.search(r"application-icon-(\d+):'([^']+)'", result.stdout)
+                        if icon_match:
+                            icon_path = icon_match.group(2)
+                            logger.info(f"✅ Icon path from aapt: {icon_path}")
+                            return icon_path
                         
-                        # Move to root of output_path
-                        final_icon = os.path.join(output_path, 'icon.png')
+                except (FileNotFoundError, subprocess.TimeoutExpired):
+                    continue
+            
+            return None
+            
+        except Exception as e:
+            logger.error(f"Error getting icon path: {str(e)}")
+            return None
+    
+    async def _extract_icon_from_zip(self, icon_path, output_path):
+        """Extract specific icon file from APK zip"""
+        try:
+            with zipfile.ZipFile(self.apk_path, 'r') as zip_ref:
+                try:
+                    # Extract icon
+                    zip_ref.extract(icon_path, output_path)
+                    extracted_icon = os.path.join(output_path, icon_path)
+                    
+                    # Move to root of output_path
+                    final_icon = os.path.join(output_path, 'icon.png')
+                    
+                    # Handle subdirectories
+                    if os.path.exists(extracted_icon):
                         shutil.move(extracted_icon, final_icon)
                         
                         # Clean up extracted dirs
@@ -51,14 +123,14 @@ class APKAnalyzer:
                         
                         logger.info(f"✅ Icon extracted: {icon_path}")
                         return final_icon
-                    except KeyError:
-                        continue
-                
-                logger.warning("Icon not found in common paths")
-                return None
-                
+                    
+                except KeyError:
+                    return None
+            
+            return None
+            
         except Exception as e:
-            logger.error(f"Error extracting icon: {str(e)}")
+            logger.error(f"Error in _extract_icon_from_zip: {str(e)}")
             return None
     
     async def get_app_info(self):
