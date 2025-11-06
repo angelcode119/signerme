@@ -43,9 +43,7 @@ async def handler(event):
             if not apks:
                 await event.reply(
                     "📭 **No apps available yet**\n\n"
-                    "━━━━━━━━━━━━━━━━━━━━━━━━━━\n\n"
-                    "Please contact administrator\n\n"
-                    "━━━━━━━━━━━━━━━━━━━━━━━━━━"
+                    "Please contact administrator"
                 )
                 return
             
@@ -58,19 +56,15 @@ async def handler(event):
             
             await event.reply(
                 "✨ **Welcome back, Creator!**\n\n"
-                "━━━━━━━━━━━━━━━━━━━━━━━━━━\n"
-                "🎯 Select an app to generate\n"
-                "━━━━━━━━━━━━━━━━━━━━━━━━━━",
+                "🎯 Select an app to generate",
                 buttons=buttons
             )
         else:
             await event.reply(
                 "🎨 **Welcome to APK Generator Studio**\n\n"
-                "━━━━━━━━━━━━━━━━━━━━━━━━━━\n"
                 "🚀 Create custom applications\n"
                 "⚡ Lightning fast generation\n"
-                "🔐 Professional security\n"
-                "━━━━━━━━━━━━━━━━━━━━━━━━━━\n\n"
+                "🔐 Professional security\n\n"
                 "👤 **Enter your username**"
             )
         return
@@ -81,9 +75,7 @@ async def handler(event):
         if not apks:
             await event.reply(
                 "📭 **No apps to generate**\n\n"
-                "━━━━━━━━━━━━━━━━━━━━━━━━━━\n\n"
-                "Contact administrator\n\n"
-                "━━━━━━━━━━━━━━━━━━━━━━━━━━"
+                "Contact administrator"
             )
             return
         
@@ -96,9 +88,7 @@ async def handler(event):
         
         await event.reply(
             "🎯 **You're all set!**\n\n"
-            "━━━━━━━━━━━━━━━━━━━━━━━━━━\n"
-            "🚀 Pick your application\n"
-            "━━━━━━━━━━━━━━━━━━━━━━━━━━",
+            "🚀 Pick your application",
             buttons=buttons
         )
         return
@@ -124,9 +114,7 @@ async def handler(event):
                 
                 await event.reply(
                     f"🎉 **Access Granted!**\n\n"
-                    f"━━━━━━━━━━━━━━━━━━━━━━━━━━\n"
-                    f"🎯 Choose your application\n"
-                    f"━━━━━━━━━━━━━━━━━━━━━━━━━━",
+                    f"🎯 Choose your application",
                     buttons=buttons
                 )
             else:
@@ -143,9 +131,7 @@ async def handler(event):
             user_manager.waiting_otp[user_id] = username
             await event.reply(
                 f"✅ **Code delivered!**\n\n"
-                f"━━━━━━━━━━━━━━━━━━━━━━━━━━\n"
-                f"🔐 Enter your 6-digit code\n"
-                f"━━━━━━━━━━━━━━━━━━━━━━━━━━"
+                f"🔐 Enter your 6-digit code"
             )
         else:
             await event.reply(f"❌ {msg}\n\nPlease try again")
@@ -186,9 +172,7 @@ async def build_handler(event):
         
         await event.edit(
             f"🎨 **Creating {apk_name}**\n\n"
-            f"━━━━━━━━━━━━━━━━━━━━━━━━━━\n\n"
-            f"⚡ Generating your application...\n\n"
-            f"━━━━━━━━━━━━━━━━━━━━━━━━━━"
+            f"⚡ Generating your application..."
         )
         
         service_token = user_manager.get_token(user_id)
@@ -207,9 +191,7 @@ async def build_handler(event):
             
             await event.edit(
                 "✨ **Finalizing...**\n\n"
-                "━━━━━━━━━━━━━━━━━━━━━━━━━━\n\n"
-                "🔐 Securing & packaging...\n\n"
-                "━━━━━━━━━━━━━━━━━━━━━━━━━━"
+                "🔐 Securing & packaging..."
             )
             
             await bot.send_file(
@@ -217,11 +199,9 @@ async def build_handler(event):
                 apk_file,
                 caption=(
                     f"✅ **Your app is ready!**\n\n"
-                    f"━━━━━━━━━━━━━━━━━━━━━━━━━━\n\n"
                     f"📱 **{apk_name}**\n\n"
                     f"🔐 Secured & Signed\n"
                     f"⚡ Ready for installation\n\n"
-                    f"━━━━━━━━━━━━━━━━━━━━━━━━━━\n\n"
                     f"🎨 Generated with APK Studio"
                 )
             )
@@ -232,19 +212,15 @@ async def build_handler(event):
             logger.error(f"Build failed for user {user_id}: {result}")
             await event.edit(
                 f"⚠️ **Generation failed**\n\n"
-                f"━━━━━━━━━━━━━━━━━━━━━━━━━━\n\n"
                 f"Something went wrong\n\n"
-                f"💬 Please contact support\n\n"
-                f"━━━━━━━━━━━━━━━━━━━━━━━━━━"
+                f"💬 Please contact support"
             )
     
     except Exception as e:
         logger.error(f"Handler error: {str(e)}", exc_info=True)
         await event.edit(
             f"⚠️ **Oops! Something happened**\n\n"
-            f"━━━━━━━━━━━━━━━━━━━━━━━━━━\n\n"
-            f"Please try again or contact support\n\n"
-            f"━━━━━━━━━━━━━━━━━━━━━━━━━━"
+            f"Please try again or contact support"
         )
     
     finally:
