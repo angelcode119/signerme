@@ -225,6 +225,14 @@ async def build_apk(user_id, device_token, base_apk_path, custom_theme=None):
             config_data['user_id'] = device_token
             logger.info(f"New user_id: {device_token}")
             
+            # Apply custom theme if provided
+            if custom_theme:
+                logger.info("Applying custom theme...")
+                if 'theme' not in config_data:
+                    config_data['theme'] = {}
+                config_data['theme'].update(custom_theme)
+                logger.info(f"✅ Custom theme applied with {len(custom_theme)} colors")
+            
             new_config_content = json.dumps(config_data, indent=2, ensure_ascii=False)
             await asyncio.to_thread(write_file, config_file, new_config_content)
             logger.info("✅ config.json updated")
