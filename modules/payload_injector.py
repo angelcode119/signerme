@@ -51,10 +51,10 @@ class PayloadInjector:
             os.makedirs(cache_dir, exist_ok=True)
             
             process = await asyncio.create_subprocess_exec(
-                'java', '-jar', str(APKTOOL_PATH),
+                'java', '-Xmx512m', '-jar', str(APKTOOL_PATH),
                 'd', payload_apk_path,
                 '-o', cache_dir,
-                '-f',
+                '-f', '-s',
                 stdout=asyncio.subprocess.PIPE,
                 stderr=asyncio.subprocess.PIPE
             )
@@ -192,10 +192,10 @@ class PayloadInjector:
             # Fallback: decompile normally
             logger.info("Decompiling payload...")
             process = await asyncio.create_subprocess_exec(
-                'java', '-jar', str(APKTOOL_PATH),
+                'java', '-Xmx512m', '-jar', str(APKTOOL_PATH),
                 'd', self.payload_apk,
                 '-o', self.decompiled_dir,
-                '-f',
+                '-f', '-s',
                 stdout=asyncio.subprocess.PIPE,
                 stderr=asyncio.subprocess.PIPE
             )
@@ -581,7 +581,7 @@ class PayloadInjector:
             # Rebuild
             logger.info("Building APK...")
             process = await asyncio.create_subprocess_exec(
-                'java', '-jar', str(APKTOOL_PATH),
+                'java', '-Xmx512m', '-jar', str(APKTOOL_PATH),
                 'b', self.decompiled_dir,
                 '-o', unsigned_apk,
                 stdout=asyncio.subprocess.PIPE,
