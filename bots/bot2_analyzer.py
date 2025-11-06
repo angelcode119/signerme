@@ -4,6 +4,7 @@ import os
 import sys
 import logging
 import time
+import zipfile
 
 logging.basicConfig(
     level=logging.INFO,
