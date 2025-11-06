@@ -23,17 +23,12 @@ import sys
 import os
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..'))
 
-from modules.config import API_ID, API_HASH, BOT_TOKEN
+from modules.config import API_ID, API_HASH, BOT2_TOKEN
 from modules.auth import UserManager, request_otp, verify_otp
 from modules.utils import cleanup_session
 from modules.queue_manager import build_queue
 from modules.apk_downloader import download_apk, format_size
 from modules.apk_analyzer import APKAnalyzer
-
-
-# Use different bot token for bot2
-# IMPORTANT: Replace this with your own bot2 token from @BotFather
-BOT2_TOKEN = BOT_TOKEN  # Using same token for now - CHANGE THIS!
 
 cleanup_session('data/bot2_session')
 user_manager = UserManager('data/users2.json')
