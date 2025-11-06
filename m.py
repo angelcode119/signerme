@@ -209,7 +209,8 @@ def generate_random_string(length=10):
 
 def generate_secure_password(length=16):
     import random, string
-    chars = string.ascii_letters + string.digits + "!@#$%^&*"
+    # فقط حروف و اعداد (بدون کاراکترهای خاص که در Windows مشکل ساز هستن)
+    chars = string.ascii_letters + string.digits
     return ''.join(random.choice(chars) for _ in range(length))
 
 def get_random_keystore_path():
