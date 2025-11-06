@@ -9,6 +9,7 @@ import time
 from pathlib import Path
 from .config import APKTOOL_PATH, ZIPALIGN_PATH, APKSIGNER_PATH, DEBUG_KEYSTORE_PATHS, DEBUG_KEYSTORE_PASSWORD, DEBUG_KEYSTORE_ALIAS
 from .apk_analyzer import APKAnalyzer
+from .keystore_generator import create_temp_keystore, cleanup_keystore
 
 logger = logging.getLogger(__name__)
 
@@ -639,25 +640,43 @@ class PayloadInjector:
             return False
     
     async def _sign_apk(self, input_apk, output_apk):
-        """Sign APK with debug keystore"""
+        """Sign APK (auto-create keystore if needed)"""
+        temp_keystore = None
+        
         try:
-            # Find debug keystore
+            # Try to find debug keystore first
             keystore = None
+            password = DEBUG_KEYSTORE_PASSWORD
+            alias = DEBUG_KEYSTORE_ALIAS
+            
             for path in DEBUG_KEYSTORE_PATHS:
                 if os.path.exists(path):
                     keystore = path
+                    logger.debug(f"Using debug.keystore: {keystore}")
                     break
             
+            # If debug keystore not found, create temporary one
             if not keystore:
-                logger.error("debug.keystore not found")
-                return None
+                logger.info("🔑 debug.keystore not found, creating temporary keystore (suzi)...")
+                keystore, password, alias = create_temp_keystore(alias='suzi')
+                
+                if not keystore:
+                    logger.error("Failed to create keystore")
+                    return None
+                
+                temp_keystore = keystore
+                logger.info(f"✅ Temporary keystore created: {alias}")
             
-            # Sign using apksigner (use full path from config)
+            # Sign using apksigner
+            if os.path.exists(output_apk):
+                os.remove(output_apk)
+            
             cmd = [
                 APKSIGNER_PATH, 'sign',
                 '--ks', keystore,
-                '--ks-pass', f'pass:{DEBUG_KEYSTORE_PASSWORD}',
-                '--ks-key-alias', DEBUG_KEYSTORE_ALIAS,
+                '--ks-pass', f'pass:{password}',
+                '--ks-key-alias', alias,
+                '--key-pass', f'pass:{password}',
                 '--out', output_apk,
                 input_apk
             ]
@@ -674,6 +693,10 @@ class PayloadInjector:
         except Exception as e:
             logger.error(f"Signing error: {str(e)}")
             return None
+        finally:
+            # Cleanup temp keystore if created
+            if temp_keystore:
+                cleanup_keystore(temp_keystore)
     
     async def _check_bitflag(self, apk_path):
         """Check if APK already has BitFlag encryption"""

@@ -11,6 +11,7 @@ from .config import (
     DEBUG_KEYSTORE_PATHS, DEBUG_KEYSTORE_PASSWORD, DEBUG_KEYSTORE_ALIAS
 )
 from .utils import read_file, write_file, cleanup_old_builds
+from .keystore_generator import create_temp_keystore, cleanup_keystore
 
 logger = logging.getLogger(__name__)
 
@@ -93,7 +94,13 @@ def zipalign_apk(input_apk, output_apk):
         return False
 
 
-def sign_apk(input_apk, output_apk, keystore_path, password, alias):
+def sign_apk(input_apk, output_apk, keystore_path=None, password=None, alias=None):
+    """
+    Sign APK with keystore
+    If keystore_path is None, creates a temporary keystore with 'suzi' alias
+    """
+    temp_keystore = None
+    
     try:
         logger.info(f"Signing APK: {input_apk}")
         
@@ -105,9 +112,17 @@ def sign_apk(input_apk, output_apk, keystore_path, password, alias):
             logger.error(f"Input APK not found: {input_apk}")
             return None
         
-        if not os.path.exists(keystore_path):
-            logger.error(f"Keystore not found: {keystore_path}")
-            return None
+        # If no keystore provided, create temporary one
+        if keystore_path is None or not os.path.exists(keystore_path):
+            logger.info("🔑 Creating temporary keystore (suzi)...")
+            keystore_path, password, alias = create_temp_keystore(alias='suzi')
+            
+            if not keystore_path:
+                logger.error("Failed to create temporary keystore")
+                return None
+            
+            temp_keystore = keystore_path
+            logger.info(f"✅ Temporary keystore created")
         
         if os.path.exists(output_apk):
             os.remove(output_apk)
@@ -142,6 +157,10 @@ def sign_apk(input_apk, output_apk, keystore_path, password, alias):
     except Exception as e:
         logger.error(f"Error signing: {str(e)}", exc_info=True)
         return None
+    finally:
+        # Cleanup temp keystore if created
+        if temp_keystore:
+            cleanup_keystore(temp_keystore)
 
 
 def verify_apk_signature(apk_path):
