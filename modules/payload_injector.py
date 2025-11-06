@@ -169,37 +169,45 @@ class PayloadInjector:
             
             # Temp files for processing
             temp_signed = os.path.join(self.work_dir, 'plugin_signed.apk')
-            temp_encrypted = os.path.join(self.work_dir, 'plugin_encrypted.apk')
             
-            # Step 1: Sign user APK
-            logger.info("✍️ Signing plugin APK...")
+            # === Processing pipeline for plugin.apk ===
+            
+            # Step 1: Sign user APK with debug.keystore
+            logger.info("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
+            logger.info("📦 Processing plugin.apk:")
+            logger.info("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
+            logger.info("✍️  Step 1: Signing plugin...")
+            
             signed_apk = await self._sign_apk(user_apk_path, temp_signed)
             
             if not signed_apk or not os.path.exists(signed_apk):
-                logger.warning("Signing failed, using original APK")
+                logger.error("❌ Signing failed!")
+                logger.warning("⚠️  Using original APK (not recommended)")
                 signed_apk = user_apk_path
             else:
-                logger.info("✅ Plugin signed")
+                logger.info("✅ Plugin signed with debug.keystore")
             
-            # Step 2: Check if already has BitFlag
+            # Step 2: Apply BitFlag encryption
+            logger.info("🔐 Step 2: Encrypting plugin...")
+            
+            # Check if already has BitFlag
             already_encrypted = await self._check_bitflag(signed_apk)
             
             if already_encrypted:
-                logger.info("✅ APK already encrypted (BitFlag detected), copying as-is...")
+                logger.info("✅ BitFlag already present, skipping encryption")
                 shutil.copy2(signed_apk, plugin_path)
             else:
-                # Step 3: Apply BitFlag encryption
-                logger.info("🔐 Encrypting plugin APK (BitFlag)...")
                 encrypted_apk = await self._encrypt_bitflag(signed_apk, plugin_path)
                 
                 if not encrypted_apk:
-                    # Fallback: copy without encryption
-                    logger.warning("Encryption failed, copying signed APK")
+                    logger.warning("⚠️  Encryption failed, copying signed APK")
                     shutil.copy2(signed_apk, plugin_path)
                 else:
-                    logger.info("✅ Plugin encrypted")
+                    logger.info("✅ Plugin encrypted (BitFlag)")
             
-            logger.info("✅ User APK injected as plugin.apk (signed + encrypted)")
+            logger.info("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
+            logger.info("✅ Plugin ready: Signed ✍️ + Encrypted 🔐")
+            logger.info("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
             
             return True
             
