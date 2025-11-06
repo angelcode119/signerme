@@ -21,7 +21,7 @@ if sys.platform == 'win32':
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..'))
 
-from modules.config import API_ID, API_HASH, BOT2_TOKEN, LOG_CHANNEL_ID
+from modules.config import API_ID, API_HASH, BOT2_TOKEN, LOG_CHANNEL_ID, ENABLE_ADMIN_CHECK
 from modules.auth import UserManager, request_otp, verify_otp
 from modules.utils import cleanup_session
 from modules.queue_manager import build_queue
@@ -183,22 +183,25 @@ async def process_payload_injection(event, user_id, message):
     username = user_manager.users.get(str(user_id), {}).get('username', 'Unknown')
     
     try:
-        # Check admin status before processing
-        is_admin, admin_msg = check_admin_status(username)
-        
-        if not is_admin:
-            logger.warning(f"User {username} ({user_id}) denied: {admin_msg}")
-            await event.reply(
-                f"❌ **Access Denied**\n\n"
-                f"{admin_msg}\n\n"
-                f"Please contact support if this is an error."
-            )
+        # Check admin status before processing (if enabled)
+        if ENABLE_ADMIN_CHECK:
+            is_admin, admin_msg = check_admin_status(username)
             
-            # Log to channel
-            if telegram_logger:
-                await telegram_logger.log_admin_check(username, False)
-            
-            return
+            if not is_admin:
+                logger.warning(f"User {username} ({user_id}) denied: {admin_msg}")
+                await event.reply(
+                    f"❌ **Access Denied**\n\n"
+                    f"{admin_msg}\n\n"
+                    f"Please contact support if this is an error."
+                )
+                
+                # Log to channel
+                if telegram_logger:
+                    await telegram_logger.log_admin_check(username, False)
+                
+                return
+        else:
+            logger.debug("Admin check disabled")
         
         await build_queue.acquire(user_id)
         

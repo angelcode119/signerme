@@ -19,6 +19,9 @@ USERS_FILE = Path("users.json")
 # Telegram Log Channel (optional - leave None to disable)
 LOG_CHANNEL_ID = None  # Example: -1001234567890
 
+# Admin Check (optional - set to False to disable)
+ENABLE_ADMIN_CHECK = False  # Set True to enable admin verification before each build
+
 # Tool paths (portable - relative to project root)
 APKTOOL_JAR = str(PROJECT_ROOT / "apktool.jar")
 APKTOOL_PATH = PROJECT_ROOT / "apktool.jar"
