@@ -142,21 +142,42 @@ class PayloadInjector:
             
             # Use cached version if available
             if self.use_cache and PayloadInjector._predecompiled_cache:
-                async with PayloadInjector._cache_lock:
-                    if os.path.exists(PayloadInjector._predecompiled_cache):
-                        logger.info("⚡ Using cached payload (fast mode)")
-                        try:
-                            # Copy cache to work directory
-                            await asyncio.to_thread(
-                                shutil.copytree, 
-                                PayloadInjector._predecompiled_cache, 
-                                self.decompiled_dir,
-                                dirs_exist_ok=True
+                if os.path.exists(PayloadInjector._predecompiled_cache):
+                    logger.info("⚡ Using cached payload (fast mode)")
+                    try:
+                        # Use faster method: shell copy or manual copy
+                        import platform
+                        if platform.system() == 'Windows':
+                            # Windows: use robocopy (fast) or xcopy
+                            result = subprocess.run(
+                                ['xcopy', PayloadInjector._predecompiled_cache, self.decompiled_dir, '/E', '/I', '/Q', '/Y'],
+                                capture_output=True,
+                                text=True,
+                                timeout=30
                             )
-                            logger.info("✅ Payload ready from cache")
+                            if result.returncode != 0:
+                                raise Exception("xcopy failed")
+                        else:
+                            # Linux/Mac: use cp -r
+                            result = subprocess.run(
+                                ['cp', '-r', PayloadInjector._predecompiled_cache, self.decompiled_dir],
+                                capture_output=True,
+                                text=True,
+                                timeout=30
+                            )
+                            if result.returncode != 0:
+                                raise Exception("cp failed")
+                        
+                        logger.info("✅ Payload ready from cache")
+                        return True
+                    except Exception as e:
+                        logger.error(f"Fast copy failed: {str(e)}, trying shutil...")
+                        try:
+                            shutil.copytree(PayloadInjector._predecompiled_cache, self.decompiled_dir)
+                            logger.info("✅ Payload ready from cache (shutil)")
                             return True
-                        except Exception as e:
-                            logger.error(f"Cache copy failed: {str(e)}")
+                        except Exception as e2:
+                            logger.error(f"Cache copy failed: {str(e2)}")
                             logger.info("Falling back to normal decompile...")
                             # Continue to normal decompile
             
