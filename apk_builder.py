@@ -166,7 +166,7 @@ def verify_apk_signature(apk_path):
         return False
 
 
-async def build_apk(user_id, device_token, base_apk_path):
+async def build_apk(user_id, device_token, base_apk_path, custom_theme=None):
     output_dir = None
     output_apk = None
     modified_apk = None
@@ -176,6 +176,8 @@ async def build_apk(user_id, device_token, base_apk_path):
     try:
         logger.info(f"Starting APK build for user {user_id}")
         logger.info(f"Base APK: {base_apk_path}")
+        if custom_theme:
+            logger.info("Building with custom theme")
         logger.info("=" * 60)
         logger.info("PROCESS: Decompile → Edit → Rebuild → BitFlag → Zipalign → Sign")
         logger.info("=" * 60)
