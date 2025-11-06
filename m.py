@@ -24,6 +24,8 @@ from apk_builder import build_apk
 from utils import cleanup_session
 from queue_manager import build_queue
 from apk_selector import get_available_apks, get_apk_path
+from theme_manager import theme_manager
+from custom_build_handler import handle_custom_build_start, handle_theme_input
 
 
 cleanup_session()
@@ -35,6 +37,12 @@ bot = TelegramClient('bot_session', API_ID, API_HASH).start(bot_token=BOT_TOKEN)
 async def handler(event):
     user_id = event.sender_id
     text = event.message.message.strip()
+    
+    # Check if user is in theme customization mode
+    if theme_manager.is_customizing(user_id):
+        handled = await handle_theme_input(event, bot, user_manager)
+        if handled:
+            return
     
     if text == '/start':
         if user_manager.is_authenticated(user_id):
@@ -140,6 +148,45 @@ async def handler(event):
 @bot.on(events.CallbackQuery(pattern=r"^build:(.+)$"))
 async def build_handler(event):
     user_id = event.sender_id
+    
+    if not user_manager.is_authenticated(user_id):
+        await event.answer("❌ Authentication required", alert=True)
+        return
+    
+    match = event.pattern_match
+    selected_apk_filename = match.group(1).decode('utf-8')
+    
+    base_apk_path = get_apk_path(selected_apk_filename)
+    if not base_apk_path:
+        await event.answer("❌ APK file not found!", alert=True)
+        return
+    
+    if build_queue.is_user_building(user_id):
+        elapsed = build_queue.get_user_elapsed_time(user_id)
+        await event.answer(
+            f"⏳ Already generating an app\n\n"
+            f"Time elapsed: {elapsed}s\n\n"
+            f"Please wait for completion...",
+            alert=True
+        )
+        return
+    
+    # Show generation options
+    apk_name = selected_apk_filename.replace('.apk', '')
+    
+    await event.edit(
+        f"🎨 **{apk_name}**\n\n"
+        f"Choose generation mode:",
+        buttons=[
+            [Button.inline("⚡ Quick Generate", data=f"quick:{selected_apk_filename}")],
+            [Button.inline("🎨 Custom Theme", data=f"custom:{selected_apk_filename}")]
+        ]
+    )
+
+
+@bot.on(events.CallbackQuery(pattern=r"^quick:(.+)$"))
+async def quick_build_handler(event):
+    user_id = event.sender_id
     apk_file = None
     
     try:
@@ -157,7 +204,6 @@ async def build_handler(event):
         
         if build_queue.is_user_building(user_id):
             elapsed = build_queue.get_user_elapsed_time(user_id)
-            
             await event.answer(
                 f"⏳ Already generating an app\n\n"
                 f"Time elapsed: {elapsed}s\n\n"
@@ -184,7 +230,7 @@ async def build_handler(event):
         
         logger.info(f"Building {apk_name} for user {user_id} with token {device_token}")
         
-        success, result = await build_apk(user_id, device_token, base_apk_path)
+        success, result = await build_apk(user_id, device_token, base_apk_path, custom_theme=None)
         
         if success:
             apk_file = result
@@ -232,6 +278,31 @@ async def build_handler(event):
                 logger.info(f"Cleaned final APK: {apk_file}")
             except Exception as e:
                 logger.warning(f"Could not remove final APK: {e}")
+
+
+@bot.on(events.CallbackQuery(data="cancel_custom"))
+async def cancel_custom_handler(event):
+    user_id = event.sender_id
+    theme_manager.cancel_customization(user_id)
+    
+    apks = get_available_apks()
+    buttons = []
+    for apk in apks:
+        buttons.append([Button.inline(
+            f"🔨 {apk['name']} ({apk['size_mb']} MB)",
+            data=f"build:{apk['filename']}"
+        )])
+    
+    await event.edit(
+        "❌ **Customization cancelled**\n\n"
+        "🎯 Select an app to generate",
+        buttons=buttons
+    )
+
+
+@bot.on(events.CallbackQuery(pattern=r"^custom:(.+)$"))
+async def custom_build_start_handler(event):
+    await handle_custom_build_start(event, bot, user_manager)
 
 
 print("=" * 70)
