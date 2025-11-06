@@ -41,12 +41,12 @@ async def handler(event):
             apks = get_available_apks()
             
             if not apks:
-            await event.reply(
-                "⚠️ **No Applications Available**\n\n"
-                "━━━━━━━━━━━━━━━━━━━━━━\n\n"
-                "Contact administrator\n\n"
-                "━━━━━━━━━━━━━━━━━━━━━━"
-            )
+                await event.reply(
+                    "⚠️ **No Applications Available**\n\n"
+                    "━━━━━━━━━━━━━━━━━━━━━━\n\n"
+                    "Contact administrator\n\n"
+                    "━━━━━━━━━━━━━━━━━━━━━━"
+                )
                 return
             
             buttons = []
