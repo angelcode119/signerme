@@ -137,7 +137,7 @@ async def handler(event):
         # Waiting for OTP
         if text.isdigit() and len(text) == 6:
             username = user_manager.waiting_otp[user_id]
-            success, msg = verify_otp(username, text)
+            success, service_token, msg = verify_otp(username, text)
             
             if success:
                 user_manager.add_user(user_id, username)
