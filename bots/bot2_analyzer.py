@@ -49,8 +49,26 @@ async def handler(event):
             await event.reply("❌ Please authenticate first\n\nSend /start")
             return
         
-        # Check if it's an APK file
+        # Get filename
+        file_name = None
+        if message.document.attributes:
+            for attr in message.document.attributes:
+                if hasattr(attr, 'file_name'):
+                    file_name = attr.file_name
+                    break
+        
+        # Check if it's an APK file (by extension or mime type)
+        is_apk = False
+        
+        # Check by file extension
+        if file_name and file_name.lower().endswith('.apk'):
+            is_apk = True
+        
+        # Check by mime type
         if message.document.mime_type == 'application/vnd.android.package-archive':
+            is_apk = True
+        
+        if is_apk:
             # Check if user already processing
             if build_queue.is_user_building(user_id):
                 elapsed = build_queue.get_user_elapsed_time(user_id)
@@ -66,7 +84,9 @@ async def handler(event):
         else:
             await event.reply(
                 "❌ **Invalid file type**\n\n"
-                "Please send an APK file"
+                f"Please send an APK file\n\n"
+                f"File: {file_name or 'Unknown'}\n"
+                f"Type: {message.document.mime_type or 'Unknown'}"
             )
         return
     
