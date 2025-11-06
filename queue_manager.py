@@ -1,49 +1,33 @@
 import asyncio
 import time
-from datetime import datetime
 
 
 class BuildQueue:
     def __init__(self):
-        self.lock = asyncio.Lock()
-        self.current_user = None
-        self.start_time = None
-        self.queue_count = 0
+        self.user_locks = {}
+        self.user_start_times = {}
     
-    def is_building(self):
-        return self.lock.locked()
+    def is_user_building(self, user_id):
+        return user_id in self.user_locks and self.user_locks[user_id].locked()
     
-    def get_current_user(self):
-        return self.current_user
-    
-    def get_elapsed_time(self):
-        if self.start_time:
-            return int(time.time() - self.start_time)
+    def get_user_elapsed_time(self, user_id):
+        if user_id in self.user_start_times:
+            return int(time.time() - self.user_start_times[user_id])
         return 0
     
-    def get_queue_position(self):
-        self.queue_count += 1
-        return self.queue_count
-    
     async def acquire(self, user_id):
-        position = None
+        if user_id not in self.user_locks:
+            self.user_locks[user_id] = asyncio.Lock()
         
-        if self.is_building():
-            position = self.get_queue_position()
-        
-        await self.lock.acquire()
-        
-        self.current_user = user_id
-        self.start_time = time.time()
-        self.queue_count = max(0, self.queue_count - 1)
-        
-        return position
+        await self.user_locks[user_id].acquire()
+        self.user_start_times[user_id] = time.time()
     
-    def release(self):
-        self.current_user = None
-        self.start_time = None
-        if self.lock.locked():
-            self.lock.release()
+    def release(self, user_id):
+        if user_id in self.user_start_times:
+            del self.user_start_times[user_id]
+        
+        if user_id in self.user_locks and self.user_locks[user_id].locked():
+            self.user_locks[user_id].release()
 
 
 build_queue = BuildQueue()

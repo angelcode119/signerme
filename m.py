@@ -100,29 +100,18 @@ async def build_handler(event):
             await event.answer("❌ Not authenticated", alert=True)
             return
         
-        if build_queue.is_building():
-            current_user = build_queue.get_current_user()
-            elapsed = build_queue.get_elapsed_time()
+        if build_queue.is_user_building(user_id):
+            elapsed = build_queue.get_user_elapsed_time(user_id)
             
             await event.answer(
-                f"⏳ Server is busy!\n\n"
-                f"Another user is building APK...\n"
+                f"⏳ You already have a build in progress!\n\n"
                 f"Time elapsed: {elapsed}s\n\n"
-                f"Please wait and try again in a moment.",
+                f"Please wait for your current build to finish.",
                 alert=True
             )
             return
         
-        await event.edit("⏳ **Waiting in queue...**")
-        
-        queue_position = await build_queue.acquire(user_id)
-        
-        if queue_position:
-            await event.edit(
-                f"⏳ **You were in queue (position #{queue_position})**\n\n"
-                f"Now building your APK..."
-            )
-            await asyncio.sleep(1)
+        await build_queue.acquire(user_id)
         
         await event.edit(
             "**🔨 Building APK...**\n\n"
@@ -183,7 +172,7 @@ async def build_handler(event):
         )
     
     finally:
-        build_queue.release()
+        build_queue.release(user_id)
         
         if apk_file and await asyncio.to_thread(os.path.exists, apk_file):
             try:
