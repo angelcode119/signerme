@@ -243,8 +243,7 @@ async def process_payload_injection(event, user_id, message):
         await bot.download_media(
             message.document,
             file=user_apk_path,
-            progress_callback=progress_callback,
-            part_size_kb=64  # Reduce chunk size for low RAM servers
+            progress_callback=progress_callback
         )
         
         # Update message - injection started
