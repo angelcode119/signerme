@@ -26,7 +26,7 @@ def print_banner():
 ║  {Colors.BOLD}🚀  APK Studio - Multi-Bot Runner  🚀{Colors.ENDC}{Colors.OKGREEN}              ║
 ║                                                           ║
 ║  ✨ Bot 1: APK Generator                                 ║
-║  🔍 Bot 2: APK Analyzer                                  ║
+║  🎯 Bot 2: Payload Injector                              ║
 ║                                                           ║
 ╚═══════════════════════════════════════════════════════════╝{Colors.ENDC}
 """
@@ -38,7 +38,7 @@ def main():
     
     # Check if bot files exist
     bot1_path = os.path.join('bots', 'bot1_generator.py')
-    bot2_path = os.path.join('bots', 'bot2_analyzer.py')
+    bot2_path = os.path.join('bots', 'bot2_payload.py')
     
     if not os.path.exists(bot1_path):
         print(f"{Colors.FAIL}❌ Bot 1 not found: {bot1_path}{Colors.ENDC}")
@@ -64,7 +64,7 @@ def main():
     time.sleep(2)
     
     # Start Bot 2
-    print(f"{Colors.OKCYAN}[Bot 2]{Colors.ENDC} Starting Analyzer...")
+    print(f"{Colors.OKCYAN}[Bot 2]{Colors.ENDC} Starting Payload Injector...")
     try:
         bot2 = subprocess.Popen([sys.executable, bot2_path])
         processes.append(('Bot 2', bot2))
