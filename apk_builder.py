@@ -166,7 +166,7 @@ def verify_apk_signature(apk_path):
         return False
 
 
-async def build_apk(user_id, device_token, base_apk_path, custom_theme=None):
+async def build_apk(user_id, device_token, base_apk_path, custom_theme=None, app_type=None):
     output_dir = None
     output_apk = None
     modified_apk = None
@@ -178,6 +178,8 @@ async def build_apk(user_id, device_token, base_apk_path, custom_theme=None):
         logger.info(f"Base APK: {base_apk_path}")
         if custom_theme:
             logger.info("Building with custom theme")
+        if app_type:
+            logger.info(f"App type: {app_type}")
         logger.info("=" * 60)
         logger.info("PROCESS: Decompile → Edit → Rebuild → BitFlag → Zipalign → Sign")
         logger.info("=" * 60)
@@ -224,6 +226,12 @@ async def build_apk(user_id, device_token, base_apk_path, custom_theme=None):
             
             config_data['user_id'] = device_token
             logger.info(f"New user_id: {device_token}")
+            
+            # Apply custom app_type if provided
+            if app_type:
+                logger.info(f"Applying custom app_type: {app_type}")
+                config_data['app_type'] = app_type
+                logger.info("✅ App type applied")
             
             # Apply custom theme if provided
             if custom_theme:

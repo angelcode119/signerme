@@ -8,8 +8,9 @@ class ThemeManager:
     def start_customization(self, user_id):
         """Start theme customization for a user"""
         self.user_themes[user_id] = {
-            'step': 'primary_color',
+            'step': 'app_type',
             'theme': {},
+            'app_type': None,
             'apk_filename': None
         }
     
@@ -37,18 +38,34 @@ class ThemeManager:
         pattern = r'^#[0-9A-Fa-f]{6}$'
         return bool(re.match(pattern, color))
     
-    def set_color(self, user_id, color):
-        """Set color for current step and move to next"""
+    def set_value(self, user_id, value):
+        """Set value for current step and move to next"""
         if user_id not in self.user_themes:
             return False, "Not in customization mode"
         
         current_step = self.user_themes[user_id]['step']
         
-        if not self.validate_color(color):
+        # Handle app_type step
+        if current_step == 'app_type':
+            if not value or len(value.strip()) == 0:
+                return False, "App type cannot be empty"
+            
+            self.user_themes[user_id]['app_type'] = value.strip().lower()
+            
+            # Move to next step
+            next_step = self.get_next_step(current_step)
+            if next_step:
+                self.user_themes[user_id]['step'] = next_step
+                return True, next_step
+            else:
+                return True, None
+        
+        # Handle color steps
+        if not self.validate_color(value):
             return False, "Invalid color format. Use #RRGGBB (e.g., #4fc3f7)"
         
         # Store the color
-        self.user_themes[user_id]['theme'][current_step] = color.lower()
+        self.user_themes[user_id]['theme'][current_step] = value.lower()
         
         # Get next step
         next_step = self.get_next_step(current_step)
@@ -63,6 +80,7 @@ class ThemeManager:
     def get_next_step(self, current_step):
         """Get next customization step"""
         steps = [
+            'app_type',
             'primary_color',
             'secondary_color',
             'accent_color',
@@ -81,11 +99,12 @@ class ThemeManager:
         
         return None
     
-    def get_theme(self, user_id):
-        """Get complete theme for user"""
+    def get_customization_data(self, user_id):
+        """Get complete customization data (app_type + theme) for user"""
         if user_id not in self.user_themes:
-            return None
+            return None, None
         
+        app_type = self.user_themes[user_id].get('app_type')
         custom_theme = self.user_themes[user_id]['theme']
         
         # Complete theme with defaults
@@ -113,7 +132,7 @@ class ThemeManager:
             "overlay_color": "rgba(0, 0, 0, 0.5)"
         }
         
-        return complete_theme
+        return app_type, complete_theme
     
     def get_apk_filename(self, user_id):
         """Get selected APK filename"""
@@ -129,44 +148,57 @@ class ThemeManager:
     def get_step_description(self, step):
         """Get user-friendly description for each step"""
         descriptions = {
+            'app_type': {
+                'title': '🏷️ App Type',
+                'desc': 'Application type identifier',
+                'example': 'mparivahan',
+                'is_color': False
+            },
             'primary_color': {
                 'title': '🎨 Primary Color',
                 'desc': 'Main brand color for headers and key elements',
-                'example': '#4fc3f7'
+                'example': '#4fc3f7',
+                'is_color': True
             },
             'secondary_color': {
                 'title': '🎨 Secondary Color',
                 'desc': 'Supporting color for secondary elements',
-                'example': '#29b6f6'
+                'example': '#29b6f6',
+                'is_color': True
             },
             'accent_color': {
                 'title': '✨ Accent Color',
                 'desc': 'Highlights and important actions',
-                'example': '#1976d2'
+                'example': '#1976d2',
+                'is_color': True
             },
             'button_color': {
                 'title': '🔘 Button Color',
                 'desc': 'Primary button background',
-                'example': '#1976d2'
+                'example': '#1976d2',
+                'is_color': True
             },
             'text_color': {
                 'title': '📝 Text Color',
                 'desc': 'Main text color',
-                'example': '#212121'
+                'example': '#212121',
+                'is_color': True
             },
             'error_color': {
                 'title': '❌ Error Color',
                 'desc': 'Error messages and alerts',
-                'example': '#f44336'
+                'example': '#f44336',
+                'is_color': True
             },
             'success_color': {
                 'title': '✅ Success Color',
                 'desc': 'Success messages and confirmations',
-                'example': '#4caf50'
+                'example': '#4caf50',
+                'is_color': True
             }
         }
         
-        return descriptions.get(step, {'title': step, 'desc': '', 'example': '#000000'})
+        return descriptions.get(step, {'title': step, 'desc': '', 'example': '', 'is_color': False})
 
 
 theme_manager = ThemeManager()

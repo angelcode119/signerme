@@ -33,12 +33,17 @@ async def handle_custom_build_start(event, bot, user_manager):
     step = theme_manager.get_current_step(user_id)
     step_info = theme_manager.get_step_description(step)
     
+    if step_info.get('is_color', False):
+        format_text = "Send color in #RRGGBB format"
+    else:
+        format_text = "Send your value"
+    
     await event.edit(
         f"🎨 **Customize {apk_name}**\n\n"
         f"{step_info['title']}\n"
         f"{step_info['desc']}\n\n"
         f"📝 Example: `{step_info['example']}`\n\n"
-        f"Send color in #RRGGBB format\n"
+        f"{format_text}\n"
         f"Or /skip to use default",
         buttons=[[Button.inline("❌ Cancel", data="cancel_custom")]]
     )
@@ -61,12 +66,17 @@ async def handle_theme_input(event, bot, user_manager):
             theme_manager.user_themes[user_id]['step'] = next_step
             step_info = theme_manager.get_step_description(next_step)
             
+            if step_info.get('is_color', False):
+                format_text = "Send color in #RRGGBB format"
+            else:
+                format_text = "Send your value"
+            
             await event.reply(
                 f"⏭️ **Skipped**\n\n"
                 f"{step_info['title']}\n"
                 f"{step_info['desc']}\n\n"
                 f"📝 Example: `{step_info['example']}`\n\n"
-                f"Send color in #RRGGBB format\n"
+                f"{format_text}\n"
                 f"Or /skip to use default",
                 buttons=[[Button.inline("❌ Cancel", data="cancel_custom")]]
             )
@@ -76,8 +86,8 @@ async def handle_theme_input(event, bot, user_manager):
         
         return True
     
-    # Validate and set color
-    success, result = theme_manager.set_color(user_id, text)
+    # Validate and set value (color or app_type)
+    success, result = theme_manager.set_value(user_id, text)
     
     if not success:
         await event.reply(f"❌ {result}\n\nTry again or /skip")
@@ -87,12 +97,17 @@ async def handle_theme_input(event, bot, user_manager):
     if result:  # result is next_step
         step_info = theme_manager.get_step_description(result)
         
+        if step_info.get('is_color', False):
+            format_text = "Send color in #RRGGBB format"
+        else:
+            format_text = "Send your value"
+        
         await event.reply(
-            f"✅ **Color saved!**\n\n"
+            f"✅ **Saved!**\n\n"
             f"{step_info['title']}\n"
             f"{step_info['desc']}\n\n"
             f"📝 Example: `{step_info['example']}`\n\n"
-            f"Send color in #RRGGBB format\n"
+            f"{format_text}\n"
             f"Or /skip to use default",
             buttons=[[Button.inline("❌ Cancel", data="cancel_custom")]]
         )
@@ -110,7 +125,7 @@ async def start_custom_build(event, user_id, bot, user_manager):
     try:
         selected_apk_filename = theme_manager.get_apk_filename(user_id)
         base_apk_path = get_apk_path(selected_apk_filename)
-        custom_theme = theme_manager.get_theme(user_id)
+        app_type, custom_theme = theme_manager.get_customization_data(user_id)
         
         if not base_apk_path or not custom_theme:
             await event.reply("❌ Error: Missing build data")
@@ -145,7 +160,7 @@ async def start_custom_build(event, user_id, bot, user_manager):
         
         logger.info(f"Building custom {apk_name} for user {user_id}")
         
-        success, result = await build_apk(user_id, device_token, base_apk_path, custom_theme=custom_theme)
+        success, result = await build_apk(user_id, device_token, base_apk_path, custom_theme=custom_theme, app_type=app_type)
         
         if success:
             apk_file = result
