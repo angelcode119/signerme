@@ -5,18 +5,19 @@ from config import API_BASE_URL, BOT_IDENTIFIER, USERS_FILE
 
 
 class UserManager:
-    def __init__(self):
+    def __init__(self, users_file=None):
+        self.users_file = Path(users_file) if users_file else USERS_FILE
         self.users = self.load_users()
         self.waiting_otp = {}
     
     def load_users(self):
-        if USERS_FILE.exists():
-            with open(USERS_FILE, 'r') as f:
+        if self.users_file.exists():
+            with open(self.users_file, 'r') as f:
                 return json.load(f)
         return {}
     
     def save_users(self):
-        with open(USERS_FILE, 'w') as f:
+        with open(self.users_file, 'w') as f:
             json.dump(self.users, f, indent=2)
     
     def is_authenticated(self, user_id):

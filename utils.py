@@ -32,8 +32,8 @@ def cleanup_old_builds(user_id):
                 logger.error(f"Cleanup error {path}: {str(e)}")
 
 
-def cleanup_session():
-    session_files = ['bot_session.session', 'bot_session.session-journal']
+def cleanup_session(session_name='bot_session'):
+    session_files = [f'{session_name}.session', f'{session_name}.session-journal']
     for session_file in session_files:
         if os.path.exists(session_file):
             try:
