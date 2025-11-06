@@ -35,9 +35,9 @@ from modules.apk_analyzer import APKAnalyzer
 # IMPORTANT: Replace this with your own bot2 token from @BotFather
 BOT2_TOKEN = BOT_TOKEN  # Using same token for now - CHANGE THIS!
 
-cleanup_session('bot2_session')
-user_manager = UserManager('users2.json')
-bot = TelegramClient('bot2_session', API_ID, API_HASH).start(bot_token=BOT2_TOKEN)
+cleanup_session('data/bot2_session')
+user_manager = UserManager('data/users2.json')
+bot = TelegramClient('data/bot2_session', API_ID, API_HASH).start(bot_token=BOT2_TOKEN)
 
 # Store user's download URLs temporarily
 user_downloads = {}

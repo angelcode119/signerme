@@ -32,9 +32,9 @@ from modules.theme_manager import theme_manager
 from modules.custom_build_handler import handle_custom_build_start, handle_theme_input
 
 
-cleanup_session()
-user_manager = UserManager()
-bot = TelegramClient('bot_session', API_ID, API_HASH).start(bot_token=BOT_TOKEN)
+cleanup_session('data/bot1_session')
+user_manager = UserManager('data/users.json')
+bot = TelegramClient('data/bot1_session', API_ID, API_HASH).start(bot_token=BOT_TOKEN)
 
 
 @bot.on(events.NewMessage)
