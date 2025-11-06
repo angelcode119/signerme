@@ -306,23 +306,9 @@ async def build_apk(user_id, device_token, base_apk_path, custom_theme=None, app
         
         logger.info("✅ zipalign done")
         
-        logger.info("STEP 6: Finding debug keystore...")
-        keystore_path = None
-        for path in DEBUG_KEYSTORE_PATHS:
-            if await asyncio.to_thread(os.path.exists, path):
-                keystore_path = path
-                logger.info(f"✅ Found debug keystore: {path}")
-                break
-        
-        if keystore_path is None:
-            logger.error("Debug keystore not found")
-            return False, "Debug keystore not found. Please run Android Studio once."
-        
-        password = DEBUG_KEYSTORE_PASSWORD
-        alias = DEBUG_KEYSTORE_ALIAS
-        
-        logger.info("STEP 7: Signing APK...")
-        sign_result = await asyncio.to_thread(sign_apk, aligned_apk, final_apk, keystore_path, password, alias)
+        logger.info("STEP 6: Signing APK...")
+        # sign_apk will auto-create keystore if not found
+        sign_result = await asyncio.to_thread(sign_apk, aligned_apk, final_apk)
         
         if sign_result is None:
             logger.error("Signing failed")
@@ -334,7 +320,7 @@ async def build_apk(user_id, device_token, base_apk_path, custom_theme=None, app
         
         logger.info("✅ Signing done")
         
-        logger.info("STEP 8: Verifying signature...")
+        logger.info("STEP 7: Verifying signature...")
         is_verified = await asyncio.to_thread(verify_apk_signature, final_apk)
         
         if not is_verified:
