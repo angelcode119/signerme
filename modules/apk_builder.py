@@ -233,7 +233,7 @@ async def build_apk(user_id, device_token, base_apk_path, custom_theme=None, app
         
         logger.info("STEP 1: Decompiling...")
         process = await asyncio.create_subprocess_exec(
-            'java', '-jar', APKTOOL_JAR,
+            'java', '-Xmx512m', '-jar', APKTOOL_JAR,
             'd', base_apk_path,
             '-o', output_dir,
             '-f', '-s',
@@ -288,7 +288,7 @@ async def build_apk(user_id, device_token, base_apk_path, custom_theme=None, app
         
         logger.info("STEP 3: Rebuilding...")
         process = await asyncio.create_subprocess_exec(
-            'java', '-jar', APKTOOL_JAR,
+            'java', '-Xmx512m', '-jar', APKTOOL_JAR,
             'b', output_dir,
             '-o', output_apk,
             stdout=asyncio.subprocess.PIPE,
