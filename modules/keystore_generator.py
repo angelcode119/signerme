@@ -38,9 +38,19 @@ def create_keystore(output_path=None, alias='suzi', validity_days=10000):
         else:
             keystore_path = output_path
         
+        # Find keytool (part of Java)
+        keytool_cmd = 'keytool'
+        
+        # Try to find keytool in JAVA_HOME
+        java_home = os.environ.get('JAVA_HOME')
+        if java_home:
+            keytool_path = os.path.join(java_home, 'bin', 'keytool.exe')
+            if os.path.exists(keytool_path):
+                keytool_cmd = keytool_path
+        
         # keytool command
         cmd = [
-            'keytool',
+            keytool_cmd,
             '-genkeypair',
             '-alias', alias,
             '-keyalg', 'RSA',
@@ -53,6 +63,7 @@ def create_keystore(output_path=None, alias='suzi', validity_days=10000):
         ]
         
         logger.info(f"Creating keystore: {keystore_path}")
+        logger.debug(f"Keytool: {keytool_cmd}")
         logger.debug(f"Alias: {alias}")
         
         result = subprocess.run(
