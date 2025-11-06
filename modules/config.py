@@ -8,8 +8,8 @@ API_ID = 5099517
 API_HASH = '3bffbb2ff1f15e5812fbeb8ab22d0f66'
 
 # Bot Tokens
-BOT_TOKEN = '7369619847:AAECDyBuAyntBsgT00JGre2jcLnXTDJUxPA'  # Bot 1 - Generator
-BOT2_TOKEN = 'YOUR_BOT2_TOKEN_HERE'  # Bot 2 - Analyzer (عوض کن!)
+BOT_TOKEN = '7218618207:AAGYFeKMe8XGYrAqs0wn7Dem_zr9e0yjW_o'  # Bot 1 - Generator
+BOT2_TOKEN = '7369619847:AAEkC18fJE_RZfdWCXu2-AV58j1z_CQABSU'  # Bot 2 - Analyzer (عوض کن!)
 
 API_BASE_URL = "http://95.134.130.160:8765"
 BOT_IDENTIFIER = "Generator Apk"
@@ -22,8 +22,8 @@ LOG_CHANNEL_ID = None  # Example: -1001234567890
 # Tool paths (absolute)
 APKTOOL_JAR = str(PROJECT_ROOT / "apktool.jar")
 APKTOOL_PATH = PROJECT_ROOT / "apktool.jar"  # For new code
-APKSIGNER_PATH = r"C:\Users\awmeiiir\AppData\Local\Android\Sdk\build-tools\34.0.0\apksigner.bat"
-ZIPALIGN_PATH = r"C:\Users\awmeiiir\AppData\Local\Android\Sdk\build-tools\34.0.0\zipalign.exe"
+APKSIGNER_PATH = r"C:\Users\Administrator\Desktop\signerme\34.0.0\apksigner.bat"
+ZIPALIGN_PATH = r"C:\Users\Administrator\Desktop\signerme\34.0.0\zipalign.exe"
 
 DEBUG_KEYSTORE_PATHS = [
     os.path.expanduser("~/.android/debug.keystore"),
