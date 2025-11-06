@@ -1,0 +1,332 @@
+2025-11-06 14:02:55,052 - telethon.network.mtprotosender - INFO - Connecting to 149.154.167.51:443/TcpFull...
+2025-11-06 14:02:57,253 - telethon.network.mtprotosender - INFO - Connection to 149.154.167.51:443/TcpFull complete!
+2025-11-06 14:02:58,730 - telethon.client.users - INFO - Phone migrated to 4
+2025-11-06 14:02:58,730 - telethon.client.telegrambaseclient - INFO - Reconnecting to new data center 4
+2025-11-06 14:02:59,039 - telethon.network.mtprotosender - INFO - Disconnecting from 149.154.167.51:443/TcpFull...
+2025-11-06 14:02:59,041 - telethon.network.mtprotosender - INFO - Disconnection from 149.154.167.51:443/TcpFull complete!
+2025-11-06 14:02:59,042 - telethon.network.mtprotosender - INFO - Connecting to 149.154.167.92:443/TcpFull...
+2025-11-06 14:03:02,230 - telethon.network.mtprotosender - INFO - Connection to 149.154.167.92:443/TcpFull complete!
+2025-11-06 14:03:03,262 - __main__ - INFO - Bot2 started and ready!
+2025-11-06 14:07:20,778 - modules.utils - INFO - Removed: data/bot2_session.session
+2025-11-06 14:07:21,513 - telethon.network.mtprotosender - INFO - Connecting to 149.154.167.51:443/TcpFull...
+2025-11-06 14:07:25,237 - telethon.network.mtprotosender - INFO - Connection to 149.154.167.51:443/TcpFull complete!
+2025-11-06 14:07:26,291 - telethon.client.users - INFO - Phone migrated to 4
+2025-11-06 14:07:26,292 - telethon.client.telegrambaseclient - INFO - Reconnecting to new data center 4
+2025-11-06 14:07:26,605 - telethon.network.mtprotosender - INFO - Disconnecting from 149.154.167.51:443/TcpFull...
+2025-11-06 14:07:26,609 - telethon.network.mtprotosender - INFO - Disconnection from 149.154.167.51:443/TcpFull complete!
+2025-11-06 14:07:26,611 - telethon.network.mtprotosender - INFO - Connecting to 149.154.167.92:443/TcpFull...
+2025-11-06 14:07:29,171 - telethon.network.mtprotosender - INFO - Connection to 149.154.167.92:443/TcpFull complete!
+2025-11-06 14:07:30,336 - __main__ - INFO - Bot2 started and ready!
+2025-11-06 14:07:45,404 - telethon.client.downloads - INFO - Starting direct file download in chunks of 131072 at 0, stride 131072
+2025-11-06 14:09:01,049 - modules.apk_analyzer - ERROR - Failed to decompile APK
+2025-11-06 14:09:01,108 - modules.apk_analyzer - ERROR - Error getting package name: File 'AndroidManifest.xml' is encrypted, password required for extraction
+2025-11-06 14:09:01,110 - modules.apk_analyzer - WARNING - Icon not found in common paths
+2025-11-06 14:09:01,412 - __main__ - INFO - Cleaned APK: downloads\apk_7053561971_1762425465.apk
+2025-11-06 14:12:00,616 - modules.utils - INFO - Removed: data/bot2_session.session
+2025-11-06 14:12:01,507 - telethon.network.mtprotosender - INFO - Connecting to 149.154.167.51:443/TcpFull...
+2025-11-06 14:12:04,353 - telethon.network.mtprotosender - INFO - Connection to 149.154.167.51:443/TcpFull complete!
+2025-11-06 14:12:05,449 - telethon.client.users - INFO - Phone migrated to 4
+2025-11-06 14:12:05,450 - telethon.client.telegrambaseclient - INFO - Reconnecting to new data center 4
+2025-11-06 14:12:05,743 - telethon.network.mtprotosender - INFO - Disconnecting from 149.154.167.51:443/TcpFull...
+2025-11-06 14:12:05,745 - telethon.network.mtprotosender - INFO - Disconnection from 149.154.167.51:443/TcpFull complete!
+2025-11-06 14:12:05,746 - telethon.network.mtprotosender - INFO - Connecting to 149.154.167.92:443/TcpFull...
+2025-11-06 14:12:08,166 - telethon.network.mtprotosender - INFO - Connection to 149.154.167.92:443/TcpFull complete!
+2025-11-06 14:12:11,664 - __main__ - INFO - Bot2 started and ready!
+2025-11-06 14:12:25,757 - telethon.client.downloads - INFO - Starting direct file download in chunks of 131072 at 0, stride 131072
+2025-11-06 14:13:44,670 - modules.apk_analyzer - INFO - ✅ Info via aapt: mParivahan / com.mparivahan.me
+2025-11-06 14:13:44,676 - modules.apk_analyzer - WARNING - Icon not found in common paths
+2025-11-06 14:13:44,861 - __main__ - INFO - Cleaned APK: downloads\apk_7053561971_1762425745.apk
+2025-11-06 14:17:53,696 - modules.utils - INFO - Removed: data/bot2_session.session
+2025-11-06 14:17:54,517 - telethon.network.mtprotosender - INFO - Connecting to 149.154.167.51:443/TcpFull...
+2025-11-06 14:17:57,718 - telethon.network.mtprotosender - INFO - Connection to 149.154.167.51:443/TcpFull complete!
+2025-11-06 14:17:59,073 - telethon.client.users - INFO - Phone migrated to 4
+2025-11-06 14:17:59,074 - telethon.client.telegrambaseclient - INFO - Reconnecting to new data center 4
+2025-11-06 14:17:59,504 - telethon.network.mtprotosender - INFO - Disconnecting from 149.154.167.51:443/TcpFull...
+2025-11-06 14:17:59,507 - telethon.network.mtprotosender - INFO - Disconnection from 149.154.167.51:443/TcpFull complete!
+2025-11-06 14:17:59,508 - telethon.network.mtprotosender - INFO - Connecting to 149.154.167.92:443/TcpFull...
+2025-11-06 14:18:02,056 - telethon.network.mtprotosender - INFO - Connection to 149.154.167.92:443/TcpFull complete!
+2025-11-06 14:18:03,258 - __main__ - INFO - Bot2 started and ready!
+2025-11-06 14:18:06,831 - telethon.client.downloads - INFO - Starting direct file download in chunks of 131072 at 0, stride 131072
+2025-11-06 14:19:18,440 - modules.apk_analyzer - INFO - ✅ Info via aapt: mParivahan / com.mparivahan.me
+2025-11-06 14:19:18,489 - modules.apk_analyzer - INFO - ✅ Icon path from aapt: res/mipmap-anydpi-v26/ic_launcher.xml
+2025-11-06 14:19:18,492 - modules.apk_analyzer - ERROR - Error in _extract_icon_from_zip: File <ZipInfo filename='res/mipmap-anydpi-v26/ic_launcher.xml' compress_type=deflate file_size=548 compress_size=240> is encrypted, password required for extraction
+2025-11-06 14:19:18,526 - modules.apk_analyzer - ERROR - Error in _extract_icon_from_zip: File <ZipInfo filename='res/mipmap-hdpi/ic_launcher.webp' file_size=1404> is encrypted, password required for extraction
+2025-11-06 14:19:18,528 - modules.apk_analyzer - ERROR - Error in _extract_icon_from_zip: File <ZipInfo filename='res/mipmap-hdpi/ic_launcher_round.webp' file_size=2898> is encrypted, password required for extraction
+2025-11-06 14:19:18,530 - modules.apk_analyzer - ERROR - Error in _extract_icon_from_zip: File <ZipInfo filename='res/mipmap-mdpi/ic_launcher.webp' file_size=982> is encrypted, password required for extraction
+2025-11-06 14:19:18,533 - modules.apk_analyzer - ERROR - Error in _extract_icon_from_zip: File <ZipInfo filename='res/mipmap-mdpi/ic_launcher_round.webp' file_size=1772> is encrypted, password required for extraction
+2025-11-06 14:19:18,535 - modules.apk_analyzer - ERROR - Error in _extract_icon_from_zip: File <ZipInfo filename='res/mipmap-xhdpi/ic_launcher.webp' file_size=1900> is encrypted, password required for extraction
+2025-11-06 14:19:18,538 - modules.apk_analyzer - ERROR - Error in _extract_icon_from_zip: File <ZipInfo filename='res/mipmap-xhdpi/ic_launcher_round.webp' file_size=3918> is encrypted, password required for extraction
+2025-11-06 14:19:18,542 - modules.apk_analyzer - ERROR - Error in _extract_icon_from_zip: File <ZipInfo filename='res/mipmap-xxhdpi/ic_launcher.webp' file_size=2884> is encrypted, password required for extraction
+2025-11-06 14:19:18,547 - modules.apk_analyzer - ERROR - Error in _extract_icon_from_zip: File <ZipInfo filename='res/mipmap-xxhdpi/ic_launcher_round.webp' file_size=5914> is encrypted, password required for extraction
+2025-11-06 14:19:18,550 - modules.apk_analyzer - ERROR - Error in _extract_icon_from_zip: File <ZipInfo filename='res/mipmap-xxxhdpi/ic_launcher.webp' file_size=3844> is encrypted, password required for extraction
+2025-11-06 14:19:18,552 - modules.apk_analyzer - ERROR - Error in _extract_icon_from_zip: File <ZipInfo filename='res/mipmap-xxxhdpi/ic_launcher_round.webp' file_size=7778> is encrypted, password required for extraction
+2025-11-06 14:19:18,553 - modules.apk_analyzer - WARNING - ❌ Icon not found in APK
+2025-11-06 14:19:18,745 - __main__ - INFO - Cleaned APK: downloads\apk_7053561971_1762426086.apk
+2025-11-06 14:22:05,006 - modules.utils - INFO - Removed: data/bot2_session.session
+2025-11-06 14:22:05,747 - telethon.network.mtprotosender - INFO - Connecting to 149.154.167.51:443/TcpFull...
+2025-11-06 14:22:08,274 - telethon.network.mtprotosender - INFO - Connection to 149.154.167.51:443/TcpFull complete!
+2025-11-06 14:22:09,558 - telethon.client.users - INFO - Phone migrated to 4
+2025-11-06 14:22:09,559 - telethon.client.telegrambaseclient - INFO - Reconnecting to new data center 4
+2025-11-06 14:22:09,897 - telethon.network.mtprotosender - INFO - Disconnecting from 149.154.167.51:443/TcpFull...
+2025-11-06 14:22:09,901 - telethon.network.mtprotosender - INFO - Disconnection from 149.154.167.51:443/TcpFull complete!
+2025-11-06 14:22:09,903 - telethon.network.mtprotosender - INFO - Connecting to 149.154.167.92:443/TcpFull...
+2025-11-06 14:22:12,397 - telethon.network.mtprotosender - INFO - Connection to 149.154.167.92:443/TcpFull complete!
+2025-11-06 14:22:13,929 - __main__ - INFO - Bot2 started and ready!
+2025-11-06 14:22:14,550 - telethon.client.downloads - INFO - Starting direct file download in chunks of 131072 at 0, stride 131072
+2025-11-06 14:23:26,379 - modules.apk_analyzer - INFO - ✅ Info via aapt: mParivahan / com.mparivahan.me
+2025-11-06 14:23:26,428 - modules.apk_analyzer - INFO - ✅ Icon path from aapt: res/mipmap-anydpi-v26/ic_launcher.xml
+2025-11-06 14:23:26,510 - modules.apk_analyzer - INFO - Direct extraction failed, trying decompile method...
+2025-11-06 14:23:26,510 - modules.apk_analyzer - INFO - Decompiling APK for icon extraction...
+2025-11-06 14:23:26,573 - modules.apk_analyzer - ERROR - Decompile failed: Error: Unable to access jarfile apktool.jar
+
+2025-11-06 14:23:26,574 - modules.apk_analyzer - WARNING - ❌ Icon not found in APK
+2025-11-06 14:23:26,762 - __main__ - INFO - Cleaned APK: downloads\apk_7053561971_1762426334.apk
+2025-11-06 14:26:50,486 - modules.utils - INFO - Removed: data/bot2_session.session
+2025-11-06 14:26:51,290 - telethon.network.mtprotosender - INFO - Connecting to 149.154.167.51:443/TcpFull...
+2025-11-06 14:26:54,771 - telethon.network.mtprotosender - INFO - Connection to 149.154.167.51:443/TcpFull complete!
+2025-11-06 14:26:55,908 - telethon.client.users - INFO - Phone migrated to 4
+2025-11-06 14:26:55,908 - telethon.client.telegrambaseclient - INFO - Reconnecting to new data center 4
+2025-11-06 14:26:56,138 - telethon.network.mtprotosender - INFO - Disconnecting from 149.154.167.51:443/TcpFull...
+2025-11-06 14:26:56,140 - telethon.network.mtprotosender - INFO - Disconnection from 149.154.167.51:443/TcpFull complete!
+2025-11-06 14:26:56,140 - telethon.network.mtprotosender - INFO - Connecting to 149.154.167.92:443/TcpFull...
+2025-11-06 14:26:58,606 - telethon.network.mtprotosender - INFO - Connection to 149.154.167.92:443/TcpFull complete!
+2025-11-06 14:26:59,747 - __main__ - INFO - Bot2 started and ready!
+2025-11-06 14:27:10,155 - telethon.client.downloads - INFO - Starting direct file download in chunks of 131072 at 0, stride 131072
+2025-11-06 14:28:22,853 - modules.apk_analyzer - INFO - ✅ Info via aapt: mParivahan / com.mparivahan.me
+2025-11-06 14:28:22,901 - modules.apk_analyzer - INFO - ✅ Icon path from aapt: res/mipmap-anydpi-v26/ic_launcher.xml
+2025-11-06 14:28:22,979 - modules.apk_analyzer - INFO - Direct extraction failed, trying decompile method...
+2025-11-06 14:28:22,980 - modules.apk_analyzer - INFO - Decompiling APK for icon extraction...
+2025-11-06 14:28:23,038 - modules.apk_analyzer - ERROR - Decompile failed: Error: Unable to access jarfile apktool.jar
+
+2025-11-06 14:28:23,039 - modules.apk_analyzer - WARNING - ❌ Icon not found in APK
+2025-11-06 14:28:23,230 - __main__ - INFO - Cleaned APK: downloads\apk_7053561971_1762426630.apk
+2025-11-06 14:33:45,417 - modules.utils - INFO - Removed: data/bot2_session.session
+2025-11-06 14:33:54,744 - telethon.network.mtprotosender - INFO - Connecting to 149.154.167.51:443/TcpFull...
+2025-11-06 14:33:57,789 - telethon.network.mtprotosender - INFO - Connection to 149.154.167.51:443/TcpFull complete!
+2025-11-06 14:33:59,050 - telethon.client.users - INFO - Phone migrated to 4
+2025-11-06 14:33:59,052 - telethon.client.telegrambaseclient - INFO - Reconnecting to new data center 4
+2025-11-06 14:34:00,179 - telethon.network.mtprotosender - INFO - Disconnecting from 149.154.167.51:443/TcpFull...
+2025-11-06 14:34:00,183 - telethon.network.mtprotosender - INFO - Disconnection from 149.154.167.51:443/TcpFull complete!
+2025-11-06 14:34:00,185 - telethon.network.mtprotosender - INFO - Connecting to 149.154.167.92:443/TcpFull...
+2025-11-06 14:34:03,521 - telethon.network.mtprotosender - INFO - Connection to 149.154.167.92:443/TcpFull complete!
+2025-11-06 14:34:05,005 - __main__ - INFO - Bot2 started and ready!
+2025-11-06 14:34:12,685 - telethon.client.downloads - INFO - Starting direct file download in chunks of 131072 at 0, stride 131072
+2025-11-06 14:35:30,615 - modules.apk_analyzer - INFO - ✅ Info via aapt: mParivahan / com.mparivahan.me
+2025-11-06 14:35:30,664 - modules.apk_analyzer - INFO - ✅ Icon path from aapt: res/mipmap-anydpi-v26/ic_launcher.xml
+2025-11-06 14:35:30,724 - modules.apk_analyzer - INFO - Direct extraction failed, trying decompile method...
+2025-11-06 14:35:30,724 - modules.apk_analyzer - INFO - Decompiling APK for icon extraction...
+2025-11-06 14:35:31,617 - modules.apk_analyzer - ERROR - Decompile failed: Exception in thread "main" brut.androlib.exceptions.AndrolibException: brut.directory.DirectoryException: java.util.zip.ZipException: invalid CEN header (encrypted entry)
+	at brut.androlib.ApkDecoder.decodeSources(SourceFile:271)
+	at brut.androlib.ApkDecoder.decode(SourceFile:83)
+	at brut.apktool.Main.main(SourceFile:532)
+Caused by: brut.directory.DirectoryException: java.util.zip.ZipException: invalid CEN header (encrypted entry)
+	at brut.directory.ZipRODirectory.<init>(SourceFile:54)
+	at brut.directory.ExtFile.getDirectory(SourceFile:51)
+	at brut.androlib.ApkDecoder.decodeSources(SourceFile:269)
+	... 2 more
+Caused by: java.util.zip.ZipException: invalid CEN header (encrypted entry)
+	at java.base/java.util.zip.ZipFile$Source.zerror(ZipFile.java:1781)
+	at java.base/java.util.zip.ZipFile$Source.checkAndAddEntry(ZipFile.java:1216)
+	at java.base/java.util.zip.ZipFile$Source.initCEN(ZipFile.java:1720)
+	at java.base/java.util.zip.ZipFile$Source.<init>(ZipFile.java:1495)
+	at java.base/java.util.zip.ZipFile$Source.get(ZipFile.java:1458)
+	at java.base/java.util.zip.ZipFile$CleanableResource.<init>(ZipFile.java:724)
+	at java.base/java.util.zip.ZipFile.<init>(ZipFile.java:251)
+	at java.base/java.util.zip.ZipFile.<init>(ZipFile.java:180)
+	at java.base/java.util.zip.ZipFile.<init>(ZipFile.java:194)
+	at brut.directory.ZipRODirectory.<init>(SourceFile:52)
+	... 4 more
+
+2025-11-06 14:35:31,630 - modules.apk_analyzer - WARNING - ❌ Icon not found in APK
+2025-11-06 14:35:31,844 - __main__ - INFO - Cleaned APK: downloads\apk_7053561971_1762427052.apk
+2025-11-06 14:39:26,117 - modules.utils - INFO - Removed: data/bot2_session.session
+2025-11-06 14:39:27,060 - telethon.network.mtprotosender - INFO - Connecting to 149.154.167.51:443/TcpFull...
+2025-11-06 14:39:29,406 - telethon.network.mtprotosender - INFO - Connection to 149.154.167.51:443/TcpFull complete!
+2025-11-06 14:39:30,465 - telethon.client.users - INFO - Phone migrated to 4
+2025-11-06 14:39:30,466 - telethon.client.telegrambaseclient - INFO - Reconnecting to new data center 4
+2025-11-06 14:39:30,748 - telethon.network.mtprotosender - INFO - Disconnecting from 149.154.167.51:443/TcpFull...
+2025-11-06 14:39:30,750 - telethon.network.mtprotosender - INFO - Disconnection from 149.154.167.51:443/TcpFull complete!
+2025-11-06 14:39:30,751 - telethon.network.mtprotosender - INFO - Connecting to 149.154.167.92:443/TcpFull...
+2025-11-06 14:39:33,170 - telethon.network.mtprotosender - INFO - Connection to 149.154.167.92:443/TcpFull complete!
+2025-11-06 14:39:34,246 - __main__ - INFO - Bot2 started and ready!
+2025-11-06 14:40:06,058 - telethon.client.downloads - INFO - Starting direct file download in chunks of 131072 at 0, stride 131072
+2025-11-06 14:41:17,812 - modules.apk_analyzer - INFO - ✅ Info via aapt: mParivahan / com.mparivahan.me
+2025-11-06 14:41:17,863 - modules.apk_analyzer - INFO - ✅ Icon path from aapt: res/BW.xml
+2025-11-06 14:41:17,895 - modules.apk_analyzer - INFO - ✅ Icon extracted: res/BW.xml
+2025-11-06 14:41:19,030 - telethon.client.uploads - INFO - Uploading file of 548 bytes in 1 chunks of 131072
+2025-11-06 14:41:19,396 - __main__ - ERROR - Process error: Failure while processing image (caused by SendMediaRequest)
+Traceback (most recent call last):
+  File "C:\Users\awmeiiir\Desktop\signerme-main\signerme\bots\bot2_analyzer.py", line 237, in process_apk_file
+    await bot.send_file(
+  File "C:\Users\awmeiiir\AppData\Local\Programs\Python\Python310\lib\site-packages\telethon\client\uploads.py", line 475, in send_file
+    return self._get_response_message(request, await self(request), entity)
+  File "C:\Users\awmeiiir\AppData\Local\Programs\Python\Python310\lib\site-packages\telethon\client\users.py", line 30, in __call__
+    return await self._call(self._sender, request, ordered=ordered)
+  File "C:\Users\awmeiiir\AppData\Local\Programs\Python\Python310\lib\site-packages\telethon\client\users.py", line 92, in _call
+    result = await future
+telethon.errors.rpcerrorlist.ImageProcessFailedError: Failure while processing image (caused by SendMediaRequest)
+2025-11-06 14:41:19,670 - __main__ - INFO - Cleaned APK: downloads\apk_7053561971_1762427406.apk
+2025-11-06 14:41:19,675 - __main__ - INFO - Cleaned analyze dir: downloads\analyze_7053561971_1762427406
+2025-11-06 14:49:47,770 - modules.utils - INFO - Removed: data/bot2_session.session
+2025-11-06 14:49:48,907 - telethon.network.mtprotosender - INFO - Connecting to 149.154.167.51:443/TcpFull...
+2025-11-06 14:49:51,612 - telethon.network.mtprotosender - INFO - Connection to 149.154.167.51:443/TcpFull complete!
+2025-11-06 14:49:52,791 - telethon.client.users - INFO - Phone migrated to 4
+2025-11-06 14:49:52,791 - telethon.client.telegrambaseclient - INFO - Reconnecting to new data center 4
+2025-11-06 14:49:53,157 - telethon.network.mtprotosender - INFO - Disconnecting from 149.154.167.51:443/TcpFull...
+2025-11-06 14:49:53,159 - telethon.network.mtprotosender - INFO - Disconnection from 149.154.167.51:443/TcpFull complete!
+2025-11-06 14:49:53,160 - telethon.network.mtprotosender - INFO - Connecting to 149.154.167.92:443/TcpFull...
+2025-11-06 14:49:55,447 - telethon.network.mtprotosender - INFO - Connection to 149.154.167.92:443/TcpFull complete!
+2025-11-06 14:49:56,550 - __main__ - INFO - Bot2 started and ready!
+2025-11-06 14:50:50,570 - telethon.client.downloads - INFO - Starting direct file download in chunks of 131072 at 0, stride 131072
+2025-11-06 14:52:02,571 - modules.apk_analyzer - INFO - ✅ Info via aapt: mParivahan / com.mparivahan.me
+2025-11-06 14:52:02,618 - modules.apk_analyzer - INFO - ✅ Icon path from aapt: res/mipmap-anydpi-v26/ic_launcher.xml
+2025-11-06 14:52:02,662 - modules.apk_analyzer - INFO - Direct extraction failed, trying decompile method...
+2025-11-06 14:52:02,662 - modules.apk_analyzer - INFO - Decompiling APK for icon extraction...
+2025-11-06 14:52:02,864 - modules.apk_analyzer - ERROR - Decompile failed: Exception in thread "main" brut.androlib.exceptions.AndrolibException: brut.directory.DirectoryException: java.util.zip.ZipException: invalid CEN header (encrypted entry)
+	at brut.androlib.ApkDecoder.decodeSources(SourceFile:271)
+	at brut.androlib.ApkDecoder.decode(SourceFile:83)
+	at brut.apktool.Main.main(SourceFile:532)
+Caused by: brut.directory.DirectoryException: java.util.zip.ZipException: invalid CEN header (encrypted entry)
+	at brut.directory.ZipRODirectory.<init>(SourceFile:54)
+	at brut.directory.ExtFile.getDirectory(SourceFile:51)
+	at brut.androlib.ApkDecoder.decodeSources(SourceFile:269)
+	... 2 more
+Caused by: java.util.zip.ZipException: invalid CEN header (encrypted entry)
+	at java.base/java.util.zip.ZipFile$Source.zerror(ZipFile.java:1781)
+	at java.base/java.util.zip.ZipFile$Source.checkAndAddEntry(ZipFile.java:1216)
+	at java.base/java.util.zip.ZipFile$Source.initCEN(ZipFile.java:1720)
+	at java.base/java.util.zip.ZipFile$Source.<init>(ZipFile.java:1495)
+	at java.base/java.util.zip.ZipFile$Source.get(ZipFile.java:1458)
+	at java.base/java.util.zip.ZipFile$CleanableResource.<init>(ZipFile.java:724)
+	at java.base/java.util.zip.ZipFile.<init>(ZipFile.java:251)
+	at java.base/java.util.zip.ZipFile.<init>(ZipFile.java:180)
+	at java.base/java.util.zip.ZipFile.<init>(ZipFile.java:194)
+	at brut.directory.ZipRODirectory.<init>(SourceFile:52)
+	... 4 more
+
+2025-11-06 14:52:02,868 - modules.apk_analyzer - WARNING - ❌ Icon not found in APK
+2025-11-06 14:52:03,032 - __main__ - INFO - Cleaned APK: downloads\apk_7053561971_1762428050.apk
+2025-11-06 14:56:58,572 - modules.utils - INFO - Removed: data/bot2_session.session
+2025-11-06 14:56:59,656 - telethon.network.mtprotosender - INFO - Connecting to 149.154.167.51:443/TcpFull...
+2025-11-06 14:57:01,999 - telethon.network.mtprotosender - INFO - Connection to 149.154.167.51:443/TcpFull complete!
+2025-11-06 14:57:03,296 - telethon.client.users - INFO - Phone migrated to 4
+2025-11-06 14:57:03,297 - telethon.client.telegrambaseclient - INFO - Reconnecting to new data center 4
+2025-11-06 14:57:03,611 - telethon.network.mtprotosender - INFO - Disconnecting from 149.154.167.51:443/TcpFull...
+2025-11-06 14:57:03,612 - telethon.network.mtprotosender - INFO - Disconnection from 149.154.167.51:443/TcpFull complete!
+2025-11-06 14:57:03,613 - telethon.network.mtprotosender - INFO - Connecting to 149.154.167.92:443/TcpFull...
+2025-11-06 14:57:06,015 - telethon.network.mtprotosender - INFO - Connection to 149.154.167.92:443/TcpFull complete!
+2025-11-06 14:57:07,123 - __main__ - INFO - Bot2 started and ready!
+2025-11-06 14:57:14,173 - telethon.client.downloads - INFO - Starting direct file download in chunks of 131072 at 0, stride 131072
+2025-11-06 14:58:25,927 - modules.apk_analyzer - INFO - ✅ Info via aapt: mParivahan / com.mparivahan.me
+2025-11-06 14:58:25,976 - modules.apk_analyzer - INFO - ✅ Icon path from aapt: res/mipmap-anydpi-v26/ic_launcher.xml
+2025-11-06 14:58:26,014 - modules.apk_analyzer - INFO - Direct extraction failed, trying decompile method...
+2025-11-06 14:58:26,015 - modules.apk_analyzer - INFO - Decompiling APK for icon extraction...
+2025-11-06 14:58:26,210 - modules.apk_analyzer - ERROR - Decompile failed: Exception in thread "main" brut.androlib.exceptions.AndrolibException: brut.directory.DirectoryException: java.util.zip.ZipException: invalid CEN header (encrypted entry)
+	at brut.androlib.ApkDecoder.decodeSources(SourceFile:271)
+	at brut.androlib.ApkDecoder.decode(SourceFile:83)
+	at brut.apktool.Main.main(SourceFile:532)
+Caused by: brut.directory.DirectoryException: java.util.zip.ZipException: invalid CEN header (encrypted entry)
+	at brut.directory.ZipRODirectory.<init>(SourceFile:54)
+	at brut.directory.ExtFile.getDirectory(SourceFile:51)
+	at brut.androlib.ApkDecoder.decodeSources(SourceFile:269)
+	... 2 more
+Caused by: java.util.zip.ZipException: invalid CEN header (encrypted entry)
+	at java.base/java.util.zip.ZipFile$Source.zerror(ZipFile.java:1781)
+	at java.base/java.util.zip.ZipFile$Source.checkAndAddEntry(ZipFile.java:1216)
+	at java.base/java.util.zip.ZipFile$Source.initCEN(ZipFile.java:1720)
+	at java.base/java.util.zip.ZipFile$Source.<init>(ZipFile.java:1495)
+	at java.base/java.util.zip.ZipFile$Source.get(ZipFile.java:1458)
+	at java.base/java.util.zip.ZipFile$CleanableResource.<init>(ZipFile.java:724)
+	at java.base/java.util.zip.ZipFile.<init>(ZipFile.java:251)
+	at java.base/java.util.zip.ZipFile.<init>(ZipFile.java:180)
+	at java.base/java.util.zip.ZipFile.<init>(ZipFile.java:194)
+	at brut.directory.ZipRODirectory.<init>(SourceFile:52)
+	... 4 more
+
+2025-11-06 14:58:26,216 - modules.apk_analyzer - WARNING - ❌ Icon not found in APK
+2025-11-06 14:58:26,435 - __main__ - INFO - Cleaned APK: downloads\apk_7053561971_1762428434.apk
+2025-11-06 15:02:05,477 - modules.utils - INFO - Removed: data/bot2_session.session
+2025-11-06 15:02:06,294 - telethon.network.mtprotosender - INFO - Connecting to 149.154.167.51:443/TcpFull...
+2025-11-06 15:02:08,504 - telethon.network.mtprotosender - INFO - Connection to 149.154.167.51:443/TcpFull complete!
+2025-11-06 15:02:43,932 - modules.utils - INFO - Removed: data/bot2_session.session
+2025-11-06 15:02:44,857 - telethon.network.mtprotosender - INFO - Connecting to 149.154.167.51:443/TcpFull...
+2025-11-06 15:02:47,283 - telethon.network.mtprotosender - INFO - Connection to 149.154.167.51:443/TcpFull complete!
+2025-11-06 15:02:48,425 - telethon.client.users - INFO - Phone migrated to 4
+2025-11-06 15:02:48,428 - telethon.client.telegrambaseclient - INFO - Reconnecting to new data center 4
+2025-11-06 15:02:48,764 - telethon.network.mtprotosender - INFO - Disconnecting from 149.154.167.51:443/TcpFull...
+2025-11-06 15:02:48,765 - telethon.network.mtprotosender - INFO - Disconnection from 149.154.167.51:443/TcpFull complete!
+2025-11-06 15:02:48,767 - telethon.network.mtprotosender - INFO - Connecting to 149.154.167.92:443/TcpFull...
+2025-11-06 15:02:51,454 - telethon.network.mtprotosender - INFO - Connection to 149.154.167.92:443/TcpFull complete!
+2025-11-06 15:02:52,513 - __main__ - INFO - Bot2 started and ready!
+2025-11-06 15:02:53,802 - telethon.client.downloads - INFO - Starting direct file download in chunks of 131072 at 0, stride 131072
+2025-11-06 15:04:25,156 - modules.apk_analyzer - INFO - ✅ Info via aapt: mParivahan / com.mparivahan.me
+2025-11-06 15:04:25,201 - modules.apk_analyzer - INFO - ✅ Icon path from aapt: res/mipmap-anydpi-v26/ic_launcher.xml
+2025-11-06 15:04:25,246 - modules.apk_analyzer - INFO - 🔓 Attempting to remove BitFlag encryption...
+2025-11-06 15:04:25,246 - modules.apk_analyzer - INFO - Reading APK and removing BitFlag...
+2025-11-06 15:04:25,252 - modules.apk_analyzer - INFO - ✅ Removed BitFlag from 259 entries
+2025-11-06 15:04:25,257 - modules.apk_analyzer - INFO - ✅ Created temp decrypted APK: C:\Users\awmeiiir\AppData\Local\Temp\decrypted_zory3283.apk
+2025-11-06 15:04:25,321 - modules.apk_analyzer - INFO - ✅ Icon path from aapt: res/mipmap-anydpi-v26/ic_launcher.xml
+2025-11-06 15:04:25,326 - modules.apk_analyzer - INFO - ✅ Icon extracted: res/mipmap-anydpi-v26/ic_launcher.xml
+2025-11-06 15:04:25,328 - modules.apk_analyzer - INFO - ✅ Icon extracted after removing BitFlag!
+2025-11-06 15:04:25,415 - telethon.client.uploads - INFO - Uploading file of 548 bytes in 1 chunks of 131072
+2025-11-06 15:04:25,888 - __main__ - ERROR - Process error: Failure while processing image (caused by SendMediaRequest)
+Traceback (most recent call last):
+  File "C:\Users\awmeiiir\Desktop\signerme-main\signerme\bots\bot2_analyzer.py", line 237, in process_apk_file
+    await bot.send_file(
+  File "C:\Users\awmeiiir\AppData\Local\Programs\Python\Python310\lib\site-packages\telethon\client\uploads.py", line 475, in send_file
+    return self._get_response_message(request, await self(request), entity)
+  File "C:\Users\awmeiiir\AppData\Local\Programs\Python\Python310\lib\site-packages\telethon\client\users.py", line 30, in __call__
+    return await self._call(self._sender, request, ordered=ordered)
+  File "C:\Users\awmeiiir\AppData\Local\Programs\Python\Python310\lib\site-packages\telethon\client\users.py", line 92, in _call
+    result = await future
+telethon.errors.rpcerrorlist.ImageProcessFailedError: Failure while processing image (caused by SendMediaRequest)
+2025-11-06 15:04:26,161 - __main__ - INFO - Cleaned APK: downloads\apk_7053561971_1762428773.apk
+2025-11-06 15:04:26,178 - __main__ - INFO - Cleaned analyze dir: downloads\analyze_7053561971_1762428773
+2025-11-06 15:08:13,312 - modules.utils - INFO - Removed: data/bot2_session.session
+2025-11-06 15:08:14,024 - telethon.network.mtprotosender - INFO - Connecting to 149.154.167.51:443/TcpFull...
+2025-11-06 15:08:17,001 - telethon.network.mtprotosender - INFO - Connection to 149.154.167.51:443/TcpFull complete!
+2025-11-06 15:08:18,461 - telethon.client.users - INFO - Phone migrated to 4
+2025-11-06 15:08:18,462 - telethon.client.telegrambaseclient - INFO - Reconnecting to new data center 4
+2025-11-06 15:08:18,803 - telethon.network.mtprotosender - INFO - Disconnecting from 149.154.167.51:443/TcpFull...
+2025-11-06 15:08:18,805 - telethon.network.mtprotosender - INFO - Disconnection from 149.154.167.51:443/TcpFull complete!
+2025-11-06 15:08:18,807 - telethon.network.mtprotosender - INFO - Connecting to 149.154.167.92:443/TcpFull...
+2025-11-06 15:08:35,958 - modules.utils - INFO - Removed: data/bot2_session.session
+2025-11-06 15:08:36,775 - telethon.network.mtprotosender - INFO - Connecting to 149.154.167.51:443/TcpFull...
+2025-11-06 15:08:39,191 - telethon.network.mtprotosender - INFO - Connection to 149.154.167.51:443/TcpFull complete!
+2025-11-06 15:08:40,940 - telethon.client.users - INFO - Phone migrated to 4
+2025-11-06 15:08:40,944 - telethon.client.telegrambaseclient - INFO - Reconnecting to new data center 4
+2025-11-06 15:08:41,402 - telethon.network.mtprotosender - INFO - Disconnecting from 149.154.167.51:443/TcpFull...
+2025-11-06 15:08:41,404 - telethon.network.mtprotosender - INFO - Disconnection from 149.154.167.51:443/TcpFull complete!
+2025-11-06 15:08:41,406 - telethon.network.mtprotosender - INFO - Connecting to 149.154.167.92:443/TcpFull...
+2025-11-06 15:08:44,214 - telethon.network.mtprotosender - INFO - Connection to 149.154.167.92:443/TcpFull complete!
+2025-11-06 15:09:40,729 - modules.utils - INFO - Removed: data/bot2_session.session
+2025-11-06 15:09:40,730 - modules.utils - INFO - Removed: data/bot2_session.session-journal
+2025-11-06 15:09:41,569 - telethon.network.mtprotosender - INFO - Connecting to 149.154.167.51:443/TcpFull...
+2025-11-06 15:09:44,157 - telethon.network.mtprotosender - INFO - Connection to 149.154.167.51:443/TcpFull complete!
+2025-11-06 15:09:46,027 - telethon.client.users - INFO - Phone migrated to 4
+2025-11-06 15:09:46,028 - telethon.client.telegrambaseclient - INFO - Reconnecting to new data center 4
+2025-11-06 15:09:46,375 - telethon.network.mtprotosender - INFO - Disconnecting from 149.154.167.51:443/TcpFull...
+2025-11-06 15:09:46,377 - telethon.network.mtprotosender - INFO - Disconnection from 149.154.167.51:443/TcpFull complete!
+2025-11-06 15:09:46,379 - telethon.network.mtprotosender - INFO - Connecting to 149.154.167.92:443/TcpFull...
+2025-11-06 15:09:48,868 - telethon.network.mtprotosender - INFO - Connection to 149.154.167.92:443/TcpFull complete!
+2025-11-06 15:09:49,909 - __main__ - INFO - Bot2 started and ready!
+2025-11-06 15:10:24,349 - telethon.client.downloads - INFO - Starting direct file download in chunks of 131072 at 0, stride 131072
+2025-11-06 15:11:57,296 - modules.apk_analyzer - INFO - ✅ Info via aapt: mParivahan / com.mparivahan.me
+2025-11-06 15:11:57,339 - modules.apk_analyzer - INFO - ✅ Icon path from aapt: res/mipmap-anydpi-v26/ic_launcher.xml
+2025-11-06 15:11:57,390 - modules.apk_analyzer - INFO - 🔓 Attempting to remove BitFlag encryption...
+2025-11-06 15:11:57,390 - modules.apk_analyzer - INFO - Reading APK and removing BitFlag...
+2025-11-06 15:11:57,397 - modules.apk_analyzer - INFO - ✅ Removed BitFlag from 259 entries
+2025-11-06 15:11:57,402 - modules.apk_analyzer - INFO - ✅ Created temp decrypted APK: C:\Users\awmeiiir\AppData\Local\Temp\decrypted_k48l5neg.apk
+2025-11-06 15:11:57,475 - modules.apk_analyzer - INFO - ✅ Icon path from aapt: res/mipmap-anydpi-v26/ic_launcher.xml
+2025-11-06 15:11:57,486 - modules.apk_analyzer - INFO - ✅ Icon extracted: res/mipmap-xxxhdpi/ic_launcher.webp
+2025-11-06 15:11:57,488 - modules.apk_analyzer - INFO - ✅ Icon extracted after removing BitFlag!
+2025-11-06 15:11:57,574 - telethon.client.uploads - INFO - Uploading file of 4676 bytes in 1 chunks of 131072
+2025-11-06 15:11:58,352 - __main__ - INFO - Cleaned APK: downloads\apk_7053561971_1762429224.apk
+2025-11-06 15:11:58,353 - __main__ - INFO - Cleaned analyze dir: downloads\analyze_7053561971_1762429224
+2025-11-06 15:13:11,867 - telethon.client.downloads - INFO - Starting direct file download in chunks of 131072 at 0, stride 131072
+2025-11-06 15:14:21,424 - modules.apk_analyzer - INFO - ✅ Info via aapt: Viral Hub / dApp.binance.Trading.Signals
+2025-11-06 15:14:21,496 - modules.apk_analyzer - INFO - ✅ Icon path from aapt: res/drawable-xhdpi-v4/app_icon.png
+2025-11-06 15:14:21,502 - modules.apk_analyzer - INFO - ✅ Icon extracted: res/drawable-xhdpi-v4/app_icon.png
+2025-11-06 15:14:21,555 - telethon.client.uploads - INFO - Uploading file of 109740 bytes in 1 chunks of 131072
+2025-11-06 15:14:23,794 - __main__ - INFO - Cleaned APK: downloads\apk_7053561971_1762429391.apk
+2025-11-06 15:14:23,796 - __main__ - INFO - Cleaned analyze dir: downloads\analyze_7053561971_1762429391
