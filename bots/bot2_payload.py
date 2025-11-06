@@ -299,9 +299,8 @@ if __name__ == '__main__':
         # Start bot
         await bot.start(bot_token=BOT2_TOKEN)
         
-        # Prepare cache
-        logger.info("🔧 Preparing payload cache...")
-        await prepare_payload_cache()
+        # Note: Cache disabled for now (was causing issues)
+        # await prepare_payload_cache()
         
         logger.info("Bot2 (Payload Injector) started and ready!")
         

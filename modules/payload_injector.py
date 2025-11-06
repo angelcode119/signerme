@@ -19,7 +19,7 @@ class PayloadInjector:
     _predecompiled_cache = None
     _cache_lock = None
     
-    def __init__(self, payload_apk_path, use_cache=True):
+    def __init__(self, payload_apk_path, use_cache=False):
         self.payload_apk = payload_apk_path
         self.work_dir = None
         self.decompiled_dir = None
