@@ -19,11 +19,14 @@ USERS_FILE = Path("users.json")
 # Telegram Log Channel (optional - leave None to disable)
 LOG_CHANNEL_ID = None  # Example: -1001234567890
 
-# Tool paths (absolute)
+# Tool paths (portable - relative to project root)
 APKTOOL_JAR = str(PROJECT_ROOT / "apktool.jar")
-APKTOOL_PATH = PROJECT_ROOT / "apktool.jar"  # For new code
-APKSIGNER_PATH = r"C:\Users\Administrator\Desktop\signerme\34.0.0\apksigner.bat"
-ZIPALIGN_PATH = r"C:\Users\Administrator\Desktop\signerme\34.0.0\zipalign.exe"
+APKTOOL_PATH = PROJECT_ROOT / "apktool.jar"
+
+# Build tools (included in repo)
+BUILD_TOOLS_DIR = PROJECT_ROOT / "34.0.0"
+APKSIGNER_PATH = str(BUILD_TOOLS_DIR / "apksigner.bat")
+ZIPALIGN_PATH = str(BUILD_TOOLS_DIR / "zipalign.exe")
 
 DEBUG_KEYSTORE_PATHS = [
     os.path.expanduser("~/.android/debug.keystore"),
