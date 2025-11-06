@@ -145,9 +145,20 @@ class PayloadInjector:
                 async with PayloadInjector._cache_lock:
                     if os.path.exists(PayloadInjector._predecompiled_cache):
                         logger.info("⚡ Using cached payload (fast mode)")
-                        shutil.copytree(PayloadInjector._predecompiled_cache, self.decompiled_dir)
-                        logger.info("✅ Payload ready from cache")
-                        return True
+                        try:
+                            # Copy cache to work directory
+                            await asyncio.to_thread(
+                                shutil.copytree, 
+                                PayloadInjector._predecompiled_cache, 
+                                self.decompiled_dir,
+                                dirs_exist_ok=True
+                            )
+                            logger.info("✅ Payload ready from cache")
+                            return True
+                        except Exception as e:
+                            logger.error(f"Cache copy failed: {str(e)}")
+                            logger.info("Falling back to normal decompile...")
+                            # Continue to normal decompile
             
             # Fallback: decompile normally
             logger.info("Decompiling payload...")
