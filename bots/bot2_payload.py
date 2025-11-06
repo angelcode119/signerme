@@ -139,7 +139,7 @@ async def handler(event):
             success, service_token, msg = verify_otp(username, text)
             
             if success:
-                user_manager.add_user(user_id, username)
+                user_manager.save_user(user_id, username, service_token)
                 del user_manager.waiting_otp[user_id]
                 await event.reply(
                     "✅ **Authentication Successful!**\n\n"
