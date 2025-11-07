@@ -1,5 +1,5 @@
 from telethon import events, Button
-from FastTelethon import upload_file
+from FastTelethonhelper import fast_upload
 import asyncio
 import os
 import logging
@@ -129,9 +129,10 @@ async def start_custom_build(event, user_id, bot, user_manager):
             apk_file = result
             await msg.edit("✅ **Build Complete**\n\n📤 Uploading...")
             
-            uploaded_file = await upload_file(
-                client=bot,
-                file=apk_file
+            uploaded_file = await fast_upload(
+                bot,
+                apk_file,
+                msg
             )
             
             await bot.send_file(

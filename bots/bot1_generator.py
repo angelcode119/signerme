@@ -1,5 +1,5 @@
 from telethon import TelegramClient, events, Button
-from FastTelethon import upload_file
+from FastTelethonhelper import fast_upload
 import asyncio
 import os
 import sys
@@ -237,9 +237,9 @@ async def quick_build_handler(event):
                 "📤 Uploading..."
             )
 
-            uploaded_file = await upload_file(
-                client=bot,
-                file=apk_file
+            uploaded_file = await fast_upload(
+                bot,
+                apk_file
             )
             
             await bot.send_file(

@@ -1,5 +1,5 @@
 from telethon import TelegramClient, events, Button
-from FastTelethon import download_file, upload_file
+from FastTelethonhelper import fast_download, fast_upload
 import asyncio
 import os
 import sys
@@ -208,11 +208,11 @@ async def process_apk_file(event, user_id, message):
                     f"Downloaded: {format_size(current)} / {format_size(total)}"
                 )
 
-        await download_file(
-            client=bot,
-            location=message.document,
-            file=apk_path,
-            progress_callback=progress_callback
+        apk_path = await fast_download(
+            bot,
+            message,
+            msg,
+            apk_path
         )
 
         if not os.path.exists(apk_path) or os.path.getsize(apk_path) == 0:
@@ -250,9 +250,10 @@ async def process_apk_file(event, user_id, message):
                 f"📤 Uploading icon..."
             )
             
-            uploaded_file = await upload_file(
-                client=bot,
-                file=icon_path
+            uploaded_file = await fast_upload(
+                bot,
+                icon_path,
+                msg
             )
             
             await bot.send_file(
@@ -359,9 +360,10 @@ async def process_apk_url(event, user_id, url):
         )
 
         if icon_path and os.path.exists(icon_path):
-            uploaded_file = await upload_file(
-                client=bot,
-                file=icon_path
+            uploaded_file = await fast_upload(
+                bot,
+                icon_path,
+                msg
             )
             
             await bot.send_file(
