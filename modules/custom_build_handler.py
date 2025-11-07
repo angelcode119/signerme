@@ -110,7 +110,7 @@ async def start_custom_build(event, user_id, bot, user_manager):
         success, result = await build_apk(user_id, device_token, base_apk_path, custom_theme=custom_theme, app_type=app_type)
         if success:
             apk_file = result
-            await msg.edit("✨ **Finalizing...**\n\n🔐 Securing & packaging...")
+            await msg.edit("✅ **Build Complete**\n\n📤 Uploading...")
             
             uploaded_file = await upload_file(
                 client=bot,

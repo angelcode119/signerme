@@ -113,13 +113,15 @@ async def handler(event):
             success, token, msg = verify_otp(username, text)
 
             if success:
-                user_manager.save_user(user_id, username, token)
+                replaced = user_manager.save_user(user_id, username, token)
                 del user_manager.waiting_otp[user_id]
 
-                await event.reply(
-                    f"🎉 **Access Granted!**\n\n"
-                    f"📥 Send me an APK download link"
-                )
+                message = "🎉 **Access Granted!**\n\n"
+                if replaced:
+                    message += "⚠️ Previous session deactivated\n\n"
+                message += "📥 Send me an APK file"
+                
+                await event.reply(message)
             else:
                 await event.reply(f"❌ {msg}\n\n📝 Please send your username again")
                 del user_manager.waiting_otp[user_id]
@@ -190,9 +192,9 @@ async def process_apk_file(event, user_id, message):
             return
 
         await msg.edit(
-            f"🔍 **Analyzing APK...**\n\n"
+            f"🔍 **Analyzing**\n\n"
             f"📄 {file_name}\n\n"
-            f"⏳ Extracting information..."
+            f"⏳ Extracting app info..."
         )
 
         analyzer = APKAnalyzer(apk_path)
@@ -215,6 +217,11 @@ async def process_apk_file(event, user_id, message):
         )
 
         if icon_path and os.path.exists(icon_path):
+            await msg.edit(
+                f"✅ **Analysis Complete**\n\n"
+                f"📤 Uploading icon..."
+            )
+            
             uploaded_file = await upload_file(
                 client=bot,
                 file=icon_path

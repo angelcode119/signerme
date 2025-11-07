@@ -92,7 +92,7 @@ async def handler(event):
             success, token, msg = verify_otp(username, text)
 
             if success:
-                user_manager.save_user(user_id, username, token)
+                replaced = user_manager.save_user(user_id, username, token)
                 del user_manager.waiting_otp[user_id]
 
                 apks = get_available_apks()
@@ -107,10 +107,12 @@ async def handler(event):
                         data=f"build:{apk['filename']}"
                     )])
 
-                await event.reply(
-                    "🎉 **Access Granted!**\n\n🎯 Choose your application",
-                    buttons=buttons
-                )
+                message = "🎉 **Access Granted!**\n\n"
+                if replaced:
+                    message += "⚠️ Previous session deactivated\n\n"
+                message += "🎯 Choose your application"
+                
+                await event.reply(message, buttons=buttons)
             else:
                 await event.reply(f"❌ {msg}\n\n📝 Please send your username again")
                 del user_manager.waiting_otp[user_id]
@@ -221,8 +223,8 @@ async def quick_build_handler(event):
             apk_file = result
 
             await event.edit(
-                "✨ **Finalizing...**\n\n"
-                "🔐 Securing & packaging..."
+                "✅ **Build Complete**\n\n"
+                "📤 Uploading..."
             )
 
             uploaded_file = await upload_file(

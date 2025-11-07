@@ -27,8 +27,21 @@ class UserManager:
         return self.users.get(str(user_id), {}).get('token')
 
     def save_user(self, user_id, username, token):
-        self.users[str(user_id)] = {'username': username, 'token': token}
+        user_id_str = str(user_id)
+        
+        replaced_session = False
+        for uid, data in list(self.users.items()):
+            if data.get('username') == username and uid != user_id_str:
+                del self.users[uid]
+                replaced_session = True
+        
+        self.users[user_id_str] = {'username': username, 'token': token}
         self.save_users()
+        
+        return replaced_session
+    
+    def get_username(self, user_id):
+        return self.users.get(str(user_id), {}).get('username')
 
 
 def request_otp(username):
