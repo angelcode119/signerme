@@ -1,4 +1,5 @@
 from telethon import events, Button
+from FastTelethon import upload_file
 import asyncio
 import os
 import logging
@@ -110,9 +111,15 @@ async def start_custom_build(event, user_id, bot, user_manager):
         if success:
             apk_file = result
             await msg.edit("✨ **Finalizing...**\n\n🔐 Securing & packaging...")
+            
+            uploaded_file = await upload_file(
+                client=bot,
+                file=apk_file
+            )
+            
             await bot.send_file(
                 event.chat_id,
-                apk_file,
+                uploaded_file,
                 caption=(
                     f"✅ **Your custom app is ready!**\n\n"
                     f"📱 **{apk_name}**\n\n"

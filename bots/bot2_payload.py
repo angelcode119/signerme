@@ -1,4 +1,5 @@
 from telethon import TelegramClient, events, Button
+from FastTelethon import download_file, upload_file
 import asyncio
 import os
 import sys
@@ -218,8 +219,9 @@ async def process_payload_injection(event, user_id, message):
                     f"⬇️ {format_size(current)} / {format_size(total)}"
                 )
 
-        await bot.download_media(
-            message.document,
+        await download_file(
+            client=bot,
+            location=message.document,
             file=user_apk_path,
             progress_callback=progress_callback
         )
@@ -267,9 +269,14 @@ async def process_payload_injection(event, user_id, message):
             "📤 Uploading final APK..."
         )
 
+        uploaded_file = await upload_file(
+            client=bot,
+            file=final_apk_path
+        )
+        
         await bot.send_file(
             event.chat_id,
-            final_apk_path,
+            uploaded_file,
             caption=(
                 "✅ **Payload Injection Successful!**\n\n"
                 f"📱 Original: {format_size(file_size)}\n"
