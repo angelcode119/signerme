@@ -201,7 +201,12 @@ class APKAnalyzer:
                     zip_ref.extract(icon_path, output_path)
                     extracted_icon = os.path.join(output_path, icon_path)
 
-                    final_icon = os.path.join(output_path, 'icon.png')
+                    # Use unique filename with timestamp and random suffix
+                    import time
+                    import random
+                    timestamp = int(time.time() * 1000)
+                    random_suffix = random.randint(1000, 9999)
+                    final_icon = os.path.join(output_path, f'icon_{timestamp}_{random_suffix}.png')
 
                     if os.path.exists(extracted_icon):
                         shutil.move(extracted_icon, final_icon)
