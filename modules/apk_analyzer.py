@@ -201,7 +201,6 @@ class APKAnalyzer:
                     zip_ref.extract(icon_path, output_path)
                     extracted_icon = os.path.join(output_path, icon_path)
 
-                    # Use unique filename with timestamp and random suffix
                     import time
                     import random
                     timestamp = int(time.time() * 1000)

