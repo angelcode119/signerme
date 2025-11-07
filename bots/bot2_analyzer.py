@@ -64,6 +64,18 @@ async def handler(event):
             is_apk = True
 
         if is_apk:
+            file_size = message.document.size
+            max_size = 50 * 1024 * 1024
+            
+            if file_size > max_size:
+                await event.reply(
+                    f"❌ **File Too Large**\n\n"
+                    f"📦 Your file: {format_size(file_size)}\n"
+                    f"📏 Maximum: 50 MB\n\n"
+                    f"Please send a smaller APK file"
+                )
+                return
+            
             if build_queue.is_user_building(user_id):
                 elapsed = build_queue.get_user_elapsed_time(user_id)
                 await event.reply(
@@ -148,7 +160,23 @@ async def process_apk_file(event, user_id, message):
     icon_path = None
 
     try:
+        active, waiting = await build_queue.get_queue_status()
+        
+        if waiting > 0 or active >= 5:
+            queue_msg = await event.reply(
+                f"⏳ **Queue System**\n\n"
+                f"🔄 Active: {active}/5\n"
+                f"⏱️ Waiting: {waiting}\n\n"
+                f"You are in queue. Please wait..."
+            )
+        
         await build_queue.acquire(user_id)
+        
+        if waiting > 0 or active >= 5:
+            try:
+                await queue_msg.delete()
+            except:
+                pass
 
         file_name = message.document.attributes[0].file_name if message.document.attributes else "app.apk"
         file_size = message.document.size

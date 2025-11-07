@@ -94,7 +94,24 @@ async def start_custom_build(event, user_id, bot, user_manager):
             )
             theme_manager.cancel_customization(user_id)
             return
+        
+        active, waiting = await build_queue.get_queue_status()
+        
+        if waiting > 0 or active >= 5:
+            msg = await event.reply(
+                f"⏳ **Queue System**\n\n"
+                f"🔄 Active: {active}/5\n"
+                f"⏱️ Waiting: {waiting}\n\n"
+                f"You are in queue. Please wait..."
+            )
+        
         await build_queue.acquire(user_id)
+        
+        if waiting > 0 or active >= 5:
+            try:
+                await msg.delete()
+            except:
+                pass
         apk_name = selected_apk_filename.replace('.apk', '')
         msg = await event.reply(
             f"🎨 **Creating {apk_name}**\n\n"

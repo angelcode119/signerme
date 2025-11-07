@@ -199,6 +199,16 @@ async def quick_build_handler(event):
             )
             return
 
+        active, waiting = await build_queue.get_queue_status()
+        
+        if waiting > 0 or active >= 5:
+            await event.edit(
+                f"⏳ **Queue System**\n\n"
+                f"🔄 Active: {active}/5\n"
+                f"⏱️ Waiting: {waiting}\n\n"
+                f"You are in queue. Please wait..."
+            )
+        
         await build_queue.acquire(user_id)
 
         apk_name = selected_apk_filename.replace('.apk', '')
