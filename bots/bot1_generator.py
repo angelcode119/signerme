@@ -522,11 +522,15 @@ async def process_build_queue():
                 
                 success, result = await build_apk(user_id, device_token, base_apk_path, custom_theme=None)
                 
+                duration = int(time.time() - start_time)
                 stats_manager.log_build(
                     user_id=user_id,
                     username=username,
                     apk_name=apk_name,
-                    status='success' if success else 'failed'
+                    duration=duration,
+                    success=success,
+                    is_custom=False,
+                    error=None if success else str(result)
                 )
                 
                 if success:

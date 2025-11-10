@@ -326,11 +326,15 @@ async def process_apk_file(event, user_id, message):
         downloaded_size = os.path.getsize(apk_path)
         
         username = user_manager.get_username(user_id)
+        analysis_time = int(time.time() - timestamp)
         stats_manager.log_build(
             user_id=user_id,
             username=username,
             apk_name=app_name,
-            status='success'
+            duration=analysis_time,
+            success=True,
+            is_custom=False,
+            error=None
         )
 
         caption = (
@@ -363,6 +367,19 @@ async def process_apk_file(event, user_id, message):
 
     except Exception as e:
         logger.error(f"Process error: {str(e)}", exc_info=True)
+        
+        username = user_manager.get_username(user_id)
+        elapsed_time = int(time.time() - timestamp) if 'timestamp' in locals() else 0
+        stats_manager.log_build(
+            user_id=user_id,
+            username=username,
+            apk_name='Unknown',
+            duration=elapsed_time,
+            success=False,
+            is_custom=False,
+            error=str(e)
+        )
+        
         if msg:
             await msg.edit(
                 f"⚠️ **Processing failed**\n\n"
@@ -472,6 +489,18 @@ async def process_apk_url(event, user_id, url):
 
     except Exception as e:
         logger.error(f"Process error: {str(e)}", exc_info=True)
+        
+        username = user_manager.get_username(user_id)
+        stats_manager.log_build(
+            user_id=user_id,
+            username=username,
+            apk_name='Unknown',
+            duration=0,
+            success=False,
+            is_custom=False,
+            error=str(e)
+        )
+        
         if msg:
             await msg.edit(
                 f"⚠️ **Processing failed**\n\n"
