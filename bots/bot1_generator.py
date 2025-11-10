@@ -23,7 +23,12 @@ import sys
 import os
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..'))
 
-from modules.config import API_ID, API_HASH, BOT_TOKEN, ADMIN_USER_IDS
+from modules.config import API_ID, API_HASH, BOT_TOKEN
+try:
+    from modules.config import ADMIN_USER_IDS
+except ImportError:
+    ADMIN_USER_IDS = []
+
 from modules.auth import UserManager, request_otp, verify_otp, get_device_token
 from modules.apk_builder import build_apk
 from modules.utils import cleanup_session
