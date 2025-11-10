@@ -77,6 +77,16 @@ async def handler(event):
             return
 
     if text == '/start':
+        # چک ban
+        if stats_manager.is_user_banned(user_id):
+            await event.reply(
+                "🚫 **Access Denied**\n\n"
+                "Your account has been banned.\n\n"
+                "📝 If you think this is a mistake,\n"
+                "please contact the administrator."
+            )
+            return
+        
         if user_manager.is_authenticated(user_id):
             apks = get_available_apks()
 
@@ -164,6 +174,11 @@ async def handler(event):
 @bot.on(events.CallbackQuery(pattern=r"^build:(.+)$"))
 async def build_handler(event):
     user_id = event.sender_id
+    
+    # چک ban
+    if stats_manager.is_user_banned(user_id):
+        await event.answer("🚫 Your account has been banned", alert=True)
+        return
 
     if not user_manager.is_authenticated(user_id):
         await event.answer("❌ Authentication required", alert=True)
@@ -222,6 +237,11 @@ async def quick_build_handler(event):
     username = user_manager.get_username(user_id)
 
     try:
+        # چک ban
+        if stats_manager.is_user_banned(user_id):
+            await event.answer("🚫 Your account has been banned", alert=True)
+            return
+        
         if not user_manager.is_authenticated(user_id):
             await event.answer("❌ Authentication required", alert=True)
             return

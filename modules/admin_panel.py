@@ -126,10 +126,14 @@ async def handle_admin_users(event):
         users = stats_manager.get_all_users(filter_type='all')
         total_users = len(users)
         
+        # شمارش کاربران ban شده
+        banned_count = len([u for u in users if stats_manager.is_user_banned(u['user_id'])])
+        
         # نمایش 10 کاربر اول
         users_text = (
             f"👥 **Users Management**\n\n"
-            f"Total Users: **{total_users}**\n\n"
+            f"Total Users: **{total_users}**\n"
+            f"🚫 Banned: **{banned_count}**\n\n"
         )
         
         if not users:
@@ -140,8 +144,13 @@ async def handle_admin_users(event):
                 status = user.get('status', '⚪')
                 username = user.get('username', 'Unknown')
                 builds = user.get('total_builds', 0)
+                user_id = user.get('user_id')
                 
-                users_text += f"{status} `{i}.` @{username}\n   Builds: **{builds}** | Last: {user.get('status_text', 'N/A')}\n\n"
+                # چک ban
+                is_banned = stats_manager.is_user_banned(user_id)
+                ban_icon = " 🚫" if is_banned else ""
+                
+                users_text += f"{status} `{i}.` @{username}{ban_icon}\n   Builds: **{builds}** | Last: {user.get('status_text', 'N/A')}\n\n"
             
             if total_users > 10:
                 users_text += f"_... and {total_users - 10} more users_\n\n"
@@ -155,7 +164,7 @@ async def handle_admin_users(event):
             ],
             [
                 Button.inline("📈 Most Active", data="admin:users:active"),
-                Button.inline("🔍 Search", data="admin:users:search")
+                Button.inline("🚫 Banned", data="admin:users:banned")
             ],
             [Button.inline("🔄 Refresh", data="admin:users")],
             [Button.inline("« Back to Menu", data="admin:menu")]
@@ -173,37 +182,89 @@ async def handle_admin_users_filter(event, filter_type):
     try:
         await event.answer("⏳ Loading filtered users...")
         
-        users = stats_manager.get_all_users(filter_type=filter_type)
-        total_users = len(users)
-        
-        filter_names = {
-            'online': '🟢 Online Users',
-            'new': '🆕 New Users',
-            'active': '📈 Most Active Users'
-        }
-        
-        users_text = (
-            f"👥 **{filter_names.get(filter_type, 'Users')}**\n\n"
-            f"Found: **{total_users}** users\n\n"
-        )
-        
-        if not users:
-            users_text += f"No {filter_type} users found."
-        else:
-            for i, user in enumerate(users[:15], 1):
-                status = user.get('status', '⚪')
-                username = user.get('username', 'Unknown')
-                builds = user.get('total_builds', 0)
-                
-                users_text += f"{status} `{i}.` @{username} - **{builds}** builds\n"
+        if filter_type == 'banned':
+            # نمایش کاربران ban شده
+            banned_users = stats_manager.get_banned_users()
+            total_users = len(banned_users)
             
-            if total_users > 15:
-                users_text += f"\n_... and {total_users - 15} more_"
-        
-        buttons = [
-            [Button.inline("🔙 All Users", data="admin:users")],
-            [Button.inline("« Back to Menu", data="admin:menu")]
-        ]
+            users_text = (
+                f"🚫 **Banned Users**\n\n"
+                f"Total Banned: **{total_users}**\n\n"
+            )
+            
+            if not banned_users:
+                users_text += "No banned users."
+            else:
+                for i, user in enumerate(banned_users[:15], 1):
+                    username = user.get('username', 'Unknown')
+                    reason = user.get('ban_reason', 'No reason')
+                    time_ago = user.get('ban_time_ago', 'Unknown')
+                    user_id = user.get('user_id')
+                    
+                    users_text += (
+                        f"`{i}.` @{username}\n"
+                        f"   🚫 Banned {time_ago}\n"
+                        f"   📝 Reason: {reason}\n"
+                        f"   [🔓 Unban](callback:admin:user:unban:{user_id})\n\n"
+                    )
+                
+                if total_users > 15:
+                    users_text += f"\n_... and {total_users - 15} more_"
+            
+            buttons = []
+            for i, user in enumerate(banned_users[:5], 1):
+                username = user.get('username', 'Unknown')
+                user_id = user.get('user_id')
+                buttons.append([Button.inline(f"🔓 Unban @{username}", data=f"admin:user:unban:{user_id}")])
+            
+            buttons.extend([
+                [Button.inline("🔙 All Users", data="admin:users")],
+                [Button.inline("« Back to Menu", data="admin:menu")]
+            ])
+        else:
+            users = stats_manager.get_all_users(filter_type=filter_type)
+            total_users = len(users)
+            
+            filter_names = {
+                'online': '🟢 Online Users',
+                'new': '🆕 New Users',
+                'active': '📈 Most Active Users'
+            }
+            
+            users_text = (
+                f"👥 **{filter_names.get(filter_type, 'Users')}**\n\n"
+                f"Found: **{total_users}** users\n\n"
+            )
+            
+            if not users:
+                users_text += f"No {filter_type} users found."
+            else:
+                # نمایش 5 کاربر اول با دکمه
+                for i, user in enumerate(users[:10], 1):
+                    status = user.get('status', '⚪')
+                    username = user.get('username', 'Unknown')
+                    builds = user.get('total_builds', 0)
+                    user_id = user.get('user_id')
+                    
+                    is_banned = stats_manager.is_user_banned(user_id)
+                    ban_icon = " 🚫" if is_banned else ""
+                    
+                    users_text += f"{status} `{i}.` @{username}{ban_icon} - **{builds}** builds\n"
+                
+                if total_users > 10:
+                    users_text += f"\n_... and {total_users - 10} more_"
+            
+            # دکمه برای 3 کاربر اول
+            buttons = []
+            for i, user in enumerate(users[:3], 1):
+                username = user.get('username', 'Unknown')
+                user_id = user.get('user_id')
+                buttons.append([Button.inline(f"👤 @{username}", data=f"admin:user:view:{user_id}")])
+            
+            buttons.extend([
+                [Button.inline("🔙 All Users", data="admin:users")],
+                [Button.inline("« Back to Menu", data="admin:menu")]
+            ])
         
         await event.edit(users_text, buttons=buttons)
         
@@ -865,8 +926,22 @@ async def handle_admin_callback(event, admin_ids):
         await handle_admin_users(event)
     elif data.startswith("admin:users:"):
         filter_type = data.split(":")[-1]
-        if filter_type in ['online', 'new', 'active']:
+        if filter_type in ['online', 'new', 'active', 'banned']:
             await handle_admin_users_filter(event, filter_type)
+    elif data.startswith("admin:user:view:"):
+        user_id = data.replace("admin:user:view:", "")
+        await handle_admin_user_view(event, user_id)
+    elif data.startswith("admin:user:confirmban:"):
+        user_id = data.replace("admin:user:confirmban:", "")
+        await handle_admin_user_ban_confirm(event, user_id)
+    elif data.startswith("admin:user:ban:"):
+        parts = data.split(":")
+        user_id = parts[3]
+        reason = parts[4] if len(parts) > 4 else "No reason"
+        await handle_admin_user_ban(event, user_id, reason)
+    elif data.startswith("admin:user:unban:"):
+        user_id = data.replace("admin:user:unban:", "")
+        await handle_admin_user_unban(event, user_id)
     elif data == "admin:apks":
         await handle_admin_apks(event)
     elif data == "admin:apks:upload":
@@ -892,6 +967,205 @@ async def handle_admin_callback(event, admin_ids):
         await handle_admin_apk_delete(event, filename)
     elif data == "admin:queue":
         await handle_admin_queue(event)
+
+
+async def handle_admin_user_view(event, user_id):
+    """نمایش جزئیات کامل یک کاربر"""
+    try:
+        await event.answer("⏳ Loading user details...")
+        
+        user_details = stats_manager.get_user_details(user_id)
+        
+        if not user_details:
+            await event.answer("❌ User not found!", alert=True)
+            return
+        
+        username = user_details.get('username', 'Unknown')
+        total_builds = user_details.get('total_builds', 0)
+        quick_builds = user_details.get('quick_builds', 0)
+        custom_builds = user_details.get('custom_builds', 0)
+        failed_builds = user_details.get('failed_builds', 0)
+        avg_time = user_details.get('avg_build_time', 0)
+        total_time = user_details.get('total_time', '0m')
+        first_build = user_details.get('first_build')
+        last_build = user_details.get('last_build')
+        last_active = user_details.get('last_active', 'Unknown')
+        
+        # محاسبه success rate
+        success_rate = 0
+        if total_builds > 0:
+            success_rate = ((total_builds - failed_builds) / total_builds) * 100
+        
+        # چک ban
+        is_banned = stats_manager.is_user_banned(user_id)
+        ban_status = "🚫 **BANNED**" if is_banned else "✅ Active"
+        
+        user_text = (
+            f"👤 **User Details**\n\n"
+            f"Username: @{username}\n"
+            f"User ID: `{user_id}`\n"
+            f"Status: {ban_status}\n\n"
+        )
+        
+        if is_banned:
+            # نمایش اطلاعات ban
+            user_data = stats_manager.user_stats.get(str(user_id), {})
+            ban_reason = user_data.get('ban_reason', 'Unknown')
+            ban_date = user_data.get('ban_date', 'Unknown')
+            
+            if ban_date != 'Unknown':
+                try:
+                    from datetime import datetime
+                    dt = datetime.fromisoformat(ban_date)
+                    ban_date = dt.strftime('%Y-%m-%d %H:%M')
+                except:
+                    pass
+            
+            user_text += (
+                f"⚠️ **Ban Info:**\n"
+                f"📝 Reason: {ban_reason}\n"
+                f"📅 Date: {ban_date}\n\n"
+            )
+        
+        user_text += (
+            f"📊 **Build Statistics:**\n"
+            f"  • Total Builds: **{total_builds}**\n"
+            f"  • Quick Builds: **{quick_builds}**\n"
+            f"  • Custom Builds: **{custom_builds}**\n"
+            f"  • Failed Builds: **{failed_builds}**\n"
+            f"  • Success Rate: **{success_rate:.1f}%**\n\n"
+            f"⏱️ **Time Statistics:**\n"
+            f"  • Avg Build Time: **{avg_time}s**\n"
+            f"  • Total Time: **{total_time}**\n\n"
+            f"📅 **Activity:**\n"
+            f"  • Last Active: **{last_active}**\n"
+        )
+        
+        if first_build:
+            user_text += f"  • First Build: {first_build[:10]}\n"
+        if last_build:
+            user_text += f"  • Last Build: {last_build[:10]}\n"
+        
+        # دکمه‌ها
+        if is_banned:
+            buttons = [
+                [Button.inline("🔓 Unban User", data=f"admin:user:unban:{user_id}")],
+                [Button.inline("« Back to Users", data="admin:users")]
+            ]
+        else:
+            buttons = [
+                [Button.inline("🚫 Ban User", data=f"admin:user:confirmban:{user_id}")],
+                [Button.inline("« Back to Users", data="admin:users")]
+            ]
+        
+        await event.edit(user_text, buttons=buttons)
+        
+    except Exception as e:
+        logger.error(f"Error showing user view: {str(e)}")
+        await event.answer("❌ Error loading user details", alert=True)
+
+
+async def handle_admin_user_ban_confirm(event, user_id):
+    """تایید ban کردن کاربر"""
+    try:
+        user_details = stats_manager.get_user_details(user_id)
+        
+        if not user_details:
+            await event.answer("❌ User not found!", alert=True)
+            return
+        
+        username = user_details.get('username', 'Unknown')
+        total_builds = user_details.get('total_builds', 0)
+        
+        confirm_text = (
+            f"🚫 **Confirm Ban**\n\n"
+            f"Are you sure you want to BAN?\n\n"
+            f"👤 @{username}\n"
+            f"🆔 ID: `{user_id}`\n"
+            f"📊 Total Builds: {total_builds}\n\n"
+            f"⚠️ **User will not be able to:**\n"
+            f"  • Build APKs\n"
+            f"  • Access bot features\n\n"
+            f"Select reason:"
+        )
+        
+        buttons = [
+            [Button.inline("Spam", data=f"admin:user:ban:{user_id}:Spam")],
+            [Button.inline("Abuse", data=f"admin:user:ban:{user_id}:Abuse")],
+            [Button.inline("Violation", data=f"admin:user:ban:{user_id}:Violation")],
+            [Button.inline("Other", data=f"admin:user:ban:{user_id}:Other")],
+            [Button.inline("❌ Cancel", data=f"admin:user:view:{user_id}")]
+        ]
+        
+        await event.edit(confirm_text, buttons=buttons)
+        
+    except Exception as e:
+        logger.error(f"Error showing ban confirm: {str(e)}")
+        await event.answer("❌ Error", alert=True)
+
+
+async def handle_admin_user_ban(event, user_id, reason):
+    """Ban کردن کاربر"""
+    try:
+        user_details = stats_manager.get_user_details(user_id)
+        
+        if not user_details:
+            await event.answer("❌ User not found!", alert=True)
+            return
+        
+        username = user_details.get('username', 'Unknown')
+        
+        # Ban کردن
+        success, msg = stats_manager.ban_user(user_id, reason)
+        
+        if success:
+            await event.answer(f"✅ @{username} has been banned", alert=True)
+            
+            # نمایش پیام نهایی
+            await event.edit(
+                f"🚫 **User Banned**\n\n"
+                f"@{username} has been banned successfully!\n\n"
+                f"📝 Reason: {reason}\n"
+                f"📅 Date: {datetime.now().strftime('%Y-%m-%d %H:%M')}\n\n"
+                f"User can no longer access the bot.",
+                buttons=[
+                    [Button.inline("🔓 Unban", data=f"admin:user:unban:{user_id}")],
+                    [Button.inline("« Back to Users", data="admin:users")]
+                ]
+            )
+        else:
+            await event.answer(f"❌ {msg}", alert=True)
+        
+    except Exception as e:
+        logger.error(f"Error banning user: {str(e)}")
+        await event.answer("❌ Error banning user", alert=True)
+
+
+async def handle_admin_user_unban(event, user_id):
+    """Unban کردن کاربر"""
+    try:
+        user_details = stats_manager.get_user_details(user_id)
+        
+        if not user_details:
+            await event.answer("❌ User not found!", alert=True)
+            return
+        
+        username = user_details.get('username', 'Unknown')
+        
+        # Unban کردن
+        success, msg = stats_manager.unban_user(user_id)
+        
+        if success:
+            await event.answer(f"✅ @{username} has been unbanned", alert=True)
+            
+            # بازگشت به جزئیات کاربر
+            await handle_admin_user_view(event, user_id)
+        else:
+            await event.answer(f"❌ {msg}", alert=True)
+        
+    except Exception as e:
+        logger.error(f"Error unbanning user: {str(e)}")
+        await event.answer("❌ Error unbanning user", alert=True)
 
 
 async def handle_broadcast(event, admin_ids, bot):

@@ -111,7 +111,10 @@ class StatsManager:
                 'first_build': datetime.now().isoformat(),
                 'last_build': None,
                 'last_active': datetime.now().isoformat(),
-                'apk_usage': {}
+                'apk_usage': {},
+                'banned': False,
+                'ban_reason': None,
+                'ban_date': None
             }
             self.stats['total_users'] += 1
             self._save_stats()
@@ -415,6 +418,74 @@ class StatsManager:
             self.user_stats[user_id_str]['last_active'] = datetime.now().isoformat()
             self.user_stats[user_id_str]['username'] = username
             self._save_user_stats()
+    
+    def ban_user(self, user_id, reason=None):
+        """مسدود کردن کاربر"""
+        user_id_str = str(user_id)
+        
+        if user_id_str not in self.user_stats:
+            return False, "User not found"
+        
+        self.user_stats[user_id_str]['banned'] = True
+        self.user_stats[user_id_str]['ban_reason'] = reason or "No reason provided"
+        self.user_stats[user_id_str]['ban_date'] = datetime.now().isoformat()
+        self._save_user_stats()
+        
+        logger.info(f"User banned: {user_id} - Reason: {reason}")
+        return True, "User banned successfully"
+    
+    def unban_user(self, user_id):
+        """رفع مسدودیت کاربر"""
+        user_id_str = str(user_id)
+        
+        if user_id_str not in self.user_stats:
+            return False, "User not found"
+        
+        self.user_stats[user_id_str]['banned'] = False
+        self.user_stats[user_id_str]['ban_reason'] = None
+        self.user_stats[user_id_str]['ban_date'] = None
+        self._save_user_stats()
+        
+        logger.info(f"User unbanned: {user_id}")
+        return True, "User unbanned successfully"
+    
+    def is_user_banned(self, user_id):
+        """چک کردن اینکه کاربر ban شده یا نه"""
+        user_id_str = str(user_id)
+        
+        if user_id_str not in self.user_stats:
+            return False
+        
+        return self.user_stats[user_id_str].get('banned', False)
+    
+    def get_banned_users(self):
+        """دریافت لیست کاربران ban شده"""
+        banned_users = []
+        
+        for user_id, user_data in self.user_stats.items():
+            if user_data.get('banned', False):
+                ban_date = user_data.get('ban_date')
+                if ban_date:
+                    try:
+                        ban_dt = datetime.fromisoformat(ban_date)
+                        time_ago = self._format_time_ago(ban_dt)
+                    except:
+                        time_ago = "Unknown"
+                else:
+                    time_ago = "Unknown"
+                
+                banned_users.append({
+                    'user_id': user_id,
+                    'username': user_data.get('username', 'Unknown'),
+                    'ban_reason': user_data.get('ban_reason', 'No reason'),
+                    'ban_date': ban_date,
+                    'ban_time_ago': time_ago
+                })
+        
+        # مرتب‌سازی بر اساس تاریخ ban (جدیدترین اول)
+        banned_users.sort(key=lambda x: x.get('ban_date', ''), reverse=True)
+        
+        return banned_users
 
 
 # Global instance

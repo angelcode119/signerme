@@ -48,6 +48,17 @@ async def handler(event):
     
     # اجازه دستور /start
     if text == '/start':
+        # چک ban
+        from modules.stats_manager import stats_manager
+        if stats_manager.is_user_banned(user_id):
+            await event.reply(
+                "🚫 **Access Denied**\n\n"
+                "Your account has been banned.\n\n"
+                "📝 If you think this is a mistake,\n"
+                "please contact the administrator."
+            )
+            return
+        
         if user_manager.is_authenticated(user_id):
             await event.reply(
                 "✨ **Welcome back to APK Analyzer!**\n\n"
@@ -106,6 +117,12 @@ async def handler(event):
 
     # از اینجا به بعد، فقط کاربران احراز هویت شده و فقط فایل APK
     if message.document:
+        # چک ban
+        from modules.stats_manager import stats_manager
+        if stats_manager.is_user_banned(user_id):
+            await event.reply("🚫 Your account has been banned")
+            return
+        
         if not user_manager.is_authenticated(user_id):
             await event.reply("❌ Please authenticate first\n\nSend /start")
             return
