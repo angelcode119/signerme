@@ -865,7 +865,7 @@ async def handle_admin_apk_delete(event, filename):
         await event.answer("❌ Error deleting APK", alert=True)
 
 
-async def handle_admin_callback(event, admin_ids):
+async def handle_admin_callback(event, bot, admin_ids):
     """Handler for admin panel callbacks"""
     user_id = event.sender_id
     
