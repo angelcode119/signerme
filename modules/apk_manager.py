@@ -16,7 +16,6 @@ class APKManager:
         self._load_apks()
     
     def _load_apks(self):
-        """Load APK list"""
         if self.apks_file.exists():
             with open(self.apks_file, 'r', encoding='utf-8') as f:
                 self.apks = json.load(f)
@@ -25,12 +24,10 @@ class APKManager:
             self._save_apks()
     
     def _save_apks(self):
-        """Save APK list"""
         with open(self.apks_file, 'w', encoding='utf-8') as f:
             json.dump(self.apks, f, indent=2, ensure_ascii=False)
     
     def add_apk(self, filename, display_name=None, category=None, enabled=True):
-        """Add a new APK"""
         try:
             apk_path = self.apks_dir / filename
             
@@ -64,7 +61,6 @@ class APKManager:
             return False, str(e)
     
     def update_apk(self, filename, display_name=None, category=None, enabled=None):
-        """Update APK information"""
         try:
             if filename not in self.apks:
                 return False, "APK not found"
@@ -87,7 +83,6 @@ class APKManager:
             return False, str(e)
     
     def delete_apk(self, filename):
-        """Delete an APK"""
         try:
             if filename not in self.apks:
                 return False, "APK not found"
@@ -102,18 +97,15 @@ class APKManager:
             return False, str(e)
     
     def increment_build_count(self, filename):
-        """Increment APK build count"""
         if filename in self.apks:
             self.apks[filename]['total_builds'] += 1
             self.apks[filename]['last_build'] = datetime.now().isoformat()
             self._save_apks()
     
     def get_apk_info(self, filename):
-        """Get APK information"""
         return self.apks.get(filename)
     
     def get_all_apks(self, enabled_only=False):
-        """Get list of all APKs"""
         apks_list = []
         
         for filename, data in self.apks.items():
@@ -127,7 +119,6 @@ class APKManager:
         return apks_list
     
     def get_apk_stats(self, filename):
-        """Get APK statistics"""
         if filename not in self.apks:
             return None
         
@@ -145,7 +136,6 @@ class APKManager:
         }
     
     def get_total_storage(self):
-        """Calculate total storage used"""
         total_bytes = 0
         total_files = len(self.apks)
         
@@ -161,7 +151,6 @@ class APKManager:
         }
     
     def get_categories(self):
-        """Get list of categories"""
         categories = set()
         
         for apk_data in self.apks.values():
@@ -170,7 +159,6 @@ class APKManager:
         return sorted(list(categories))
     
     def search_apks(self, query):
-        """Search in APKs"""
         query_lower = query.lower()
         results = []
         
@@ -183,5 +171,4 @@ class APKManager:
         return results
 
 
-# Global instance
 apk_manager = APKManager()

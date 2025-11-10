@@ -34,7 +34,6 @@ def generate_password(length=16):
 
 
 def generate_japanese_dname():
-    """Generate random Japanese company information"""
     name = random.choice(JAPANESE_NAMES)
     company = random.choice(JAPANESE_COMPANIES)
     city = random.choice(JAPANESE_CITIES)
@@ -118,7 +117,6 @@ def create_keystore(output_path=None, alias=None, validity_days=10000):
 
 
 def create_temp_keystore(alias=None):
-    """Create a temporary keystore with random Japanese information"""
     if alias is None:
         alias = random.choice(JAPANESE_NAMES).lower()
     return create_keystore(alias=alias)

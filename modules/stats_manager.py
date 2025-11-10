@@ -20,7 +20,6 @@ class StatsManager:
         self._load_user_stats()
     
     def _load_stats(self):
-        """Load general statistics"""
         if self.stats_file.exists():
             with open(self.stats_file, 'r', encoding='utf-8') as f:
                 self.stats = json.load(f)
@@ -34,13 +33,11 @@ class StatsManager:
             self._save_stats()
     
     def _save_stats(self):
-        """Save general statistics"""
         self.stats['last_updated'] = datetime.now().isoformat()
         with open(self.stats_file, 'w', encoding='utf-8') as f:
             json.dump(self.stats, f, indent=2, ensure_ascii=False)
     
     def _load_user_stats(self):
-        """Load user statistics"""
         if self.user_stats_file.exists():
             with open(self.user_stats_file, 'r', encoding='utf-8') as f:
                 self.user_stats = json.load(f)
@@ -49,12 +46,10 @@ class StatsManager:
             self._save_user_stats()
     
     def _save_user_stats(self):
-        """Save user statistics"""
         with open(self.user_stats_file, 'w', encoding='utf-8') as f:
             json.dump(self.user_stats, f, indent=2, ensure_ascii=False)
     
     def log_build(self, user_id, username, apk_name, duration, success, is_custom=False, error=None):
-        """Log build information"""
         try:
             today = datetime.now().strftime('%Y-%m-%d')
             log_file = self.logs_dir / f"{today}.json"
@@ -92,7 +87,6 @@ class StatsManager:
             logger.error(f"Error logging build: {str(e)}")
     
     def _update_user_stats(self, user_id, username, apk_name, duration, success, is_custom):
-        """Update user statistics"""
         user_id_str = str(user_id)
         
         if user_id_str not in self.user_stats:
@@ -137,7 +131,6 @@ class StatsManager:
         self._save_user_stats()
     
     def get_total_stats(self):
-        """Get system general statistics"""
         try:
             total_users = len(self.user_stats)
             total_builds = self.stats.get('total_builds', 0)
@@ -150,7 +143,6 @@ class StatsManager:
             
             avg_build_time = self._get_avg_build_time()
             
-            # Uptime
             start_date = datetime.fromisoformat(self.stats.get('start_date', datetime.now().isoformat()))
             uptime = datetime.now() - start_date
             uptime_str = self._format_timedelta(uptime)
@@ -170,7 +162,6 @@ class StatsManager:
             return {}
     
     def _get_active_users_count(self, days=7):
-        """Number of active users in last N days"""
         cutoff = datetime.now() - timedelta(days=days)
         count = 0
         
@@ -182,7 +173,6 @@ class StatsManager:
         return count
     
     def _get_new_users_today(self):
-        """Number of new users today"""
         today = datetime.now().date()
         count = 0
         
@@ -194,7 +184,6 @@ class StatsManager:
         return count
     
     def _get_builds_count(self, days=0):
-        """Number of builds in last N days (0 = today)"""
         if days == 0:
             today = datetime.now().strftime('%Y-%m-%d')
             log_file = self.logs_dir / f"{today}.json"
@@ -218,7 +207,6 @@ class StatsManager:
             return count
     
     def _get_avg_build_time(self):
-        """Average build time (seconds)"""
         total_duration = 0
         total_count = 0
         
@@ -232,7 +220,6 @@ class StatsManager:
         return 0
     
     def get_builds_by_day(self, days=7):
-        """Get number of builds in last N days"""
         result = []
         
         for i in range(days - 1, -1, -1):
@@ -256,7 +243,6 @@ class StatsManager:
         return result
     
     def get_top_users(self, limit=5, days=None):
-        """Get top users by build count"""
         users_list = []
         
         for user_id, user_data in self.user_stats.items():
@@ -271,7 +257,6 @@ class StatsManager:
         return users_list[:limit]
     
     def get_all_users(self, filter_type='all'):
-        """Get list of users with filter"""
         users_list = []
         now = datetime.now()
         
@@ -320,7 +305,6 @@ class StatsManager:
         return users_list
     
     def get_user_details(self, user_id):
-        """Get complete user details"""
         user_id_str = str(user_id)
         
         if user_id_str not in self.user_stats:
@@ -334,7 +318,6 @@ class StatsManager:
         
         total_time_str = self._format_seconds(total_duration)
         
-        # last active
         last_active = datetime.fromisoformat(user_data.get('last_active', datetime.now().isoformat()))
         last_active_str = self._format_time_ago(last_active)
         
@@ -354,7 +337,6 @@ class StatsManager:
         }
     
     def get_user_stats(self, user_id):
-        """Get user statistics for simple display"""
         user_id_str = str(user_id)
         
         if user_id_str not in self.user_stats:
@@ -380,7 +362,6 @@ class StatsManager:
         }
     
     def get_user_build_history(self, user_id):
-        """Get user build history from logs"""
         history = []
         
         try:
@@ -408,7 +389,6 @@ class StatsManager:
         return history
     
     def _format_timedelta(self, td):
-        """Format timedelta to readable format"""
         days = td.days
         hours = td.seconds // 3600
         minutes = (td.seconds % 3600) // 60
@@ -421,7 +401,6 @@ class StatsManager:
             return f"{minutes}m"
     
     def _format_seconds(self, seconds):
-        """Format seconds to readable format"""
         hours = seconds // 3600
         minutes = (seconds % 3600) // 60
         
@@ -431,7 +410,6 @@ class StatsManager:
             return f"{minutes}m"
     
     def _format_time_ago(self, dt):
-        """Format time to 'time ago' format"""
         now = datetime.now()
         diff = now - dt
         
@@ -448,7 +426,6 @@ class StatsManager:
             return f"{days}d ago"
     
     def update_user_activity(self, user_id, username):
-        """Update user last activity"""
         user_id_str = str(user_id)
         
         if user_id_str in self.user_stats:
@@ -457,7 +434,6 @@ class StatsManager:
             self._save_user_stats()
     
     def ban_user(self, user_id, reason=None):
-        """Ban user"""
         user_id_str = str(user_id)
         
         if user_id_str not in self.user_stats:
@@ -472,7 +448,6 @@ class StatsManager:
         return True, "User banned successfully"
     
     def unban_user(self, user_id):
-        """Unban user"""
         user_id_str = str(user_id)
         
         if user_id_str not in self.user_stats:
@@ -487,7 +462,6 @@ class StatsManager:
         return True, "User unbanned successfully"
     
     def is_user_banned(self, user_id):
-        """Check if user is banned"""
         user_id_str = str(user_id)
         
         if user_id_str not in self.user_stats:
@@ -496,7 +470,6 @@ class StatsManager:
         return self.user_stats[user_id_str].get('banned', False)
     
     def get_banned_users(self):
-        """Get list of banned users"""
         banned_users = []
         
         for user_id, user_data in self.user_stats.items():
@@ -524,5 +497,4 @@ class StatsManager:
         return banned_users
 
 
-# Global instance
 stats_manager = StatsManager()

@@ -9,7 +9,7 @@ class BuildQueue:
     def __init__(self, max_concurrent=1):  # Only 1 user at a time!
         self.user_locks = {}
         self.user_start_times = {}
-        self.building_users = {}  # Add this for admin panel tracking
+        self.building_users = {}
         self.global_semaphore = asyncio.Semaphore(max_concurrent)
         self.active_count = 0
         self.waiting_count = 0
@@ -18,7 +18,6 @@ class BuildQueue:
         logger.info(f"BuildQueue initialized (max_concurrent={max_concurrent})")
 
     def is_user_building(self, user_id):
-        """Check if user is currently building"""
         try:
             return user_id in self.user_locks and self.user_locks[user_id].locked()
         except Exception as e:
@@ -26,7 +25,6 @@ class BuildQueue:
             return False
 
     def get_user_elapsed_time(self, user_id):
-        """Get elapsed time for user's current build"""
         try:
             if user_id in self.user_start_times:
                 return int(time.time() - self.user_start_times[user_id])
@@ -36,7 +34,6 @@ class BuildQueue:
             return 0
 
     async def get_queue_status(self):
-        """Get current queue status (active, waiting)"""
         try:
             async with self.count_lock:
                 return self.active_count, self.waiting_count
@@ -45,7 +42,6 @@ class BuildQueue:
             return 0, 0
 
     async def acquire(self, user_id):
-        """Acquire build slot for user"""
         try:
             if user_id not in self.user_locks:
                 self.user_locks[user_id] = asyncio.Lock()
@@ -69,7 +65,6 @@ class BuildQueue:
             
         except Exception as e:
             logger.error(f"Error acquiring build slot for user {user_id}: {str(e)}", exc_info=True)
-            # Try to clean up on error
             try:
                 async with self.count_lock:
                     if self.waiting_count > 0:
@@ -78,7 +73,6 @@ class BuildQueue:
                 pass
 
     def release(self, user_id):
-        """Release build slot for user"""
         try:
             if user_id in self.user_start_times:
                 elapsed = int(time.time() - self.user_start_times[user_id])
@@ -93,16 +87,13 @@ class BuildQueue:
             
             try:
                 self.global_semaphore.release()
-                # Use asyncio.create_task safely
                 try:
                     loop = asyncio.get_event_loop()
                     if loop.is_running():
                         asyncio.create_task(self._decrease_active_count())
                     else:
-                        # If no event loop, decrease synchronously
                         pass
                 except RuntimeError:
-                    # No event loop, skip async decrease
                     pass
             except Exception as e:
                 logger.error(f"Error releasing semaphore for user {user_id}: {str(e)}")
@@ -111,7 +102,6 @@ class BuildQueue:
             logger.error(f"Error releasing build slot for user {user_id}: {str(e)}", exc_info=True)
     
     async def _decrease_active_count(self):
-        """Decrease active count safely"""
         try:
             async with self.count_lock:
                 if self.active_count > 0:

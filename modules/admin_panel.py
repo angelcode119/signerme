@@ -15,7 +15,6 @@ admin_upload_state = {}
 
 
 def is_admin(user_id, admin_ids):
-    """Check if user is admin"""
     try:
         return user_id in admin_ids
     except Exception as e:
@@ -24,7 +23,6 @@ def is_admin(user_id, admin_ids):
 
 
 async def handle_admin_command(event, admin_ids):
-    """Handler for /admin command"""
     try:
         user_id = event.sender_id
         
@@ -42,7 +40,6 @@ async def handle_admin_command(event, admin_ids):
 
 
 async def show_admin_menu(event):
-    """Show admin panel main menu"""
     try:
         menu_text = (
             "👨‍💼 **Admin Panel**\n\n"
@@ -71,7 +68,6 @@ async def show_admin_menu(event):
 
 
 async def handle_admin_stats(event):
-    """Show general statistics"""
     try:
         await event.answer("⏳ Loading statistics...", alert=False)
         
@@ -133,7 +129,6 @@ async def handle_admin_stats(event):
 
 
 async def handle_admin_users(event):
-    """Show user management"""
     try:
         await event.answer("⏳ Loading users...", alert=False)
         
@@ -191,7 +186,6 @@ async def handle_admin_users(event):
 
 
 async def handle_admin_users_filter(event, filter_type):
-    """Show users with filter"""
     try:
         await event.answer("⏳ Loading filtered users...", alert=False)
         
@@ -286,7 +280,6 @@ async def handle_admin_users_filter(event, filter_type):
 
 
 async def handle_admin_apks(event):
-    """Show APK management"""
     try:
         await event.answer("⏳ Loading APKs...", alert=False)
         
@@ -348,7 +341,6 @@ async def handle_admin_apks(event):
 
 
 async def handle_admin_apks_upload(event):
-    """Start new APK upload process"""
     try:
         user_id = event.sender_id
         
@@ -382,7 +374,6 @@ async def handle_admin_apks_upload(event):
 
 
 async def handle_admin_apks_cancel_upload(event):
-    """Cancel APK upload"""
     try:
         user_id = event.sender_id
         
@@ -396,7 +387,6 @@ async def handle_admin_apks_cancel_upload(event):
 
 
 async def handle_admin_apk_file_received(event, bot):
-    """Receive APK file from admin"""
     user_id = event.sender_id
     
     if user_id not in admin_upload_state or not admin_upload_state[user_id].get('active'):
@@ -469,7 +459,6 @@ async def handle_admin_apk_file_received(event, bot):
                 del admin_upload_state[user_id]
             return True
         
-        # Analyze APK
         from .apk_analyzer import APKAnalyzer
         import tempfile
         
@@ -529,7 +518,6 @@ async def handle_admin_apk_file_received(event, bot):
 
 
 async def handle_admin_apks_scan(event):
-    """Scan for new APKs"""
     try:
         await event.answer("🔍 Scanning...", alert=False)
         
@@ -572,7 +560,6 @@ async def handle_admin_apks_scan(event):
 
 
 async def handle_admin_queue(event):
-    """Show queue status"""
     try:
         await event.answer("⏳ Loading...", alert=False)
         
@@ -621,7 +608,6 @@ async def handle_admin_queue(event):
 
 
 async def handle_admin_callback(event, bot, admin_ids):
-    """Handler for admin panel callbacks - with comprehensive error handling"""
     try:
         user_id = event.sender_id
         
@@ -632,7 +618,6 @@ async def handle_admin_callback(event, bot, admin_ids):
         data = event.data.decode('utf-8')
         logger.debug(f"Admin callback: {data}")
         
-        # Route to appropriate handler
         if data == "admin:menu":
             await show_admin_menu(event)
         elif data == "admin:stats":
@@ -683,7 +668,6 @@ async def handle_admin_callback(event, bot, admin_ids):
 
 
 async def handle_admin_apk_view(event, filename):
-    """Show APK details"""
     try:
         apk_info = apk_manager.get_apk_info(filename)
         
@@ -724,7 +708,6 @@ async def handle_admin_apk_view(event, filename):
 
 
 async def handle_admin_user_view(event, user_id):
-    """Show user details"""
     try:
         user_details = stats_manager.get_user_details(user_id)
         
@@ -761,7 +744,6 @@ async def handle_admin_user_view(event, user_id):
 
 
 async def handle_admin_user_ban(event, user_id, reason):
-    """Ban user"""
     try:
         success, msg = stats_manager.ban_user(user_id, reason)
         
@@ -780,7 +762,6 @@ async def handle_admin_user_ban(event, user_id, reason):
 
 
 async def handle_admin_user_unban(event, user_id):
-    """Unban user"""
     try:
         success, msg = stats_manager.unban_user(user_id)
         
@@ -799,7 +780,6 @@ async def handle_admin_user_unban(event, user_id):
 
 
 async def handle_broadcast(event, admin_ids, bot):
-    """Send broadcast message"""
     try:
         user_id = event.sender_id
         
