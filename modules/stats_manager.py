@@ -353,6 +353,60 @@ class StatsManager:
             'apk_usage': user_data.get('apk_usage', {})
         }
     
+    def get_user_stats(self, user_id):
+        """Get user statistics for simple display"""
+        user_id_str = str(user_id)
+        
+        if user_id_str not in self.user_stats:
+            return {
+                'total_builds': 0,
+                'successful_builds': 0,
+                'failed_builds': 0,
+                'most_used_apk': 'None'
+            }
+        
+        user_data = self.user_stats[user_id_str]
+        apk_usage = user_data.get('apk_usage', {})
+        
+        most_used_apk = 'None'
+        if apk_usage:
+            most_used_apk = max(apk_usage, key=apk_usage.get)
+        
+        return {
+            'total_builds': user_data.get('total_builds', 0),
+            'successful_builds': user_data.get('total_builds', 0),
+            'failed_builds': user_data.get('failed_builds', 0),
+            'most_used_apk': most_used_apk
+        }
+    
+    def get_user_build_history(self, user_id):
+        """Get user build history from logs"""
+        history = []
+        
+        try:
+            for i in range(30):
+                date = (datetime.now() - timedelta(days=i)).strftime('%Y-%m-%d')
+                log_file = self.logs_dir / f"{date}.json"
+                
+                if log_file.exists():
+                    with open(log_file, 'r', encoding='utf-8') as f:
+                        logs = json.load(f)
+                        
+                        for log in logs:
+                            if log.get('user_id') == user_id:
+                                history.append({
+                                    'apk_name': log.get('apk_name', 'Unknown'),
+                                    'status': 'success' if log.get('success') else 'failed',
+                                    'timestamp': log.get('timestamp', 'N/A'),
+                                    'duration': log.get('duration', 0)
+                                })
+        except Exception as e:
+            logger.error(f"Error getting build history: {str(e)}")
+        
+        history.sort(key=lambda x: x.get('timestamp', ''), reverse=True)
+        
+        return history
+    
     def _format_timedelta(self, td):
         """Format timedelta to readable format"""
         days = td.days

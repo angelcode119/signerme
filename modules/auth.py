@@ -42,6 +42,15 @@ class UserManager:
     
     def get_username(self, user_id):
         return self.users.get(str(user_id), {}).get('username')
+    
+    def logout_user(self, user_id):
+        """Logout user (delete from users)"""
+        user_id_str = str(user_id)
+        if user_id_str in self.users:
+            del self.users[user_id_str]
+            self.save_users()
+            return True
+        return False
 
 
 def request_otp(username):
