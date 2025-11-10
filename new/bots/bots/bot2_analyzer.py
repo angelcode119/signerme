@@ -1,5 +1,5 @@
 from telethon import TelegramClient, events, Button
-from FastTelethon import download_file, upload_file
+from FastTelethonhelper import download_file, upload_file
 import asyncio
 import os
 import sys
@@ -42,8 +42,114 @@ user_downloads = {}
 async def handler(event):
     user_id = event.sender_id
     message = event.message
+    
+    text = message.message.strip() if message.message else ""
+    
+    if text == '/help':
+        await event.reply(
+            "🎯 **APK Analyzer - Help**\n\n"
+            "**Available Commands:**\n"
+            "• `/start` - Start and login\n"
+            "• `/help` - Show this help\n\n"
+            "**How to Analyze APK:**\n"
+            "1️⃣ Send `/start` and login\n"
+            "2️⃣ Send your APK file\n"
+            "3️⃣ Wait for analysis\n"
+            "4️⃣ Get detailed report\n\n"
+            "**Analysis Features:**\n"
+            "• Package information\n"
+            "• Version details\n"
+            "• Permissions list\n"
+            "• Activities & Services\n"
+            "• Security analysis\n\n"
+            "⚠️ **Note:** Only APK files accepted"
+        )
+        return
+    
+    if text == '/start':
+        from modules.stats_manager import stats_manager
+        if stats_manager.is_user_banned(user_id):
+            await event.reply(
+                "🚫 **Access Denied**\n\n"
+                "Your account has been banned.\n\n"
+                "📝 If you think this is a mistake,\n"
+                "please contact the administrator."
+            )
+            return
+        
+        if user_manager.is_authenticated(user_id):
+            await event.reply(
+                "✨ **Welcome back to APK Analyzer!**\n\n"
+                "📤 Send me an APK file\n"
+                "🔍 I'll analyze it for you"
+            )
+        else:
+            await event.reply(
+                "🔍 **Welcome to APK Analyzer Studio**\n\n"
+                "📱 Analyze APK files\n"
+                "🎨 Extract icon & app info\n"
+                "⚡ Fast & secure\n\n"
+                "👤 **Enter your username**"
+            )
+        return
+    
+    if not user_manager.is_authenticated(user_id):
+        if user_id in user_manager.waiting_otp:
+            username = user_manager.waiting_otp[user_id]
+            
+            if text.isdigit() and len(text) == 6:
+                await event.reply("🔐 **Verifying your code...**")
+                success, token, msg = verify_otp(username, text)
+                
+                if success:
+                    replaced, old_user_id = user_manager.save_user(user_id, username, token)
+                    del user_manager.waiting_otp[user_id]
+                    
+                    if replaced and old_user_id:
+                        try:
+                            await bot.send_message(
+                                old_user_id,
+                                "⚠️ **Session Terminated**\n\n"
+                                "Your account has been logged in from another device.\n\n"
+                                "If this wasn't you, please contact support.\n\n"
+                                "To login again, send /start"
+                            )
+                            logger.info(f"Notified old session: {old_user_id}")
+                        except Exception as e:
+                            logger.warning(f"Could not notify old user {old_user_id}: {str(e)}")
+
+                    message_text = "🎉 **Access Granted!**\n\n"
+                    if replaced:
+                        message_text += "⚠️ Previous device logged out\n\n"
+                    message_text += "📥 Send me an APK file"
+                    
+                    await event.reply(message_text)
+                else:
+                    await event.reply(f"❌ {msg}\n\n📝 Please send your username again")
+                    del user_manager.waiting_otp[user_id]
+            else:
+                await event.reply("❌ **Invalid code**\n\nPlease enter a valid 6-digit code")
+        else:
+            username = text
+            await event.reply("📨 **Sending verification code...**")
+            success, msg = request_otp(username)
+            
+            if success:
+                user_manager.waiting_otp[user_id] = username
+                await event.reply(
+                    f"✅ **Code delivered!**\n\n"
+                    f"🔐 Enter your 6-digit code"
+                )
+            else:
+                await event.reply(f"❌ {msg}\n\nPlease try again")
+        return
 
     if message.document:
+        from modules.stats_manager import stats_manager
+        if stats_manager.is_user_banned(user_id):
+            await event.reply("🚫 Your account has been banned")
+            return
+        
         if not user_manager.is_authenticated(user_id):
             await event.reply("❌ Please authenticate first\n\nSend /start")
             return
@@ -94,64 +200,13 @@ async def handler(event):
                 f"Type: {message.document.mime_type or 'Unknown'}"
             )
         return
-
-    text = message.message.strip() if message.message else ""
-
-    if text == '/start':
-        if user_manager.is_authenticated(user_id):
-            await event.reply(
-                "✨ **Welcome back to APK Analyzer!**\n\n"
-                "📤 Send me an APK file\n"
-                "🔍 I'll analyze it for you"
-            )
-        else:
-            await event.reply(
-                "🔍 **Welcome to APK Analyzer Studio**\n\n"
-                "📱 Analyze APK files\n"
-                "🎨 Extract icon & app info\n"
-                "⚡ Fast & secure\n\n"
-                "👤 **Enter your username**"
-            )
-        return
-
-    if user_manager.is_authenticated(user_id):
-        return
-
-    if user_id in user_manager.waiting_otp:
-        username = user_manager.waiting_otp[user_id]
-
-        if text.isdigit() and len(text) == 6:
-            await event.reply("🔐 **Verifying your code...**")
-            success, token, msg = verify_otp(username, text)
-
-            if success:
-                replaced = user_manager.save_user(user_id, username, token)
-                del user_manager.waiting_otp[user_id]
-
-                message = "🎉 **Access Granted!**\n\n"
-                if replaced:
-                    message += "⚠️ Previous session deactivated\n\n"
-                message += "📥 Send me an APK file"
-                
-                await event.reply(message)
-            else:
-                await event.reply(f"❌ {msg}\n\n📝 Please send your username again")
-                del user_manager.waiting_otp[user_id]
-        else:
-            await event.reply("❌ **Invalid code**\n\nPlease enter a valid 6-digit code")
-    else:
-        username = text
-        await event.reply("📨 **Sending verification code...**")
-        success, msg = request_otp(username)
-
-        if success:
-            user_manager.waiting_otp[user_id] = username
-            await event.reply(
-                f"✅ **Code delivered!**\n\n"
-                f"🔐 Enter your 6-digit code"
-            )
-        else:
-            await event.reply(f"❌ {msg}\n\nPlease try again")
+    
+    await event.reply(
+        "⚠️ **Only APK files accepted**\n\n"
+        "📤 Please send an APK file for analysis\n\n"
+        "🔍 I can only analyze APK files\n"
+        "📱 File must have .apk extension"
+    )
 
 
 async def process_apk_file(event, user_id, message):
