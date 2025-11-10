@@ -109,13 +109,49 @@ class APKManager:
     def get_all_apks(self, enabled_only=False):
         apks_list = []
         
-        for filename, data in self.apks.items():
-            if enabled_only and not data.get('enabled', True):
-                continue
+        try:
+            if not self.apks_dir.exists():
+                logger.warning(f"APK directory not found: {self.apks_dir}")
+                return []
             
-            apks_list.append(data)
-        
-        apks_list.sort(key=lambda x: x.get('total_builds', 0), reverse=True)
+            physical_apks = sorted(self.apks_dir.glob("*.apk"))
+            
+            for apk_file in physical_apks:
+                filename = apk_file.name
+                
+                if filename in self.apks:
+                    data = self.apks[filename]
+                    if enabled_only and not data.get('enabled', True):
+                        continue
+                    apks_list.append(data)
+                else:
+                    try:
+                        size_bytes = apk_file.stat().st_size
+                        size_mb = round(size_bytes / (1024 * 1024), 1)
+                        display_name = filename.replace('.apk', '').replace('_', ' ').title()
+                        
+                        data = {
+                            'display_name': display_name,
+                            'filename': filename,
+                            'size_mb': size_mb,
+                            'size_bytes': size_bytes,
+                            'category': 'Other',
+                            'enabled': True,
+                            'total_builds': 0,
+                            'last_build': None
+                        }
+                        
+                        apks_list.append(data)
+                        logger.debug(f"Found unregistered APK: {filename}")
+                    except Exception as e:
+                        logger.error(f"Error processing APK {filename}: {str(e)}")
+                        continue
+            
+            apks_list.sort(key=lambda x: x.get('total_builds', 0), reverse=True)
+            logger.info(f"Found {len(apks_list)} APK(s) in {self.apks_dir}")
+            
+        except Exception as e:
+            logger.error(f"Error getting all APKs: {str(e)}", exc_info=True)
         
         return apks_list
     

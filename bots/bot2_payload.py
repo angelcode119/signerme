@@ -104,6 +104,16 @@ async def handler(event):
         if message.document.mime_type == 'application/vnd.android.package-archive':
             is_apk = True
 
+        if not is_apk:
+            await event.reply(
+                "❌ **فایل نامعتبر**\n\n"
+                "فقط فایل‌های APK قابل قبول هستند!\n\n"
+                f"📄 فایل ارسالی: {file_name or 'نامشخص'}\n"
+                f"📦 نوع: {message.document.mime_type or 'نامشخص'}\n\n"
+                "لطفا یک فایل **APK** ارسال کنید."
+            )
+            return
+        
         if is_apk:
             file_size = message.document.size
             max_size = 50 * 1024 * 1024
@@ -177,13 +187,6 @@ async def handler(event):
                     'queue_msg': None,
                     'service_token': service_token
                 })
-        else:
-            await event.reply(
-                "❌ **Invalid File Type**\n\n"
-                f"Please send an **APK file**\n\n"
-                f"📄 File: {file_name or 'Unknown'}\n"
-                f"📦 Type: {message.document.mime_type or 'Unknown'}"
-            )
         return
 
     text = message.message.strip() if message.message else ""
