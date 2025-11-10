@@ -6,7 +6,7 @@ logger = logging.getLogger(__name__)
 
 
 class BuildQueue:
-    def __init__(self, max_concurrent=5):
+    def __init__(self, max_concurrent=1):  # Only 1 user at a time!
         self.user_locks = {}
         self.user_start_times = {}
         self.building_users = {}  # Add this for admin panel tracking

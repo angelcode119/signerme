@@ -588,8 +588,8 @@ async def handle_admin_queue(event):
         
         queue_text = (
             f"🔄 **Queue Status** (Live)\n\n"
-            f"⚡ Active: **{active}/5**\n"
-            f"⏳ Waiting: **{waiting}**\n\n"
+            f"⚡ Active: **{active}/1** (فقط یک کاربر همزمان)\n"
+            f"⏳ Waiting: **{waiting}** کاربر در صف\n\n"
         )
         
         if active_builds:

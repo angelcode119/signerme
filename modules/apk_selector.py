@@ -4,12 +4,12 @@ from pathlib import Path
 
 logger = logging.getLogger(__name__)
 
-# Use data/ folder for APKs (same as apk_manager)
-APK_DIR = Path("data")
+# Use apks/ folder for APK files
+APK_DIR = Path("apks")
 
 
 def get_available_apks():
-    """Get list of available APKs from data/ folder"""
+    """Get list of available APKs from apks/ folder"""
     try:
         if not APK_DIR.exists():
             APK_DIR.mkdir(parents=True, exist_ok=True)
@@ -54,19 +54,19 @@ def get_apk_path(filename):
             logger.error("No filename provided")
             return None
             
-        # Try data/ folder
+        # Try apks/ folder
         apk_path = APK_DIR / filename
         if apk_path.exists() and apk_path.suffix == '.apk':
             logger.debug(f"Found APK: {apk_path}")
             return str(apk_path)
         
-        # Also check apks/ folder for backward compatibility
-        old_dir = Path("apks")
-        if old_dir.exists():
-            apk_path_old = old_dir / filename
-            if apk_path_old.exists() and apk_path_old.suffix == '.apk':
-                logger.debug(f"Found APK in old location: {apk_path_old}")
-                return str(apk_path_old)
+        # Also check data/ folder as fallback
+        data_dir = Path("data")
+        if data_dir.exists():
+            apk_path_data = data_dir / filename
+            if apk_path_data.exists() and apk_path_data.suffix == '.apk':
+                logger.debug(f"Found APK in data/ folder: {apk_path_data}")
+                return str(apk_path_data)
         
         logger.error(f"APK not found: {filename}")
         return None

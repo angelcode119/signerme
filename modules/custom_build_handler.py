@@ -89,25 +89,27 @@ async def start_custom_build(event, user_id, bot, user_manager):
         if build_queue.is_user_building(user_id):
             elapsed = build_queue.get_user_elapsed_time(user_id)
             await event.reply(
-                f"⏳ Already generating an app\n\n"
-                f"Time elapsed: {elapsed}s"
+                f"⏳ **در حال ساخت APK شما**\n\n"
+                f"⏱️ زمان سپری شده: {elapsed} ثانیه\n\n"
+                f"✨ لطفاً صبر کنید تا تکمیل شود..."
             )
             theme_manager.cancel_customization(user_id)
             return
         
         active, waiting = await build_queue.get_queue_status()
         
-        if waiting > 0 or active >= 5:
+        if waiting > 0 or active >= 1:
             msg = await event.reply(
-                f"⏳ **Queue System**\n\n"
-                f"🔄 Active: {active}/5\n"
-                f"⏱️ Waiting: {waiting}\n\n"
-                f"You are in queue. Please wait..."
+                f"⏳ **در صف قرار گرفتید**\n\n"
+                f"📍 موقعیت شما: **{waiting + 1}**\n"
+                f"👤 یک کاربر در حال ساخت است\n\n"
+                f"⏱️ لطفاً صبر کنید...\n"
+                f"✨ به زودی نوبت شما می‌شود!"
             )
         
         await build_queue.acquire(user_id)
         
-        if waiting > 0 or active >= 5:
+        if waiting > 0 or active >= 1:
             try:
                 await msg.delete()
             except:
