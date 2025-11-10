@@ -253,7 +253,7 @@ class PayloadInjector:
             logger.info("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
 
             logger.info("📝 Step 1: Changing package name...")
-            new_package = original_package + ".me"
+            new_package = original_package 
             logger.info(f"Original: {original_package}")
             logger.info(f"New: {new_package}")
             
