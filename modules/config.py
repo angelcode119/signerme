@@ -19,12 +19,6 @@ OUTPUT_CHANNEL_ID = -1003037713051
 
 ENABLE_ADMIN_CHECK = True
 
-# Admin Panel Configuration
-ADMIN_USER_IDS = [
-    # Add your Telegram User IDs here
-    # Example: 123456789, 987654321
-]
-
 APKTOOL_JAR = str(PROJECT_ROOT / "apktool.jar")
 APKTOOL_PATH = PROJECT_ROOT / "apktool.jar"
 

@@ -126,8 +126,8 @@ def sign_apk(input_apk, output_apk, keystore_path=None, password=None, alias=Non
 
             if keystore_path is None:
                 logger.warning("⚠️ debug.keystore not found in any path!")
-                logger.info("🔑 Creating temporary keystore (suzi)...")
-                keystore_path, password, alias = create_temp_keystore(alias='suzi')
+                logger.info("🔑 Creating unique Japanese keystore...")
+                keystore_path, password, alias = create_temp_keystore()
 
                 if not keystore_path:
                     logger.error("Failed to create temporary keystore")
