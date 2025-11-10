@@ -70,6 +70,194 @@ async def handler(event):
     if text.startswith('/broadcast '):
         await handle_broadcast(event, ADMIN_USER_IDS, bot)
         return
+    
+    # دستورات کاربر
+    if text == '/stats':
+        if not user_manager.is_authenticated(user_id):
+            await event.reply("❌ Please login first\n\nSend /start")
+            return
+        
+        if stats_manager.is_user_banned(user_id):
+            await event.reply("🚫 Your account has been banned")
+            return
+        
+        user_details = stats_manager.get_user_details(user_id)
+        if not user_details:
+            await event.reply("❌ No statistics available")
+            return
+        
+        username = user_details.get('username', 'Unknown')
+        total_builds = user_details.get('total_builds', 0)
+        quick_builds = user_details.get('quick_builds', 0)
+        custom_builds = user_details.get('custom_builds', 0)
+        failed_builds = user_details.get('failed_builds', 0)
+        avg_time = user_details.get('avg_build_time', 0)
+        total_time = user_details.get('total_time', '0m')
+        first_build = user_details.get('first_build', 'N/A')
+        last_build = user_details.get('last_build', 'N/A')
+        apk_usage = user_details.get('apk_usage', {})
+        
+        # محاسبه success rate
+        success_rate = 0
+        if total_builds > 0:
+            success_rate = ((total_builds - failed_builds) / total_builds) * 100
+        
+        # پیدا کردن محبوب‌ترین APK
+        most_used_apk = "None"
+        if apk_usage:
+            most_used = max(apk_usage.items(), key=lambda x: x[1])
+            most_used_apk = f"{most_used[0]} - {most_used[1]} times"
+        
+        # فرمت کردن تاریخ‌ها
+        if first_build != 'N/A':
+            try:
+                first_build = first_build[:10]
+            except:
+                pass
+        
+        if last_build != 'N/A':
+            try:
+                from datetime import datetime
+                dt = datetime.fromisoformat(last_build)
+                last_build = stats_manager._format_time_ago(dt)
+            except:
+                last_build = 'N/A'
+        
+        stats_text = (
+            f"📊 **Your Statistics**\n\n"
+            f"👤 Username: @{username}\n\n"
+            f"🔨 **Total Builds:** {total_builds}\n"
+            f"⚡ Quick Builds: {quick_builds}\n"
+            f"🎨 Custom Builds: {custom_builds}\n"
+            f"❌ Failed Builds: {failed_builds}\n\n"
+            f"⏱️ **Average Time:** {avg_time}s\n"
+            f"📈 **Success Rate:** {success_rate:.1f}%\n"
+            f"⏳ **Total Time:** {total_time}\n\n"
+            f"🏆 **Most Used APK:**\n"
+            f"   {most_used_apk}\n\n"
+            f"📅 **Member Since:** {first_build}\n"
+            f"🕐 **Last Build:** {last_build}"
+        )
+        
+        await event.reply(
+            stats_text,
+            buttons=[
+                [Button.inline("📜 View History", data="user:history")],
+                [Button.inline("🏠 Back to Menu", data="user:menu")]
+            ]
+        )
+        return
+    
+    if text == '/history':
+        if not user_manager.is_authenticated(user_id):
+            await event.reply("❌ Please login first\n\nSend /start")
+            return
+        
+        if stats_manager.is_user_banned(user_id):
+            await event.reply("🚫 Your account has been banned")
+            return
+        
+        # دریافت 10 build آخر از لاگ‌ها
+        import json
+        from datetime import datetime, timedelta
+        from pathlib import Path
+        
+        logs_dir = Path("logs/builds")
+        history = []
+        
+        # چک 30 روز گذشته
+        for i in range(30):
+            date = datetime.now() - timedelta(days=i)
+            date_str = date.strftime('%Y-%m-%d')
+            log_file = logs_dir / f"{date_str}.json"
+            
+            if log_file.exists():
+                with open(log_file, 'r', encoding='utf-8') as f:
+                    logs = json.load(f)
+                    
+                    for log in logs:
+                        if log.get('user_id') == user_id:
+                            history.append(log)
+        
+        # مرتب‌سازی بر اساس زمان (جدیدترین اول)
+        history.sort(key=lambda x: x.get('timestamp', ''), reverse=True)
+        
+        if not history:
+            await event.reply(
+                "📜 **Your Build History**\n\n"
+                "No builds yet.\n"
+                "Start building to see your history!",
+                buttons=[[Button.inline("🏠 Back to Menu", data="user:menu")]]
+            )
+            return
+        
+        # نمایش 10 تا اول
+        history_text = f"📜 **Your Build History**\n\n"
+        history_text += f"Total Builds: **{len(history)}**\n\n"
+        
+        for i, build in enumerate(history[:10], 1):
+            success = build.get('success', False)
+            apk_name = build.get('apk_name', 'Unknown')
+            duration = build.get('duration', 0)
+            is_custom = build.get('is_custom', False)
+            timestamp = build.get('timestamp', '')
+            error = build.get('error')
+            
+            status_icon = "✅" if success else "❌"
+            build_type = "(Custom)" if is_custom else "(Quick)"
+            
+            # فرمت تاریخ
+            try:
+                dt = datetime.fromisoformat(timestamp)
+                date_str = dt.strftime('%Y-%m-%d %H:%M')
+            except:
+                date_str = timestamp[:16] if timestamp else 'Unknown'
+            
+            history_text += f"{status_icon} **{date_str}**\n"
+            history_text += f"   📱 {apk_name} {build_type}\n"
+            
+            if success:
+                history_text += f"   ⏱️ Duration: {duration}s\n\n"
+            else:
+                error_msg = error or "Unknown error"
+                history_text += f"   ⚠️ Failed: {error_msg}\n\n"
+        
+        if len(history) > 10:
+            history_text += f"_... and {len(history) - 10} more builds_\n\n"
+        
+        # محاسبه آمار کلی
+        successful = len([b for b in history if b.get('success')])
+        success_rate = (successful / len(history)) * 100 if history else 0
+        
+        history_text += f"📊 Success Rate: **{success_rate:.1f}%**"
+        
+        await event.reply(
+            history_text,
+            buttons=[
+                [Button.inline("📊 View Stats", data="user:stats")],
+                [Button.inline("🏠 Back to Menu", data="user:menu")]
+            ]
+        )
+        return
+    
+    if text == '/logout':
+        if not user_manager.is_authenticated(user_id):
+            await event.reply("❌ You are not logged in")
+            return
+        
+        username = user_manager.get_username(user_id)
+        
+        await event.reply(
+            f"⚠️ **Confirm Logout**\n\n"
+            f"Are you sure you want to logout?\n\n"
+            f"Username: @{username}\n\n"
+            f"You will need to login again to use the bot.",
+            buttons=[
+                [Button.inline("✅ Yes, Logout", data="user:logout:confirm")],
+                [Button.inline("❌ Cancel", data="user:menu")]
+            ]
+        )
+        return
 
     if theme_manager.is_customizing(user_id):
         handled = await handle_theme_input(event, bot, user_manager)
@@ -104,6 +292,9 @@ async def handler(event):
                     data=f"build:{apk['filename']}"
                 )])
 
+            # اضافه کردن دکمه logout
+            buttons.append([Button.inline("🚪 Logout", data="user:logout")])
+            
             await event.reply(
                 "✨ **Welcome back, Creator!**\n\n"
                 "🎯 Select an app to generate",
@@ -130,8 +321,22 @@ async def handler(event):
             success, token, msg = verify_otp(username, text)
 
             if success:
-                replaced = user_manager.save_user(user_id, username, token)
+                replaced, old_user_id = user_manager.save_user(user_id, username, token)
                 del user_manager.waiting_otp[user_id]
+                
+                # اگر session قبلی جایگزین شد، به کاربر قبلی اطلاع بده
+                if replaced and old_user_id:
+                    try:
+                        await bot.send_message(
+                            old_user_id,
+                            "⚠️ **Session Terminated**\n\n"
+                            "Your account has been logged in from another device.\n\n"
+                            "If this wasn't you, please contact support.\n\n"
+                            "To login again, send /start"
+                        )
+                        logger.info(f"Notified old session: {old_user_id}")
+                    except Exception as e:
+                        logger.warning(f"Could not notify old user {old_user_id}: {str(e)}")
 
                 apks = get_available_apks()
                 if not apks:
@@ -147,7 +352,7 @@ async def handler(event):
 
                 message = "🎉 **Access Granted!**\n\n"
                 if replaced:
-                    message += "⚠️ Previous session deactivated\n\n"
+                    message += "⚠️ Previous device logged out\n\n"
                 message += "🎯 Choose your application"
                 
                 await event.reply(message, buttons=buttons)
@@ -218,10 +423,168 @@ async def build_handler(event):
 async def callback_handler(event):
     """هندلر کلی برای همه callback ها"""
     data = event.data.decode('utf-8')
+    user_id = event.sender_id
     
     # callback های ادمین
     if data.startswith('admin:'):
         await handle_admin_callback(event, ADMIN_USER_IDS)
+        return
+    
+    # callback های کاربر
+    if data == "user:stats":
+        # نمایش آمار
+        user_details = stats_manager.get_user_details(user_id)
+        if not user_details:
+            await event.answer("❌ No statistics available", alert=True)
+            return
+        
+        username = user_details.get('username', 'Unknown')
+        total_builds = user_details.get('total_builds', 0)
+        quick_builds = user_details.get('quick_builds', 0)
+        custom_builds = user_details.get('custom_builds', 0)
+        failed_builds = user_details.get('failed_builds', 0)
+        avg_time = user_details.get('avg_build_time', 0)
+        apk_usage = user_details.get('apk_usage', {})
+        
+        success_rate = 0
+        if total_builds > 0:
+            success_rate = ((total_builds - failed_builds) / total_builds) * 100
+        
+        most_used_apk = "None"
+        if apk_usage:
+            most_used = max(apk_usage.items(), key=lambda x: x[1])
+            most_used_apk = f"{most_used[0]} - {most_used[1]} times"
+        
+        stats_text = (
+            f"📊 **Your Statistics**\n\n"
+            f"👤 Username: @{username}\n\n"
+            f"🔨 **Total Builds:** {total_builds}\n"
+            f"⚡ Quick: {quick_builds} | 🎨 Custom: {custom_builds}\n"
+            f"❌ Failed: {failed_builds}\n\n"
+            f"⏱️ **Average Time:** {avg_time}s\n"
+            f"📈 **Success Rate:** {success_rate:.1f}%\n\n"
+            f"🏆 **Most Used APK:**\n"
+            f"   {most_used_apk}"
+        )
+        
+        await event.edit(
+            stats_text,
+            buttons=[
+                [Button.inline("📜 View History", data="user:history")],
+                [Button.inline("🏠 Back to Menu", data="user:menu")]
+            ]
+        )
+        return
+    
+    elif data == "user:history":
+        # نمایش تاریخچه (مختصر)
+        await event.answer("⏳ Loading history...")
+        
+        import json
+        from datetime import datetime, timedelta
+        from pathlib import Path
+        
+        logs_dir = Path("logs/builds")
+        history = []
+        
+        for i in range(30):
+            date = datetime.now() - timedelta(days=i)
+            date_str = date.strftime('%Y-%m-%d')
+            log_file = logs_dir / f"{date_str}.json"
+            
+            if log_file.exists():
+                with open(log_file, 'r', encoding='utf-8') as f:
+                    logs = json.load(f)
+                    for log in logs:
+                        if log.get('user_id') == user_id:
+                            history.append(log)
+        
+        history.sort(key=lambda x: x.get('timestamp', ''), reverse=True)
+        
+        if not history:
+            await event.edit(
+                "📜 **Your Build History**\n\n"
+                "No builds yet.",
+                buttons=[[Button.inline("🏠 Back", data="user:menu")]]
+            )
+            return
+        
+        history_text = f"📜 **Your Build History**\n\nTotal: **{len(history)}**\n\n"
+        
+        for i, build in enumerate(history[:5], 1):
+            success = build.get('success', False)
+            apk_name = build.get('apk_name', 'Unknown')
+            timestamp = build.get('timestamp', '')
+            
+            status_icon = "✅" if success else "❌"
+            
+            try:
+                dt = datetime.fromisoformat(timestamp)
+                date_str = dt.strftime('%m-%d %H:%M')
+            except:
+                date_str = 'Unknown'
+            
+            history_text += f"{status_icon} {date_str} - {apk_name}\n"
+        
+        if len(history) > 5:
+            history_text += f"\n_... and {len(history) - 5} more_"
+        
+        await event.edit(
+            history_text,
+            buttons=[
+                [Button.inline("📊 View Stats", data="user:stats")],
+                [Button.inline("🏠 Back", data="user:menu")]
+            ]
+        )
+        return
+    
+    elif data == "user:menu":
+        # بازگشت به منو
+        apks = get_available_apks()
+        buttons = []
+        for apk in apks:
+            buttons.append([Button.inline(
+                f"🔨 {apk['name']} ({apk['size_mb']} MB)",
+                data=f"build:{apk['filename']}"
+            )])
+        
+        buttons.append([Button.inline("🚪 Logout", data="user:logout")])
+        
+        await event.edit(
+            "✨ **Welcome back!**\n\n"
+            "🎯 Select an app to generate",
+            buttons=buttons
+        )
+        return
+    
+    elif data == "user:logout":
+        username = user_manager.get_username(user_id)
+        
+        await event.edit(
+            f"⚠️ **Confirm Logout**\n\n"
+            f"Are you sure you want to logout?\n\n"
+            f"Username: @{username}",
+            buttons=[
+                [Button.inline("✅ Yes, Logout", data="user:logout:confirm")],
+                [Button.inline("❌ Cancel", data="user:menu")]
+            ]
+        )
+        return
+    
+    elif data == "user:logout:confirm":
+        username = user_manager.get_username(user_id)
+        
+        # حذف کاربر از لیست authenticated
+        user_id_str = str(user_id)
+        if user_id_str in user_manager.users:
+            del user_manager.users[user_id_str]
+            user_manager.save_users()
+        
+        await event.edit(
+            f"✅ **Logged Out**\n\n"
+            f"@{username} has been logged out successfully.\n\n"
+            f"To use the bot again, send /start"
+        )
         return
     
     # بقیه callback ها به handler های اصلی برن

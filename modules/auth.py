@@ -30,15 +30,20 @@ class UserManager:
         user_id_str = str(user_id)
         
         replaced_session = False
+        old_user_id = None
+        
+        # پیدا کردن session قبلی با همین username
         for uid, data in list(self.users.items()):
             if data.get('username') == username and uid != user_id_str:
+                old_user_id = int(uid)
                 del self.users[uid]
                 replaced_session = True
+                break
         
         self.users[user_id_str] = {'username': username, 'token': token}
         self.save_users()
         
-        return replaced_session
+        return replaced_session, old_user_id
     
     def get_username(self, user_id):
         return self.users.get(str(user_id), {}).get('username')
