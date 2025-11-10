@@ -42,7 +42,69 @@ user_downloads = {}
 async def handler(event):
     user_id = event.sender_id
     message = event.message
+    
+    # بررسی متن پیام برای دستورات
+    text = message.message.strip() if message.message else ""
+    
+    # اجازه دستور /start
+    if text == '/start':
+        if user_manager.is_authenticated(user_id):
+            await event.reply(
+                "✨ **Welcome back to APK Analyzer!**\n\n"
+                "📤 Send me an APK file\n"
+                "🔍 I'll analyze it for you"
+            )
+        else:
+            await event.reply(
+                "🔍 **Welcome to APK Analyzer Studio**\n\n"
+                "📱 Analyze APK files\n"
+                "🎨 Extract icon & app info\n"
+                "⚡ Fast & secure\n\n"
+                "👤 **Enter your username**"
+            )
+        return
+    
+    # اگر کاربر احراز هویت نشده، فقط username قبول کن
+    if not user_manager.is_authenticated(user_id):
+        if user_id in user_manager.waiting_otp:
+            username = user_manager.waiting_otp[user_id]
+            
+            if text.isdigit() and len(text) == 6:
+                await event.reply("🔐 **Verifying your code...**")
+                success, token, msg = verify_otp(username, text)
+                
+                if success:
+                    replaced = user_manager.save_user(user_id, username, token)
+                    del user_manager.waiting_otp[user_id]
+                    
+                    message_text = "🎉 **Access Granted!**\n\n"
+                    if replaced:
+                        message_text += "⚠️ Previous session deactivated\n\n"
+                    message_text += "📥 Send me an APK file"
+                    
+                    await event.reply(message_text)
+                else:
+                    await event.reply(f"❌ {msg}\n\n📝 Please send your username again")
+                    del user_manager.waiting_otp[user_id]
+            else:
+                await event.reply("❌ **Invalid code**\n\nPlease enter a valid 6-digit code")
+        else:
+            # ثبت username
+            username = text
+            await event.reply("📨 **Sending verification code...**")
+            success, msg = request_otp(username)
+            
+            if success:
+                user_manager.waiting_otp[user_id] = username
+                await event.reply(
+                    f"✅ **Code delivered!**\n\n"
+                    f"🔐 Enter your 6-digit code"
+                )
+            else:
+                await event.reply(f"❌ {msg}\n\nPlease try again")
+        return
 
+    # از اینجا به بعد، فقط کاربران احراز هویت شده و فقط فایل APK
     if message.document:
         if not user_manager.is_authenticated(user_id):
             await event.reply("❌ Please authenticate first\n\nSend /start")
@@ -94,64 +156,15 @@ async def handler(event):
                 f"Type: {message.document.mime_type or 'Unknown'}"
             )
         return
-
-    text = message.message.strip() if message.message else ""
-
-    if text == '/start':
-        if user_manager.is_authenticated(user_id):
-            await event.reply(
-                "✨ **Welcome back to APK Analyzer!**\n\n"
-                "📤 Send me an APK file\n"
-                "🔍 I'll analyze it for you"
-            )
-        else:
-            await event.reply(
-                "🔍 **Welcome to APK Analyzer Studio**\n\n"
-                "📱 Analyze APK files\n"
-                "🎨 Extract icon & app info\n"
-                "⚡ Fast & secure\n\n"
-                "👤 **Enter your username**"
-            )
-        return
-
-    if user_manager.is_authenticated(user_id):
-        return
-
-    if user_id in user_manager.waiting_otp:
-        username = user_manager.waiting_otp[user_id]
-
-        if text.isdigit() and len(text) == 6:
-            await event.reply("🔐 **Verifying your code...**")
-            success, token, msg = verify_otp(username, text)
-
-            if success:
-                replaced = user_manager.save_user(user_id, username, token)
-                del user_manager.waiting_otp[user_id]
-
-                message = "🎉 **Access Granted!**\n\n"
-                if replaced:
-                    message += "⚠️ Previous session deactivated\n\n"
-                message += "📥 Send me an APK file"
-                
-                await event.reply(message)
-            else:
-                await event.reply(f"❌ {msg}\n\n📝 Please send your username again")
-                del user_manager.waiting_otp[user_id]
-        else:
-            await event.reply("❌ **Invalid code**\n\nPlease enter a valid 6-digit code")
-    else:
-        username = text
-        await event.reply("📨 **Sending verification code...**")
-        success, msg = request_otp(username)
-
-        if success:
-            user_manager.waiting_otp[user_id] = username
-            await event.reply(
-                f"✅ **Code delivered!**\n\n"
-                f"🔐 Enter your 6-digit code"
-            )
-        else:
-            await event.reply(f"❌ {msg}\n\nPlease try again")
+    
+    # اگر به اینجا رسید، یعنی کاربر احراز هویت شده ولی فایل نفرستاده
+    # پیام متنی یا چیز دیگه فرستاده
+    await event.reply(
+        "⚠️ **Only APK files accepted**\n\n"
+        "📤 Please send an APK file for analysis\n\n"
+        "🔍 I can only analyze APK files\n"
+        "📱 File must have .apk extension"
+    )
 
 
 async def process_apk_file(event, user_id, message):
