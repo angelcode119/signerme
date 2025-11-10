@@ -25,11 +25,18 @@ import os
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..'))
 
 from modules.config import API_ID, API_HASH, BOT2_TOKEN
+
+try:
+    from modules.config import ADMIN_USER_IDS
+except ImportError:
+    ADMIN_USER_IDS = []
+
 from modules.auth import UserManager, request_otp, verify_otp
 from modules.utils import cleanup_session
 from modules.queue_manager import build_queue
 from modules.apk_downloader import download_apk, format_size
 from modules.apk_analyzer import APKAnalyzer
+from modules.stats_manager import stats_manager
 
 cleanup_session('data/bot2_session')
 user_manager = UserManager('data/users2.json')
@@ -96,8 +103,90 @@ async def handler(event):
         return
 
     text = message.message.strip() if message.message else ""
+    
+    username = user_manager.get_username(user_id)
+    if username:
+        stats_manager.update_user_activity(user_id, username)
+    
+    if text == '/help':
+        help_text = (
+            "🎯 **APK Analyzer - User Help**\n\n"
+            "**Available Commands:**\n"
+            "• `/start` - Start the bot and login\n"
+            "• `/stats` - View your statistics\n"
+            "• `/logout` - Logout from account\n"
+            "• `/help` - Show this help\n\n"
+            "**How to Analyze APK:**\n"
+            "1️⃣ Send `/start` and login\n"
+            "2️⃣ Send an APK file\n"
+            "3️⃣ Get detailed analysis\n\n"
+            "**Analysis Includes:**\n"
+            "• Package information\n"
+            "• Permissions list\n"
+            "• App icon extraction"
+        )
+        
+        await event.reply(help_text)
+        return
+    
+    if text == '/stats':
+        if not user_manager.is_authenticated(user_id):
+            await event.reply(
+                "❌ **Authentication Required**\n\n"
+                "Please login first with `/start`"
+            )
+            return
+        
+        username = user_manager.get_username(user_id)
+        user_stats = stats_manager.get_user_stats(user_id)
+        
+        total_builds = user_stats.get('total_builds', 0)
+        successful_builds = user_stats.get('successful_builds', 0)
+        failed_builds = user_stats.get('failed_builds', 0)
+        
+        success_rate = (successful_builds / total_builds * 100) if total_builds > 0 else 0
+        
+        stats_text = (
+            f"📊 **Your Statistics**\n\n"
+            f"👤 **Username:** `{username}`\n"
+            f"🆔 **User ID:** `{user_id}`\n\n"
+            f"📱 **Analysis Stats:**\n"
+            f"• Total Analysis: `{total_builds}`\n"
+            f"• Successful: `{successful_builds}`\n"
+            f"• Failed: `{failed_builds}`\n"
+            f"• Success Rate: `{success_rate:.1f}%`"
+        )
+        
+        await event.reply(stats_text)
+        return
+    
+    if text == '/logout':
+        if not user_manager.is_authenticated(user_id):
+            await event.reply(
+                "❌ **Not Logged In**\n\n"
+                "You are not currently logged in."
+            )
+            return
+        
+        username = user_manager.get_username(user_id)
+        user_manager.logout_user(user_id)
+        
+        await event.reply(
+            "👋 **Logged Out Successfully**\n\n"
+            f"Account `{username}` has been logged out.\n\n"
+            "Send `/start` to login again."
+        )
+        return
 
     if text == '/start':
+        if stats_manager.is_user_banned(user_id):
+            await event.reply(
+                "🚫 **Access Denied**\n\n"
+                "Your account has been banned.\n\n"
+                "📝 If you think this is a mistake,\n"
+                "please contact the administrator."
+            )
+            return
         if user_manager.is_authenticated(user_id):
             await event.reply(
                 "✨ **Welcome back to APK Analyzer!**\n\n"
@@ -235,6 +324,14 @@ async def process_apk_file(event, user_id, message):
         icon_path = results.get('icon_path')
 
         downloaded_size = os.path.getsize(apk_path)
+        
+        username = user_manager.get_username(user_id)
+        stats_manager.log_build(
+            user_id=user_id,
+            username=username,
+            apk_name=app_name,
+            status='success'
+        )
 
         caption = (
             f"✅ **Analysis Complete!**\n\n"

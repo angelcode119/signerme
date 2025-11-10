@@ -37,6 +37,11 @@ try:
 except ImportError:
     OUTPUT_CHANNEL_ID = None
 
+try:
+    from modules.config import ADMIN_USER_IDS
+except ImportError:
+    ADMIN_USER_IDS = []
+
 from modules.auth import UserManager, request_otp, verify_otp, get_device_token
 from modules.apk_builder import build_apk
 from modules.utils import cleanup_session
@@ -45,6 +50,14 @@ from modules.apk_selector import get_available_apks, get_apk_path
 from modules.theme_manager import theme_manager
 from modules.custom_build_handler import handle_custom_build_start, handle_theme_input
 from modules.admin_check import check_admin_status
+from modules.stats_manager import stats_manager
+from modules.apk_manager import apk_manager
+from modules.admin_panel import (
+    handle_admin_command,
+    handle_admin_callback,
+    handle_broadcast,
+    handle_admin_apk_file_received
+)
 
 cleanup_session('data/bot1_session')
 user_manager = UserManager('data/users.json')
@@ -68,12 +81,167 @@ async def handler(event):
     user_id = event.sender_id
     text = event.message.message.strip()
     
+    if user_id in ADMIN_USER_IDS and event.message.document:
+        handled = await handle_admin_apk_file_received(event, bot)
+        if handled:
+            return
+    
+    username = user_manager.get_username(user_id)
+    if username:
+        stats_manager.update_user_activity(user_id, username)
+    
+    if text == '/admin':
+        await handle_admin_command(event, ADMIN_USER_IDS)
+        return
+    
+    if text.startswith('/broadcast '):
+        await handle_broadcast(event, ADMIN_USER_IDS, bot)
+        return
+    
+    if text == '/help':
+        is_admin = user_id in ADMIN_USER_IDS
+        
+        if is_admin:
+            help_text = (
+                "🎯 **APK Studio - Admin Help**\n\n"
+                "**Admin Commands:**\n"
+                "• `/admin` - Open admin panel\n"
+                "• `/broadcast <message>` - Send message to all users\n"
+                "• `/help` - Show this help\n\n"
+                "**Admin Panel Features:**\n"
+                "• 📊 Statistics - View system stats\n"
+                "• 👥 User Management - Ban/unban users\n"
+                "• 📱 APK Management - Add/remove APKs\n"
+                "• 📋 Queue Status - Monitor builds\n\n"
+                "**User Commands:**\n"
+                "• `/start` - Start the bot\n"
+                "• `/stats` - View your statistics\n"
+                "• `/history` - View build history\n"
+                "• `/logout` - Logout from account"
+            )
+        else:
+            help_text = (
+                "🎯 **APK Studio - User Help**\n\n"
+                "**Available Commands:**\n"
+                "• `/start` - Start the bot and login\n"
+                "• `/stats` - View your statistics\n"
+                "• `/history` - View build history\n"
+                "• `/logout` - Logout from account\n"
+                "• `/help` - Show this help\n\n"
+                "**How to Build APK:**\n"
+                "1️⃣ Send `/start` and login\n"
+                "2️⃣ Select an APK from menu\n"
+                "3️⃣ Choose Quick or Custom build\n"
+                "4️⃣ Wait for completion\n"
+                "5️⃣ Download your APK\n\n"
+                "**Build Types:**\n"
+                "• ⚡ Quick Build - Default theme\n"
+                "• 🎨 Custom Build - Custom colors\n\n"
+                "**Your Statistics:**\n"
+                "Track your builds, success rate,\n"
+                "and most used APKs with `/stats`"
+            )
+        
+        await event.reply(help_text)
+        return
+    
+    if text == '/stats':
+        if not user_manager.is_authenticated(user_id):
+            await event.reply(
+                "❌ **Authentication Required**\n\n"
+                "Please login first with `/start`"
+            )
+            return
+        
+        username = user_manager.get_username(user_id)
+        user_stats = stats_manager.get_user_stats(user_id)
+        
+        total_builds = user_stats.get('total_builds', 0)
+        successful_builds = user_stats.get('successful_builds', 0)
+        failed_builds = user_stats.get('failed_builds', 0)
+        most_used_apk = user_stats.get('most_used_apk', 'None')
+        
+        success_rate = (successful_builds / total_builds * 100) if total_builds > 0 else 0
+        
+        stats_text = (
+            f"📊 **Your Statistics**\n\n"
+            f"👤 **Username:** `{username}`\n"
+            f"🆔 **User ID:** `{user_id}`\n\n"
+            f"📱 **Build Stats:**\n"
+            f"• Total Builds: `{total_builds}`\n"
+            f"• Successful: `{successful_builds}`\n"
+            f"• Failed: `{failed_builds}`\n"
+            f"• Success Rate: `{success_rate:.1f}%`\n\n"
+            f"⭐ **Most Used APK:** `{most_used_apk}`"
+        )
+        
+        await event.reply(stats_text)
+        return
+    
+    if text == '/history':
+        if not user_manager.is_authenticated(user_id):
+            await event.reply(
+                "❌ **Authentication Required**\n\n"
+                "Please login first with `/start`"
+            )
+            return
+        
+        username = user_manager.get_username(user_id)
+        build_history = stats_manager.get_user_build_history(user_id)
+        
+        if not build_history:
+            await event.reply(
+                "📋 **Build History**\n\n"
+                "No builds yet! Start building to see your history."
+            )
+            return
+        
+        history_text = f"📋 **Build History for {username}**\n\n"
+        
+        for i, build in enumerate(build_history[-10:], 1):
+            status_emoji = "✅" if build['status'] == 'success' else "❌"
+            apk_name = build.get('apk_name', 'Unknown')
+            timestamp = build.get('timestamp', 'N/A')
+            
+            history_text += f"{status_emoji} **Build #{i}**\n"
+            history_text += f"  • APK: `{apk_name}`\n"
+            history_text += f"  • Time: {timestamp}\n\n"
+        
+        await event.reply(history_text[:4000])
+        return
+    
+    if text == '/logout':
+        if not user_manager.is_authenticated(user_id):
+            await event.reply(
+                "❌ **Not Logged In**\n\n"
+                "You are not currently logged in."
+            )
+            return
+        
+        username = user_manager.get_username(user_id)
+        user_manager.logout_user(user_id)
+        
+        await event.reply(
+            "👋 **Logged Out Successfully**\n\n"
+            f"Account `{username}` has been logged out.\n\n"
+            "Send `/start` to login again."
+        )
+        return
+    
     if theme_manager.is_customizing(user_id):
         handled = await handle_theme_input(event, bot, user_manager)
         if handled:
             return
     
     if text == '/start':
+        if stats_manager.is_user_banned(user_id):
+            await event.reply(
+                "🚫 **Access Denied**\n\n"
+                "Your account has been banned.\n\n"
+                "📝 If you think this is a mistake,\n"
+                "please contact the administrator."
+            )
+            return
         if user_id in user_manager.waiting_otp:
             del user_manager.waiting_otp[user_id]
             
@@ -201,6 +369,15 @@ async def build_handler(event):
 def progress_callback(done, total):
     percent = (done / total) * 100
     return f"📤 Uploading: {percent:.1f}%"
+
+@bot.on(events.CallbackQuery)
+async def callback_handler(event):
+    user_id = event.sender_id
+    data = event.data.decode('utf-8')
+    
+    if data.startswith('admin:') or data.startswith('ban:') or data.startswith('unban:') or data.startswith('apk:') or data.startswith('queue:') or data.startswith('user_page:') or data.startswith('apk_page:'):
+        await handle_admin_callback(event, bot, ADMIN_USER_IDS)
+        return
 
 @bot.on(events.CallbackQuery(pattern=r"^quick:(.+)$"))
 async def quick_build_handler(event):
@@ -344,6 +521,13 @@ async def process_build_queue():
                 logger.info(f"Building {apk_name} for user {user_id} with token {device_token}")
                 
                 success, result = await build_apk(user_id, device_token, base_apk_path, custom_theme=None)
+                
+                stats_manager.log_build(
+                    user_id=user_id,
+                    username=username,
+                    apk_name=apk_name,
+                    status='success' if success else 'failed'
+                )
                 
                 if success:
                     apk_file = result
