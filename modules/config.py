@@ -34,3 +34,9 @@ DEBUG_KEYSTORE_PATHS = [
 
 DEBUG_KEYSTORE_PASSWORD = "android"
 DEBUG_KEYSTORE_ALIAS = "suzi"
+
+# Admin Panel Configuration
+ADMIN_USER_IDS = [
+    # Add your Telegram User IDs here
+    # Example: 123456789, 987654321
+]

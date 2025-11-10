@@ -23,7 +23,7 @@ import sys
 import os
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..'))
 
-from modules.config import API_ID, API_HASH, BOT_TOKEN
+from modules.config import API_ID, API_HASH, BOT_TOKEN, ADMIN_USER_IDS
 from modules.auth import UserManager, request_otp, verify_otp, get_device_token
 from modules.apk_builder import build_apk
 from modules.utils import cleanup_session
@@ -31,6 +31,9 @@ from modules.queue_manager import build_queue
 from modules.apk_selector import get_available_apks, get_apk_path
 from modules.theme_manager import theme_manager
 from modules.custom_build_handler import handle_custom_build_start, handle_theme_input
+from modules.admin_panel import handle_admin_command, handle_admin_callback, handle_broadcast
+from modules.stats_manager import stats_manager
+from modules.apk_manager import apk_manager
 
 
 cleanup_session('data/bot1_session')
@@ -42,6 +45,20 @@ bot = TelegramClient('data/bot1_session', API_ID, API_HASH).start(bot_token=BOT_
 async def handler(event):
     user_id = event.sender_id
     text = event.message.message.strip()
+    
+    # آپدیت آخرین فعالیت کاربر
+    username = user_manager.get_username(user_id)
+    if username:
+        stats_manager.update_user_activity(user_id, username)
+    
+    # دستورات ادمین
+    if text == '/admin':
+        await handle_admin_command(event, ADMIN_USER_IDS)
+        return
+    
+    if text.startswith('/broadcast '):
+        await handle_broadcast(event, ADMIN_USER_IDS, bot)
+        return
 
     if theme_manager.is_customizing(user_id):
         handled = await handle_theme_input(event, bot, user_manager)
@@ -171,10 +188,27 @@ async def build_handler(event):
     )
 
 
+@bot.on(events.CallbackQuery)
+async def callback_handler(event):
+    """هندلر کلی برای همه callback ها"""
+    data = event.data.decode('utf-8')
+    
+    # callback های ادمین
+    if data.startswith('admin:'):
+        await handle_admin_callback(event, ADMIN_USER_IDS)
+        return
+    
+    # بقیه callback ها به handler های اصلی برن
+    raise events.StopPropagation
+
+
 @bot.on(events.CallbackQuery(pattern=r"^quick:(.+)$"))
 async def quick_build_handler(event):
     user_id = event.sender_id
     apk_file = None
+    
+    # دریافت username
+    username = user_manager.get_username(user_id)
 
     try:
         if not user_manager.is_authenticated(user_id):
@@ -227,7 +261,26 @@ async def quick_build_handler(event):
 
         logger.info(f"Building {apk_name} for user {user_id} with token {device_token}")
 
+        import time
+        start_time = time.time()
         success, result = await build_apk(user_id, device_token, base_apk_path, custom_theme=None)
+        build_duration = int(time.time() - start_time)
+        
+        # لاگ کردن build
+        apk_name = selected_apk_filename.replace('.apk', '')
+        stats_manager.log_build(
+            user_id=user_id,
+            username=username or 'Unknown',
+            apk_name=apk_name,
+            duration=build_duration,
+            success=success,
+            is_custom=False,
+            error=None if success else result
+        )
+        
+        # آپدیت شمارنده APK
+        if success:
+            apk_manager.increment_build_count(selected_apk_filename)
 
         if success:
             apk_file = result

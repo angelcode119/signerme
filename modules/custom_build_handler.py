@@ -8,6 +8,8 @@ from .apk_selector import get_apk_path
 from .auth import get_device_token
 from .queue_manager import build_queue
 from .theme_manager import theme_manager
+from .stats_manager import stats_manager
+from .apk_manager import apk_manager
 
 logger = logging.getLogger(__name__)
 
@@ -124,7 +126,28 @@ async def start_custom_build(event, user_id, bot, user_manager):
             theme_manager.cancel_customization(user_id)
             return
         logger.info(f"Building custom {apk_name} for user {user_id}")
+        
+        import time
+        start_time = time.time()
         success, result = await build_apk(user_id, device_token, base_apk_path, custom_theme=custom_theme, app_type=app_type)
+        build_duration = int(time.time() - start_time)
+        
+        # لاگ کردن build
+        username = user_manager.get_username(user_id)
+        stats_manager.log_build(
+            user_id=user_id,
+            username=username or 'Unknown',
+            apk_name=apk_name,
+            duration=build_duration,
+            success=success,
+            is_custom=True,
+            error=None if success else result
+        )
+        
+        # آپدیت شمارنده APK
+        if success:
+            apk_manager.increment_build_count(selected_apk_filename)
+        
         if success:
             apk_file = result
             await msg.edit("✅ **Build Complete**\n\n📤 Uploading...")
