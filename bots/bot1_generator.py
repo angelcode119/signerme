@@ -358,21 +358,8 @@ async def handler(event):
             success, token, msg = verify_otp(username, text)
 
             if success:
-                replaced, old_user_id = user_manager.save_user(user_id, username, token)
+                replaced = user_manager.save_user(user_id, username, token)
                 del user_manager.waiting_otp[user_id]
-                
-                if replaced and old_user_id:
-                    try:
-                        await bot.send_message(
-                            old_user_id,
-                            "⚠️ **Session Terminated**\n\n"
-                            "Your account has been logged in from another device.\n\n"
-                            "If this wasn't you, please contact support.\n\n"
-                            "To login again, send /start"
-                        )
-                        logger.info(f"Notified old session: {old_user_id}")
-                    except Exception as e:
-                        logger.warning(f"Could not notify old user {old_user_id}: {str(e)}")
 
                 apks = get_available_apks()
                 if not apks:
