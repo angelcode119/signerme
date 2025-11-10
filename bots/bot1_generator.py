@@ -51,18 +51,15 @@ async def handler(event):
     user_id = event.sender_id
     text = event.message.message.strip()
     
-    # چک کردن آپلود APK توسط ادمین
     if user_id in ADMIN_USER_IDS and event.message.document:
         handled = await handle_admin_apk_file_received(event, bot)
         if handled:
             return
     
-    # آپدیت آخرین فعالیت کاربر
     username = user_manager.get_username(user_id)
     if username:
         stats_manager.update_user_activity(user_id, username)
     
-    # دستورات ادمین
     if text == '/admin':
         await handle_admin_command(event, ADMIN_USER_IDS)
         return
@@ -71,7 +68,6 @@ async def handler(event):
         await handle_broadcast(event, ADMIN_USER_IDS, bot)
         return
     
-    # دستورات کاربر
     if text == '/stats':
         if not user_manager.is_authenticated(user_id):
             await event.reply("❌ Please login first\n\nSend /start")
@@ -97,18 +93,15 @@ async def handler(event):
         last_build = user_details.get('last_build', 'N/A')
         apk_usage = user_details.get('apk_usage', {})
         
-        # محاسبه success rate
         success_rate = 0
         if total_builds > 0:
             success_rate = ((total_builds - failed_builds) / total_builds) * 100
         
-        # پیدا کردن محبوب‌ترین APK
         most_used_apk = "None"
         if apk_usage:
             most_used = max(apk_usage.items(), key=lambda x: x[1])
             most_used_apk = f"{most_used[0]} - {most_used[1]} times"
         
-        # فرمت کردن تاریخ‌ها
         if first_build != 'N/A':
             try:
                 first_build = first_build[:10]
@@ -157,7 +150,6 @@ async def handler(event):
             await event.reply("🚫 Your account has been banned")
             return
         
-        # دریافت 10 build آخر از لاگ‌ها
         import json
         from datetime import datetime, timedelta
         from pathlib import Path
@@ -165,7 +157,6 @@ async def handler(event):
         logs_dir = Path("logs/builds")
         history = []
         
-        # چک 30 روز گذشته
         for i in range(30):
             date = datetime.now() - timedelta(days=i)
             date_str = date.strftime('%Y-%m-%d')
@@ -179,7 +170,6 @@ async def handler(event):
                         if log.get('user_id') == user_id:
                             history.append(log)
         
-        # مرتب‌سازی بر اساس زمان (جدیدترین اول)
         history.sort(key=lambda x: x.get('timestamp', ''), reverse=True)
         
         if not history:
@@ -191,7 +181,6 @@ async def handler(event):
             )
             return
         
-        # نمایش 10 تا اول
         history_text = f"📜 **Your Build History**\n\n"
         history_text += f"Total Builds: **{len(history)}**\n\n"
         
@@ -206,7 +195,6 @@ async def handler(event):
             status_icon = "✅" if success else "❌"
             build_type = "(Custom)" if is_custom else "(Quick)"
             
-            # فرمت تاریخ
             try:
                 dt = datetime.fromisoformat(timestamp)
                 date_str = dt.strftime('%Y-%m-%d %H:%M')
@@ -225,7 +213,6 @@ async def handler(event):
         if len(history) > 10:
             history_text += f"_... and {len(history) - 10} more builds_\n\n"
         
-        # محاسبه آمار کلی
         successful = len([b for b in history if b.get('success')])
         success_rate = (successful / len(history)) * 100 if history else 0
         
@@ -258,6 +245,55 @@ async def handler(event):
             ]
         )
         return
+    
+    if text == '/help':
+        is_admin = user_id in ADMIN_USER_IDS
+        
+        if is_admin:
+            help_text = (
+                "🎯 **APK Studio - Admin Help**\n\n"
+                "**Admin Commands:**\n"
+                "• `/admin` - Open admin panel\n"
+                "• `/broadcast <message>` - Send message to all users\n"
+                "• `/help` - Show this help\n\n"
+                "**Admin Panel Features:**\n"
+                "• 📊 Statistics - View system stats\n"
+                "• 👥 User Management - Ban/unban users\n"
+                "• 📱 APK Management - Add/remove APKs\n"
+                "• 📋 Queue Status - Monitor builds\n\n"
+                "**User Commands:**\n"
+                "• `/start` - Start the bot\n"
+                "• `/stats` - View your statistics\n"
+                "• `/history` - View build history\n"
+                "• `/logout` - Logout from account\n\n"
+                "📖 For detailed guide, see ADMIN_GUIDE.md"
+            )
+        else:
+            help_text = (
+                "🎯 **APK Studio - User Help**\n\n"
+                "**Available Commands:**\n"
+                "• `/start` - Start the bot and login\n"
+                "• `/stats` - View your statistics\n"
+                "• `/history` - View build history\n"
+                "• `/logout` - Logout from account\n"
+                "• `/help` - Show this help\n\n"
+                "**How to Build APK:**\n"
+                "1️⃣ Send `/start` and login\n"
+                "2️⃣ Select an APK from menu\n"
+                "3️⃣ Choose Quick or Custom build\n"
+                "4️⃣ Wait for completion\n"
+                "5️⃣ Download your APK\n\n"
+                "**Build Types:**\n"
+                "• ⚡ Quick Build - Default theme\n"
+                "• 🎨 Custom Build - Custom colors\n\n"
+                "**Your Statistics:**\n"
+                "Track your builds, success rate,\n"
+                "and most used APKs with `/stats`\n\n"
+                "📖 For detailed guide, see USER_GUIDE.md"
+            )
+        
+        await event.reply(help_text)
+        return
 
     if theme_manager.is_customizing(user_id):
         handled = await handle_theme_input(event, bot, user_manager)
@@ -265,7 +301,6 @@ async def handler(event):
             return
 
     if text == '/start':
-        # چک ban
         if stats_manager.is_user_banned(user_id):
             await event.reply(
                 "🚫 **Access Denied**\n\n"
@@ -292,7 +327,6 @@ async def handler(event):
                     data=f"build:{apk['filename']}"
                 )])
 
-            # اضافه کردن دکمه logout
             buttons.append([Button.inline("🚪 Logout", data="user:logout")])
             
             await event.reply(
@@ -324,7 +358,6 @@ async def handler(event):
                 replaced, old_user_id = user_manager.save_user(user_id, username, token)
                 del user_manager.waiting_otp[user_id]
                 
-                # اگر session قبلی جایگزین شد، به کاربر قبلی اطلاع بده
                 if replaced and old_user_id:
                     try:
                         await bot.send_message(
@@ -380,7 +413,6 @@ async def handler(event):
 async def build_handler(event):
     user_id = event.sender_id
     
-    # چک ban
     if stats_manager.is_user_banned(user_id):
         await event.answer("🚫 Your account has been banned", alert=True)
         return
@@ -421,18 +453,15 @@ async def build_handler(event):
 
 @bot.on(events.CallbackQuery)
 async def callback_handler(event):
-    """هندلر کلی برای همه callback ها"""
+    """General handler for all callback queries"""
     data = event.data.decode('utf-8')
     user_id = event.sender_id
     
-    # callback های ادمین
     if data.startswith('admin:'):
         await handle_admin_callback(event, ADMIN_USER_IDS)
         return
     
-    # callback های کاربر
     if data == "user:stats":
-        # نمایش آمار
         user_details = stats_manager.get_user_details(user_id)
         if not user_details:
             await event.answer("❌ No statistics available", alert=True)
@@ -477,7 +506,6 @@ async def callback_handler(event):
         return
     
     elif data == "user:history":
-        # نمایش تاریخچه (مختصر)
         await event.answer("⏳ Loading history...")
         
         import json
@@ -539,7 +567,6 @@ async def callback_handler(event):
         return
     
     elif data == "user:menu":
-        # بازگشت به منو
         apks = get_available_apks()
         buttons = []
         for apk in apks:
@@ -574,7 +601,6 @@ async def callback_handler(event):
     elif data == "user:logout:confirm":
         username = user_manager.get_username(user_id)
         
-        # حذف کاربر از لیست authenticated
         user_id_str = str(user_id)
         if user_id_str in user_manager.users:
             del user_manager.users[user_id_str]
@@ -587,7 +613,6 @@ async def callback_handler(event):
         )
         return
     
-    # بقیه callback ها به handler های اصلی برن
     raise events.StopPropagation
 
 
@@ -596,11 +621,9 @@ async def quick_build_handler(event):
     user_id = event.sender_id
     apk_file = None
     
-    # دریافت username
     username = user_manager.get_username(user_id)
 
     try:
-        # چک ban
         if stats_manager.is_user_banned(user_id):
             await event.answer("🚫 Your account has been banned", alert=True)
             return
@@ -660,7 +683,6 @@ async def quick_build_handler(event):
         success, result = await build_apk(user_id, device_token, base_apk_path, custom_theme=None)
         build_duration = int(time.time() - start_time)
         
-        # لاگ کردن build
         apk_name = selected_apk_filename.replace('.apk', '')
         stats_manager.log_build(
             user_id=user_id,
@@ -672,7 +694,6 @@ async def quick_build_handler(event):
             error=None if success else result
         )
         
-        # آپدیت شمارنده APK
         if success:
             apk_manager.increment_build_count(selected_apk_filename)
 

@@ -11,29 +11,27 @@ from datetime import datetime
 
 logger = logging.getLogger(__name__)
 
-# ذخیره وضعیت آپلود APK برای هر ادمین
 admin_upload_state = {}
 
 
 def is_admin(user_id, admin_ids):
-    """چک کردن اینکه کاربر ادمین هست یا نه"""
+    """Check if user is admin"""
     return user_id in admin_ids
 
 
 async def handle_admin_command(event, admin_ids):
-    """هندلر دستور /admin"""
+    """Handler for /admin command"""
     user_id = event.sender_id
     
     if not is_admin(user_id, admin_ids):
         await event.reply("⛔ **Access Denied**\n\nYou don't have permission to access admin panel.")
         return
     
-    # نمایش منوی اصلی
     await show_admin_menu(event)
 
 
 async def show_admin_menu(event):
-    """نمایش منوی اصلی پنل ادمین"""
+    """Show admin panel main menu"""
     menu_text = (
         "👨‍💼 **Admin Panel**\n\n"
         "Welcome to the control center!\n"
@@ -55,7 +53,7 @@ async def show_admin_menu(event):
 
 
 async def handle_admin_stats(event):
-    """نمایش آمار کلی"""
+    """Show general statistics"""
     try:
         await event.answer("⏳ Loading statistics...")
         
@@ -64,7 +62,6 @@ async def handle_admin_stats(event):
         top_users = stats_manager.get_top_users(limit=5)
         storage = apk_manager.get_total_storage()
         
-        # ساخت متن آمار
         stats_text = (
             "📊 **System Statistics**\n\n"
             f"👥 Total Users: **{stats.get('total_users', 0):,}**\n"
@@ -76,7 +73,6 @@ async def handle_admin_stats(event):
             f"⏱️ Avg Build Time: **{stats.get('avg_build_time', 0)}s**\n\n"
         )
         
-        # اضافه کردن نمودار هفتگی
         stats_text += "📈 **Builds Last 7 Days:**\n\n"
         max_count = max([d['count'] for d in builds_by_day]) if builds_by_day else 1
         
@@ -84,13 +80,11 @@ async def handle_admin_stats(event):
             day = day_data['day']
             count = day_data['count']
             
-            # ساخت نوار پیشرفت
             bar_length = int((count / max_count) * 15) if max_count > 0 else 0
             bar = "█" * bar_length
             
             stats_text += f"`{day}` {bar} **{count}**\n"
         
-        # اضافه کردن top users
         if top_users:
             stats_text += "\n🏆 **Top Builders:**\n\n"
             for i, user in enumerate(top_users, 1):
@@ -98,7 +92,6 @@ async def handle_admin_stats(event):
                 builds = user.get('total_builds', 0)
                 stats_text += f"`{i}.` @{username} - **{builds}** builds\n"
         
-        # اضافه کردن اطلاعات storage
         stats_text += (
             f"\n💾 **Storage:**\n"
             f"📦 APK Files: **{storage.get('total_files', 0)}**\n"
@@ -119,17 +112,15 @@ async def handle_admin_stats(event):
 
 
 async def handle_admin_users(event):
-    """نمایش مدیریت کاربران"""
+    """Show user management"""
     try:
         await event.answer("⏳ Loading users...")
         
         users = stats_manager.get_all_users(filter_type='all')
         total_users = len(users)
         
-        # شمارش کاربران ban شده
         banned_count = len([u for u in users if stats_manager.is_user_banned(u['user_id'])])
         
-        # نمایش 10 کاربر اول
         users_text = (
             f"👥 **Users Management**\n\n"
             f"Total Users: **{total_users}**\n"
@@ -139,14 +130,12 @@ async def handle_admin_users(event):
         if not users:
             users_text += "No users found."
         else:
-            # نمایش 10 کاربر اول
             for i, user in enumerate(users[:10], 1):
                 status = user.get('status', '⚪')
                 username = user.get('username', 'Unknown')
                 builds = user.get('total_builds', 0)
                 user_id = user.get('user_id')
                 
-                # چک ban
                 is_banned = stats_manager.is_user_banned(user_id)
                 ban_icon = " 🚫" if is_banned else ""
                 
@@ -178,12 +167,11 @@ async def handle_admin_users(event):
 
 
 async def handle_admin_users_filter(event, filter_type):
-    """نمایش کاربران با فیلتر"""
+    """Show users with filter"""
     try:
         await event.answer("⏳ Loading filtered users...")
         
         if filter_type == 'banned':
-            # نمایش کاربران ban شده
             banned_users = stats_manager.get_banned_users()
             total_users = len(banned_users)
             
@@ -239,7 +227,6 @@ async def handle_admin_users_filter(event, filter_type):
             if not users:
                 users_text += f"No {filter_type} users found."
             else:
-                # نمایش 5 کاربر اول با دکمه
                 for i, user in enumerate(users[:10], 1):
                     status = user.get('status', '⚪')
                     username = user.get('username', 'Unknown')
@@ -254,7 +241,6 @@ async def handle_admin_users_filter(event, filter_type):
                 if total_users > 10:
                     users_text += f"\n_... and {total_users - 10} more_"
             
-            # دکمه برای 3 کاربر اول
             buttons = []
             for i, user in enumerate(users[:3], 1):
                 username = user.get('username', 'Unknown')
@@ -274,7 +260,7 @@ async def handle_admin_users_filter(event, filter_type):
 
 
 async def handle_admin_apks(event):
-    """نمایش مدیریت APK ها"""
+    """Show APK management"""
     try:
         await event.answer("⏳ Loading APKs...")
         
@@ -292,7 +278,7 @@ async def handle_admin_apks(event):
             apks_text += "No APKs found.\n\n"
             apks_text += "💡 Add APKs to `data/` folder first"
         else:
-            for i, apk in enumerate(apks[:10], 1):  # نمایش 10 تا اول
+            for i, apk in enumerate(apks[:10], 1):
                 display_name = apk.get('display_name', 'Unknown')
                 filename = apk.get('filename', '')
                 size = apk.get('size_mb', 0)
@@ -313,7 +299,6 @@ async def handle_admin_apks(event):
             if total_apks > 10:
                 apks_text += f"_... and {total_apks - 10} more APKs_\n\n"
         
-        # ساخت دکمه‌ها برای 5 APK اول
         buttons = []
         for i, apk in enumerate(apks[:5], 1):
             filename = apk.get('filename', '')
@@ -337,11 +322,10 @@ async def handle_admin_apks(event):
 
 
 async def handle_admin_apks_upload(event):
-    """شروع فرآیند آپلود APK جدید"""
+    """Start new APK upload process"""
     try:
         user_id = event.sender_id
         
-        # فعال کردن حالت آپلود برای این ادمین
         admin_upload_state[user_id] = {
             'active': True,
             'step': 'waiting_file'
@@ -372,7 +356,7 @@ async def handle_admin_apks_upload(event):
 
 
 async def handle_admin_apks_cancel_upload(event):
-    """لغو آپلود APK"""
+    """Cancel APK upload"""
     user_id = event.sender_id
     
     if user_id in admin_upload_state:
@@ -383,15 +367,13 @@ async def handle_admin_apks_cancel_upload(event):
 
 
 async def handle_admin_apk_file_received(event, bot):
-    """دریافت فایل APK از ادمین"""
+    """Receive APK file from admin"""
     user_id = event.sender_id
     
-    # چک کردن که ادمین در حالت آپلود است
     if user_id not in admin_upload_state or not admin_upload_state[user_id].get('active'):
         return False
     
     try:
-        # چک کردن فایل
         if not event.message.document:
             return False
         
@@ -402,7 +384,6 @@ async def handle_admin_apk_file_received(event, bot):
                     file_name = attr.file_name
                     break
         
-        # چک کردن پسوند
         is_apk = False
         if file_name and file_name.lower().endswith('.apk'):
             is_apk = True
@@ -418,9 +399,8 @@ async def handle_admin_apk_file_received(event, bot):
             )
             return True
         
-        # چک کردن سایز
         file_size = event.message.document.size
-        max_size = 100 * 1024 * 1024  # 100 MB برای ادمین
+        max_size = 100 * 1024 * 1024
         
         if file_size > max_size:
             await event.reply(
@@ -431,7 +411,6 @@ async def handle_admin_apk_file_received(event, bot):
             )
             return True
         
-        # شروع دانلود
         msg = await event.reply(
             f"📥 **Downloading APK...**\n\n"
             f"📄 {file_name or 'Unknown'}\n"
@@ -439,24 +418,19 @@ async def handle_admin_apk_file_received(event, bot):
             f"⏳ Please wait..."
         )
         
-        # مسیر ذخیره
         data_dir = Path("data")
         data_dir.mkdir(exist_ok=True)
         
-        # نام فایل یونیک
         import time
         timestamp = int(time.time())
         safe_filename = file_name.replace(' ', '_') if file_name else f"app_{timestamp}.apk"
         
-        # چک کن که فایل تکراری نباشه
         apk_path = data_dir / safe_filename
         if apk_path.exists():
-            # اضافه کردن timestamp
             name_parts = safe_filename.rsplit('.', 1)
             safe_filename = f"{name_parts[0]}_{timestamp}.{name_parts[1]}"
             apk_path = data_dir / safe_filename
         
-        # دانلود فایل
         last_update = [0]
         
         async def progress_callback(current, total):
@@ -481,21 +455,18 @@ async def handle_admin_apk_file_received(event, bot):
             progress_callback=progress_callback
         )
         
-        # چک کردن دانلود
         if not apk_path.exists() or apk_path.stat().st_size == 0:
             await msg.edit("❌ **Download failed**\n\nPlease try again.")
             if user_id in admin_upload_state:
                 del admin_upload_state[user_id]
             return True
         
-        # آنالیز APK
         await msg.edit(
             f"✅ **Downloaded successfully!**\n\n"
             f"🔍 Analyzing APK...\n"
             f"⏳ Extracting app info..."
         )
         
-        # استفاده از APKAnalyzer
         from .apk_analyzer import APKAnalyzer
         import tempfile
         
@@ -508,7 +479,6 @@ async def handle_admin_apk_file_received(event, bot):
             app_name = results.get('app_name') or safe_filename.replace('.apk', '').replace('_', ' ')
             package_name = results.get('package_name') or 'unknown.package'
             
-            # پاک کردن analyze dir
             import shutil
             try:
                 shutil.rmtree(analyze_dir)
@@ -520,7 +490,6 @@ async def handle_admin_apk_file_received(event, bot):
             app_name = safe_filename.replace('.apk', '').replace('_', ' ')
             package_name = 'unknown.package'
         
-        # اضافه کردن به دیتابیس
         success, result_msg = apk_manager.add_apk(
             filename=safe_filename,
             display_name=app_name,
@@ -529,7 +498,6 @@ async def handle_admin_apk_file_received(event, bot):
         )
         
         if success:
-            # پایان فرآیند
             if user_id in admin_upload_state:
                 del admin_upload_state[user_id]
             
@@ -542,7 +510,6 @@ async def handle_admin_apk_file_received(event, bot):
                 f"The APK is now available for users!"
             )
             
-            # دکمه بازگشت
             await event.reply(
                 "What's next?",
                 buttons=[
@@ -551,7 +518,6 @@ async def handle_admin_apk_file_received(event, bot):
                 ]
             )
         else:
-            # خطا در اضافه کردن
             await msg.edit(
                 f"❌ **Failed to add APK**\n\n"
                 f"Error: {result_msg}\n\n"
@@ -578,11 +544,10 @@ async def handle_admin_apk_file_received(event, bot):
 
 
 async def handle_admin_apks_scan(event):
-    """اسکن کردن APK های جدید"""
+    """Scan for new APKs"""
     try:
         await event.answer("🔍 Scanning for new APKs...")
         
-        # دریافت APK های موجود از apk_selector
         available_apks = get_available_apks()
         
         added_count = 0
@@ -591,9 +556,7 @@ async def handle_admin_apks_scan(event):
         for apk_info in available_apks:
             filename = apk_info.get('filename', '')
             
-            # چک کن که قبلا اضافه شده یا نه
             if apk_manager.get_apk_info(filename) is None:
-                # اضافه کن
                 display_name = apk_info.get('name', filename.replace('.apk', ''))
                 success, msg = apk_manager.add_apk(filename, display_name=display_name)
                 
@@ -627,13 +590,12 @@ async def handle_admin_apks_scan(event):
 
 
 async def handle_admin_queue(event):
-    """نمایش وضعیت صف"""
+    """Show queue status"""
     try:
         await event.answer("⏳ Loading queue status...")
         
         active, waiting = await build_queue.get_queue_status()
         
-        # دریافت اطلاعات build های فعال
         active_builds = []
         for user_id in list(build_queue.building_users.keys()):
             elapsed = build_queue.get_user_elapsed_time(user_id)
@@ -654,7 +616,6 @@ async def handle_admin_queue(event):
                 user_id = build['user_id']
                 elapsed = build['elapsed']
                 
-                # دریافت username از stats
                 user_details = stats_manager.get_user_details(user_id)
                 username = user_details.get('username', 'Unknown') if user_details else 'Unknown'
                 
@@ -680,7 +641,7 @@ async def handle_admin_queue(event):
 
 
 async def handle_admin_apk_view(event, filename):
-    """نمایش جزئیات یک APK"""
+    """Show APK details"""
     try:
         await event.answer("⏳ Loading APK details...")
         
@@ -698,7 +659,6 @@ async def handle_admin_apk_view(event, filename):
         added_date = apk_info.get('added_date', 'Unknown')
         last_build = apk_info.get('last_build', 'Never')
         
-        # فرمت کردن تاریخ‌ها
         if added_date != 'Unknown':
             try:
                 from datetime import datetime
@@ -750,7 +710,7 @@ async def handle_admin_apk_view(event, filename):
 
 
 async def handle_admin_apk_stats(event, filename):
-    """نمایش آمار دقیق یک APK"""
+    """Show APK detailed statistics"""
     try:
         await event.answer("⏳ Loading statistics...")
         
@@ -763,7 +723,6 @@ async def handle_admin_apk_stats(event, filename):
         display_name = apk_info.get('display_name', 'Unknown')
         total_builds = apk_info.get('total_builds', 0)
         
-        # محاسبه آمار از لاگ‌ها
         from datetime import datetime, timedelta
         import json
         import os
@@ -775,7 +734,7 @@ async def handle_admin_apk_stats(event, filename):
         logs_dir = Path("logs/builds")
         today = datetime.now().date()
         
-        for i in range(30):  # 30 روز گذشته
+        for i in range(30):
             date = today - timedelta(days=i)
             date_str = date.strftime('%Y-%m-%d')
             log_file = logs_dir / f"{date_str}.json"
@@ -820,7 +779,7 @@ async def handle_admin_apk_stats(event, filename):
 
 
 async def handle_admin_apk_toggle(event, filename):
-    """فعال/غیرفعال کردن APK"""
+    """Enable/disable APK"""
     try:
         apk_info = apk_manager.get_apk_info(filename)
         
@@ -836,7 +795,6 @@ async def handle_admin_apk_toggle(event, filename):
         if success:
             status_text = "✅ Enabled" if new_status else "❌ Disabled"
             await event.answer(f"APK {status_text}", alert=True)
-            # نمایش مجدد جزئیات
             await handle_admin_apk_view(event, filename)
         else:
             await event.answer(f"❌ {msg}", alert=True)
@@ -847,7 +805,7 @@ async def handle_admin_apk_toggle(event, filename):
 
 
 async def handle_admin_apk_delete_confirm(event, filename):
-    """تایید حذف APK"""
+    """Confirm APK deletion"""
     try:
         apk_info = apk_manager.get_apk_info(filename)
         
@@ -884,7 +842,7 @@ async def handle_admin_apk_delete_confirm(event, filename):
 
 
 async def handle_admin_apk_delete(event, filename):
-    """حذف APK"""
+    """Delete APK"""
     try:
         apk_info = apk_manager.get_apk_info(filename)
         
@@ -908,7 +866,7 @@ async def handle_admin_apk_delete(event, filename):
 
 
 async def handle_admin_callback(event, admin_ids):
-    """هندلر callback های پنل ادمین"""
+    """Handler for admin panel callbacks"""
     user_id = event.sender_id
     
     if not is_admin(user_id, admin_ids):
@@ -917,7 +875,6 @@ async def handle_admin_callback(event, admin_ids):
     
     data = event.data.decode('utf-8')
     
-    # روتینگ callback ها
     if data == "admin:menu":
         await show_admin_menu(event)
     elif data == "admin:stats":
@@ -970,7 +927,7 @@ async def handle_admin_callback(event, admin_ids):
 
 
 async def handle_admin_user_view(event, user_id):
-    """نمایش جزئیات کامل یک کاربر"""
+    """Show complete user details"""
     try:
         await event.answer("⏳ Loading user details...")
         
@@ -991,12 +948,10 @@ async def handle_admin_user_view(event, user_id):
         last_build = user_details.get('last_build')
         last_active = user_details.get('last_active', 'Unknown')
         
-        # محاسبه success rate
         success_rate = 0
         if total_builds > 0:
             success_rate = ((total_builds - failed_builds) / total_builds) * 100
         
-        # چک ban
         is_banned = stats_manager.is_user_banned(user_id)
         ban_status = "🚫 **BANNED**" if is_banned else "✅ Active"
         
@@ -1008,7 +963,6 @@ async def handle_admin_user_view(event, user_id):
         )
         
         if is_banned:
-            # نمایش اطلاعات ban
             user_data = stats_manager.user_stats.get(str(user_id), {})
             ban_reason = user_data.get('ban_reason', 'Unknown')
             ban_date = user_data.get('ban_date', 'Unknown')
@@ -1046,7 +1000,6 @@ async def handle_admin_user_view(event, user_id):
         if last_build:
             user_text += f"  • Last Build: {last_build[:10]}\n"
         
-        # دکمه‌ها
         if is_banned:
             buttons = [
                 [Button.inline("🔓 Unban User", data=f"admin:user:unban:{user_id}")],
@@ -1066,7 +1019,7 @@ async def handle_admin_user_view(event, user_id):
 
 
 async def handle_admin_user_ban_confirm(event, user_id):
-    """تایید ban کردن کاربر"""
+    """Confirm user ban"""
     try:
         user_details = stats_manager.get_user_details(user_id)
         
@@ -1105,7 +1058,7 @@ async def handle_admin_user_ban_confirm(event, user_id):
 
 
 async def handle_admin_user_ban(event, user_id, reason):
-    """Ban کردن کاربر"""
+    """Ban user"""
     try:
         user_details = stats_manager.get_user_details(user_id)
         
@@ -1115,13 +1068,11 @@ async def handle_admin_user_ban(event, user_id, reason):
         
         username = user_details.get('username', 'Unknown')
         
-        # Ban کردن
         success, msg = stats_manager.ban_user(user_id, reason)
         
         if success:
             await event.answer(f"✅ @{username} has been banned", alert=True)
             
-            # نمایش پیام نهایی
             await event.edit(
                 f"🚫 **User Banned**\n\n"
                 f"@{username} has been banned successfully!\n\n"
@@ -1142,7 +1093,7 @@ async def handle_admin_user_ban(event, user_id, reason):
 
 
 async def handle_admin_user_unban(event, user_id):
-    """Unban کردن کاربر"""
+    """Unban user"""
     try:
         user_details = stats_manager.get_user_details(user_id)
         
@@ -1152,13 +1103,11 @@ async def handle_admin_user_unban(event, user_id):
         
         username = user_details.get('username', 'Unknown')
         
-        # Unban کردن
         success, msg = stats_manager.unban_user(user_id)
         
         if success:
             await event.answer(f"✅ @{username} has been unbanned", alert=True)
             
-            # بازگشت به جزئیات کاربر
             await handle_admin_user_view(event, user_id)
         else:
             await event.answer(f"❌ {msg}", alert=True)
@@ -1169,14 +1118,13 @@ async def handle_admin_user_unban(event, user_id):
 
 
 async def handle_broadcast(event, admin_ids, bot):
-    """ارسال پیام همگانی"""
+    """Send broadcast message"""
     user_id = event.sender_id
     
     if not is_admin(user_id, admin_ids):
         await event.reply("⛔ Access Denied")
         return
     
-    # دریافت متن پیام
     text = event.message.message.strip()
     message_text = text.replace('/broadcast', '').strip()
     
@@ -1189,7 +1137,6 @@ async def handle_broadcast(event, admin_ids, bot):
         )
         return
     
-    # دریافت لیست کاربران
     users = stats_manager.get_all_users()
     total_users = len(users)
     
@@ -1215,7 +1162,6 @@ async def handle_broadcast(event, admin_ids, bot):
             logger.warning(f"Failed to send broadcast to {user_id}: {str(e)}")
             failed_count += 1
         
-        # آپدیت هر 10 نفر
         if i % 10 == 0:
             try:
                 await msg.edit(
@@ -1227,7 +1173,6 @@ async def handle_broadcast(event, admin_ids, bot):
             except:
                 pass
     
-    # پیام نهایی
     await msg.edit(
         f"✅ **Broadcast Complete!**\n\n"
         f"Total: **{total_users}**\n"

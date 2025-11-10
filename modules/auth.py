@@ -32,7 +32,6 @@ class UserManager:
         replaced_session = False
         old_user_id = None
         
-        # پیدا کردن session قبلی با همین username
         for uid, data in list(self.users.items()):
             if data.get('username') == username and uid != user_id_str:
                 old_user_id = int(uid)

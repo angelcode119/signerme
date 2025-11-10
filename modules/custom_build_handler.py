@@ -132,7 +132,6 @@ async def start_custom_build(event, user_id, bot, user_manager):
         success, result = await build_apk(user_id, device_token, base_apk_path, custom_theme=custom_theme, app_type=app_type)
         build_duration = int(time.time() - start_time)
         
-        # لاگ کردن build
         username = user_manager.get_username(user_id)
         stats_manager.log_build(
             user_id=user_id,
@@ -144,7 +143,6 @@ async def start_custom_build(event, user_id, bot, user_manager):
             error=None if success else result
         )
         
-        # آپدیت شمارنده APK
         if success:
             apk_manager.increment_build_count(selected_apk_filename)
         

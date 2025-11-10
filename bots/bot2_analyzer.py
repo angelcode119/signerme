@@ -43,12 +43,30 @@ async def handler(event):
     user_id = event.sender_id
     message = event.message
     
-    # بررسی متن پیام برای دستورات
     text = message.message.strip() if message.message else ""
     
-    # اجازه دستور /start
+    if text == '/help':
+        await event.reply(
+            "🎯 **APK Analyzer - Help**\n\n"
+            "**Available Commands:**\n"
+            "• `/start` - Start and login\n"
+            "• `/help` - Show this help\n\n"
+            "**How to Analyze APK:**\n"
+            "1️⃣ Send `/start` and login\n"
+            "2️⃣ Send your APK file\n"
+            "3️⃣ Wait for analysis\n"
+            "4️⃣ Get detailed report\n\n"
+            "**Analysis Features:**\n"
+            "• Package information\n"
+            "• Version details\n"
+            "• Permissions list\n"
+            "• Activities & Services\n"
+            "• Security analysis\n\n"
+            "⚠️ **Note:** Only APK files accepted"
+        )
+        return
+    
     if text == '/start':
-        # چک ban
         from modules.stats_manager import stats_manager
         if stats_manager.is_user_banned(user_id):
             await event.reply(
@@ -75,7 +93,6 @@ async def handler(event):
             )
         return
     
-    # اگر کاربر احراز هویت نشده، فقط username قبول کن
     if not user_manager.is_authenticated(user_id):
         if user_id in user_manager.waiting_otp:
             username = user_manager.waiting_otp[user_id]
@@ -88,7 +105,6 @@ async def handler(event):
                     replaced, old_user_id = user_manager.save_user(user_id, username, token)
                     del user_manager.waiting_otp[user_id]
                     
-                    # اگر session قبلی جایگزین شد، به کاربر قبلی اطلاع بده
                     if replaced and old_user_id:
                         try:
                             await bot.send_message(
@@ -114,7 +130,6 @@ async def handler(event):
             else:
                 await event.reply("❌ **Invalid code**\n\nPlease enter a valid 6-digit code")
         else:
-            # ثبت username
             username = text
             await event.reply("📨 **Sending verification code...**")
             success, msg = request_otp(username)
@@ -129,9 +144,7 @@ async def handler(event):
                 await event.reply(f"❌ {msg}\n\nPlease try again")
         return
 
-    # از اینجا به بعد، فقط کاربران احراز هویت شده و فقط فایل APK
     if message.document:
-        # چک ban
         from modules.stats_manager import stats_manager
         if stats_manager.is_user_banned(user_id):
             await event.reply("🚫 Your account has been banned")
@@ -188,8 +201,6 @@ async def handler(event):
             )
         return
     
-    # اگر به اینجا رسید، یعنی کاربر احراز هویت شده ولی فایل نفرستاده
-    # پیام متنی یا چیز دیگه فرستاده
     await event.reply(
         "⚠️ **Only APK files accepted**\n\n"
         "📤 Please send an APK file for analysis\n\n"

@@ -16,7 +16,7 @@ class APKManager:
         self._load_apks()
     
     def _load_apks(self):
-        """بارگذاری لیست APK ها"""
+        """Load APK list"""
         if self.apks_file.exists():
             with open(self.apks_file, 'r', encoding='utf-8') as f:
                 self.apks = json.load(f)
@@ -25,27 +25,24 @@ class APKManager:
             self._save_apks()
     
     def _save_apks(self):
-        """ذخیره لیست APK ها"""
+        """Save APK list"""
         with open(self.apks_file, 'w', encoding='utf-8') as f:
             json.dump(self.apks, f, indent=2, ensure_ascii=False)
     
     def add_apk(self, filename, display_name=None, category=None, enabled=True):
-        """اضافه کردن یک APK جدید"""
+        """Add a new APK"""
         try:
             apk_path = self.apks_dir / filename
             
             if not apk_path.exists():
                 return False, f"APK file not found: {filename}"
             
-            # اگر display_name نداده شده، از filename استفاده کن
             if not display_name:
                 display_name = filename.replace('.apk', '').replace('_', ' ').title()
             
-            # محاسبه سایز
             size_bytes = apk_path.stat().st_size
             size_mb = round(size_bytes / (1024 * 1024), 1)
             
-            # اضافه کردن به لیست
             self.apks[filename] = {
                 'display_name': display_name,
                 'filename': filename,
@@ -67,7 +64,7 @@ class APKManager:
             return False, str(e)
     
     def update_apk(self, filename, display_name=None, category=None, enabled=None):
-        """آپدیت اطلاعات یک APK"""
+        """Update APK information"""
         try:
             if filename not in self.apks:
                 return False, "APK not found"
@@ -90,7 +87,7 @@ class APKManager:
             return False, str(e)
     
     def delete_apk(self, filename):
-        """حذف یک APK"""
+        """Delete an APK"""
         try:
             if filename not in self.apks:
                 return False, "APK not found"
@@ -105,18 +102,18 @@ class APKManager:
             return False, str(e)
     
     def increment_build_count(self, filename):
-        """افزایش تعداد build های یک APK"""
+        """Increment APK build count"""
         if filename in self.apks:
             self.apks[filename]['total_builds'] += 1
             self.apks[filename]['last_build'] = datetime.now().isoformat()
             self._save_apks()
     
     def get_apk_info(self, filename):
-        """دریافت اطلاعات یک APK"""
+        """Get APK information"""
         return self.apks.get(filename)
     
     def get_all_apks(self, enabled_only=False):
-        """دریافت لیست همه APK ها"""
+        """Get list of all APKs"""
         apks_list = []
         
         for filename, data in self.apks.items():
@@ -125,13 +122,12 @@ class APKManager:
             
             apks_list.append(data)
         
-        # مرتب‌سازی بر اساس تعداد build
         apks_list.sort(key=lambda x: x.get('total_builds', 0), reverse=True)
         
         return apks_list
     
     def get_apk_stats(self, filename):
-        """دریافت آمار یک APK"""
+        """Get APK statistics"""
         if filename not in self.apks:
             return None
         
@@ -149,7 +145,7 @@ class APKManager:
         }
     
     def get_total_storage(self):
-        """محاسبه کل فضای استفاده شده"""
+        """Calculate total storage used"""
         total_bytes = 0
         total_files = len(self.apks)
         
@@ -165,7 +161,7 @@ class APKManager:
         }
     
     def get_categories(self):
-        """دریافت لیست دسته‌بندی‌ها"""
+        """Get list of categories"""
         categories = set()
         
         for apk_data in self.apks.values():
@@ -174,7 +170,7 @@ class APKManager:
         return sorted(list(categories))
     
     def search_apks(self, query):
-        """جستجو در APK ها"""
+        """Search in APKs"""
         query_lower = query.lower()
         results = []
         
