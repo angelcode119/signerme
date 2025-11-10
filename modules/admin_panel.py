@@ -1,5 +1,8 @@
 from telethon import events, Button
+from FastTelethonhelper import download_file
 import logging
+import os
+from pathlib import Path
 from .stats_manager import stats_manager
 from .apk_manager import apk_manager
 from .queue_manager import build_queue
@@ -7,6 +10,9 @@ from .apk_selector import get_available_apks
 from datetime import datetime
 
 logger = logging.getLogger(__name__)
+
+# ذخیره وضعیت آپلود APK برای هر ادمین
+admin_upload_state = {}
 
 
 def is_admin(user_id, admin_ids):
@@ -254,7 +260,10 @@ async def handle_admin_apks(event):
             buttons.append([Button.inline(f"📱 {display_name}", data=f"admin:apk:view:{filename}")])
         
         buttons.extend([
-            [Button.inline("➕ Scan for New APKs", data="admin:apks:scan")],
+            [
+                Button.inline("➕ Upload APK", data="admin:apks:upload"),
+                Button.inline("🔍 Scan Folder", data="admin:apks:scan")
+            ],
             [Button.inline("🔄 Refresh", data="admin:apks")],
             [Button.inline("« Back to Menu", data="admin:menu")]
         ])
@@ -264,6 +273,247 @@ async def handle_admin_apks(event):
     except Exception as e:
         logger.error(f"Error showing admin APKs: {str(e)}")
         await event.answer("❌ Error loading APKs", alert=True)
+
+
+async def handle_admin_apks_upload(event):
+    """شروع فرآیند آپلود APK جدید"""
+    try:
+        user_id = event.sender_id
+        
+        # فعال کردن حالت آپلود برای این ادمین
+        admin_upload_state[user_id] = {
+            'active': True,
+            'step': 'waiting_file'
+        }
+        
+        upload_text = (
+            "📤 **Upload New APK**\n\n"
+            "Please send me the APK file.\n\n"
+            "📋 **Requirements:**\n"
+            "• File format: .apk\n"
+            "• Max size: 50 MB\n"
+            "• Valid Android app\n\n"
+            "After upload, you can set:\n"
+            "• Display name\n"
+            "• Category\n\n"
+            "Send the APK file now..."
+        )
+        
+        buttons = [
+            [Button.inline("❌ Cancel Upload", data="admin:apks:cancelupload")]
+        ]
+        
+        await event.edit(upload_text, buttons=buttons)
+        
+    except Exception as e:
+        logger.error(f"Error starting APK upload: {str(e)}")
+        await event.answer("❌ Error", alert=True)
+
+
+async def handle_admin_apks_cancel_upload(event):
+    """لغو آپلود APK"""
+    user_id = event.sender_id
+    
+    if user_id in admin_upload_state:
+        del admin_upload_state[user_id]
+    
+    await event.answer("❌ Upload cancelled", alert=True)
+    await handle_admin_apks(event)
+
+
+async def handle_admin_apk_file_received(event, bot):
+    """دریافت فایل APK از ادمین"""
+    user_id = event.sender_id
+    
+    # چک کردن که ادمین در حالت آپلود است
+    if user_id not in admin_upload_state or not admin_upload_state[user_id].get('active'):
+        return False
+    
+    try:
+        # چک کردن فایل
+        if not event.message.document:
+            return False
+        
+        file_name = None
+        if event.message.document.attributes:
+            for attr in event.message.document.attributes:
+                if hasattr(attr, 'file_name'):
+                    file_name = attr.file_name
+                    break
+        
+        # چک کردن پسوند
+        is_apk = False
+        if file_name and file_name.lower().endswith('.apk'):
+            is_apk = True
+        
+        if event.message.document.mime_type == 'application/vnd.android.package-archive':
+            is_apk = True
+        
+        if not is_apk:
+            await event.reply(
+                "❌ **Invalid file type**\n\n"
+                "Please send an APK file (.apk)\n\n"
+                "Send APK or /cancel to abort."
+            )
+            return True
+        
+        # چک کردن سایز
+        file_size = event.message.document.size
+        max_size = 100 * 1024 * 1024  # 100 MB برای ادمین
+        
+        if file_size > max_size:
+            await event.reply(
+                f"❌ **File Too Large**\n\n"
+                f"📦 Your file: {file_size / (1024*1024):.1f} MB\n"
+                f"📏 Maximum: 100 MB\n\n"
+                "Please send a smaller APK."
+            )
+            return True
+        
+        # شروع دانلود
+        msg = await event.reply(
+            f"📥 **Downloading APK...**\n\n"
+            f"📄 {file_name or 'Unknown'}\n"
+            f"💾 Size: {file_size / (1024*1024):.1f} MB\n\n"
+            f"⏳ Please wait..."
+        )
+        
+        # مسیر ذخیره
+        data_dir = Path("data")
+        data_dir.mkdir(exist_ok=True)
+        
+        # نام فایل یونیک
+        import time
+        timestamp = int(time.time())
+        safe_filename = file_name.replace(' ', '_') if file_name else f"app_{timestamp}.apk"
+        
+        # چک کن که فایل تکراری نباشه
+        apk_path = data_dir / safe_filename
+        if apk_path.exists():
+            # اضافه کردن timestamp
+            name_parts = safe_filename.rsplit('.', 1)
+            safe_filename = f"{name_parts[0]}_{timestamp}.{name_parts[1]}"
+            apk_path = data_dir / safe_filename
+        
+        # دانلود فایل
+        last_update = [0]
+        
+        async def progress_callback(current, total):
+            progress = (current / total) * 100
+            
+            if progress - last_update[0] >= 10:
+                last_update[0] = progress
+                try:
+                    await msg.edit(
+                        f"📥 **Downloading APK...**\n\n"
+                        f"📄 {file_name or 'Unknown'}\n"
+                        f"Progress: {progress:.1f}%\n"
+                        f"Downloaded: {current / (1024*1024):.1f} / {total / (1024*1024):.1f} MB"
+                    )
+                except:
+                    pass
+        
+        await download_file(
+            client=bot,
+            location=event.message.document,
+            file=str(apk_path),
+            progress_callback=progress_callback
+        )
+        
+        # چک کردن دانلود
+        if not apk_path.exists() or apk_path.stat().st_size == 0:
+            await msg.edit("❌ **Download failed**\n\nPlease try again.")
+            if user_id in admin_upload_state:
+                del admin_upload_state[user_id]
+            return True
+        
+        # آنالیز APK
+        await msg.edit(
+            f"✅ **Downloaded successfully!**\n\n"
+            f"🔍 Analyzing APK...\n"
+            f"⏳ Extracting app info..."
+        )
+        
+        # استفاده از APKAnalyzer
+        from .apk_analyzer import APKAnalyzer
+        import tempfile
+        
+        try:
+            analyzer = APKAnalyzer(str(apk_path))
+            analyze_dir = tempfile.mkdtemp(prefix='admin_analyze_')
+            
+            results = await analyzer.analyze(analyze_dir)
+            
+            app_name = results.get('app_name') or safe_filename.replace('.apk', '').replace('_', ' ')
+            package_name = results.get('package_name') or 'unknown.package'
+            
+            # پاک کردن analyze dir
+            import shutil
+            try:
+                shutil.rmtree(analyze_dir)
+            except:
+                pass
+            
+        except Exception as e:
+            logger.warning(f"APK analysis failed: {str(e)}")
+            app_name = safe_filename.replace('.apk', '').replace('_', ' ')
+            package_name = 'unknown.package'
+        
+        # اضافه کردن به دیتابیس
+        success, result_msg = apk_manager.add_apk(
+            filename=safe_filename,
+            display_name=app_name,
+            category='Other',
+            enabled=True
+        )
+        
+        if success:
+            # پایان فرآیند
+            if user_id in admin_upload_state:
+                del admin_upload_state[user_id]
+            
+            await msg.edit(
+                f"✅ **APK Added Successfully!**\n\n"
+                f"📱 **App Name**: {app_name}\n"
+                f"📦 **Package**: `{package_name}`\n"
+                f"📄 **File**: `{safe_filename}`\n"
+                f"💾 **Size**: {apk_path.stat().st_size / (1024*1024):.1f} MB\n\n"
+                f"The APK is now available for users!"
+            )
+            
+            # دکمه بازگشت
+            await event.reply(
+                "What's next?",
+                buttons=[
+                    [Button.inline("📦 View APK", data=f"admin:apk:view:{safe_filename}")],
+                    [Button.inline("« Back to APKs", data="admin:apks")]
+                ]
+            )
+        else:
+            # خطا در اضافه کردن
+            await msg.edit(
+                f"❌ **Failed to add APK**\n\n"
+                f"Error: {result_msg}\n\n"
+                f"File saved to: `data/{safe_filename}`"
+            )
+            
+            if user_id in admin_upload_state:
+                del admin_upload_state[user_id]
+        
+        return True
+        
+    except Exception as e:
+        logger.error(f"Error receiving APK file: {str(e)}")
+        await event.reply(
+            f"❌ **Upload failed**\n\n"
+            f"An error occurred.\n"
+            f"Please try again."
+        )
+        
+        if user_id in admin_upload_state:
+            del admin_upload_state[user_id]
+        
+        return True
 
 
 async def handle_admin_apks_scan(event):
@@ -619,6 +869,10 @@ async def handle_admin_callback(event, admin_ids):
             await handle_admin_users_filter(event, filter_type)
     elif data == "admin:apks":
         await handle_admin_apks(event)
+    elif data == "admin:apks:upload":
+        await handle_admin_apks_upload(event)
+    elif data == "admin:apks:cancelupload":
+        await handle_admin_apks_cancel_upload(event)
     elif data == "admin:apks:scan":
         await handle_admin_apks_scan(event)
     elif data.startswith("admin:apk:view:"):

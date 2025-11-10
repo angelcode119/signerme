@@ -31,7 +31,12 @@ from modules.queue_manager import build_queue
 from modules.apk_selector import get_available_apks, get_apk_path
 from modules.theme_manager import theme_manager
 from modules.custom_build_handler import handle_custom_build_start, handle_theme_input
-from modules.admin_panel import handle_admin_command, handle_admin_callback, handle_broadcast
+from modules.admin_panel import (
+    handle_admin_command, 
+    handle_admin_callback, 
+    handle_broadcast,
+    handle_admin_apk_file_received
+)
 from modules.stats_manager import stats_manager
 from modules.apk_manager import apk_manager
 
@@ -45,6 +50,12 @@ bot = TelegramClient('data/bot1_session', API_ID, API_HASH).start(bot_token=BOT_
 async def handler(event):
     user_id = event.sender_id
     text = event.message.message.strip()
+    
+    # چک کردن آپلود APK توسط ادمین
+    if user_id in ADMIN_USER_IDS and event.message.document:
+        handled = await handle_admin_apk_file_received(event, bot)
+        if handled:
+            return
     
     # آپدیت آخرین فعالیت کاربر
     username = user_manager.get_username(user_id)
