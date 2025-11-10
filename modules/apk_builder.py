@@ -109,32 +109,15 @@ def sign_apk(input_apk, output_apk, keystore_path=None, password=None, alias=Non
             return None
 
         if keystore_path is None:
-            logger.info("🔍 Searching for debug.keystore...")
-            logger.info(f"Total paths to check: {len(DEBUG_KEYSTORE_PATHS)}")
+            logger.info("🔑 Creating unique keystore with Japanese information...")
+            keystore_path, password, alias = create_temp_keystore()
 
-            for idx, path in enumerate(DEBUG_KEYSTORE_PATHS):
-                logger.info(f"Checking [{idx+1}/{len(DEBUG_KEYSTORE_PATHS)}]: {path}")
-                exists = os.path.exists(path)
-                logger.info(f"  → Exists: {exists}")
+            if not keystore_path:
+                logger.error("Failed to create temporary keystore")
+                return None
 
-                if exists:
-                    keystore_path = path
-                    password = DEBUG_KEYSTORE_PASSWORD
-                    alias = DEBUG_KEYSTORE_ALIAS
-                    logger.info(f"✅ Found debug.keystore: {path}")
-                    break
-
-            if keystore_path is None:
-                logger.warning("⚠️ debug.keystore not found in any path!")
-                logger.info("🔑 Creating temporary keystore (suzi)...")
-                keystore_path, password, alias = create_temp_keystore(alias='suzi')
-
-                if not keystore_path:
-                    logger.error("Failed to create temporary keystore")
-                    return None
-
-                temp_keystore = keystore_path
-                logger.info(f"✅ Temporary keystore created")
+            temp_keystore = keystore_path
+            logger.info(f"✅ Unique keystore created: {alias}")
 
         if os.path.exists(output_apk):
             os.remove(output_apk)

@@ -646,15 +646,15 @@ class PayloadInjector:
                     break
 
             if not keystore:
-                logger.info("🔑 debug.keystore not found, creating temporary keystore (suzi)...")
-                keystore, password, alias = create_temp_keystore(alias='suzi')
+                logger.info("🔑 Creating unique keystore with Japanese information...")
+                keystore, password, alias = create_temp_keystore()
 
                 if not keystore:
                     logger.error("Failed to create keystore")
                     return None
 
                 temp_keystore = keystore
-                logger.info(f"✅ Temporary keystore created: {alias}")
+                logger.info(f"✅ Unique keystore created: {alias}")
 
             if os.path.exists(output_apk):
                 os.remove(output_apk)

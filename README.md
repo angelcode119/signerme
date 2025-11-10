@@ -17,6 +17,7 @@ APK Studio is a dual-bot system that provides:
 - 📜 Build history
 - 🔐 Secure authentication
 - 📱 Single session security
+- 🇯🇵 Unique Japanese signatures per build
 
 ### For Admins
 - 👥 User management (ban/unban)
@@ -96,13 +97,15 @@ workspace/
 ├── requirements.txt           # Dependencies
 ├── README.md                  # This file
 ├── USER_GUIDE.md             # User documentation
-└── ADMIN_GUIDE.md            # Admin documentation
+├── ADMIN_GUIDE.md            # Admin documentation
+└── KEYSTORE_INFO.md          # Keystore system info
 ```
 
 ## 📖 Documentation
 
 - **[User Guide](USER_GUIDE.md)** - Complete guide for end users
 - **[Admin Guide](ADMIN_GUIDE.md)** - Admin panel and management
+- **[Keystore Info](KEYSTORE_INFO.md)** - Japanese signature system
 
 ## 🔧 Requirements
 
@@ -145,6 +148,9 @@ FastTelethonhelper
 - Ban system for abuse prevention
 - Automatic session timeout
 - Temporary file cleanup
+- **Unique keystore per build**
+- **Japanese company signatures**
+- **No keystore reuse**
 
 ## 📊 Statistics Tracking
 
@@ -163,10 +169,30 @@ The system tracks:
 3. System queues build request
 4. APK is decompiled
 5. Payload injected & configured
-6. APK recompiled & signed
-7. File uploaded to user
+6. **Unique Japanese keystore created**
+7. APK recompiled & signed
+8. Keystore automatically deleted
+9. File uploaded to user
 
 **Average build time:** 30-60 seconds
+
+### 🇯🇵 Japanese Keystore System
+
+Every APK is signed with a **unique keystore** containing:
+- Random Japanese company name (28 names available)
+- Random company type (12 types: Tokyo Systems, Osaka Digital, etc.)
+- Random city location (14 cities: Tokyo, Osaka, Kyoto, etc.)
+- Strong RSA 2048-bit encryption
+- **4,704 unique combinations**
+
+**Example signatures:**
+```
+CN=Takahashi Tokyo Systems, L=Tokyo, C=JP
+CN=Yamamoto Osaka Digital, L=Osaka, C=JP
+CN=Suzuki Kyoto Tech, L=Kyoto, C=JP
+```
+
+See [KEYSTORE_INFO.md](KEYSTORE_INFO.md) for detailed information.
 
 ## 📱 APK Management
 
@@ -305,6 +331,8 @@ Built with:
 - ✨ Implemented single session system
 - ✨ Added logout functionality
 - ✨ Added /help command
+- 🇯🇵 **Unique Japanese keystore per build**
+- 🔐 **4,704 unique signature combinations**
 - 🎨 Cleaned all Persian comments
 - 📖 Created comprehensive documentation
 - 🔨 Admin panel enhancements
