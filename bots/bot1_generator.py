@@ -265,8 +265,7 @@ async def handler(event):
                 "• `/start` - Start the bot\n"
                 "• `/stats` - View your statistics\n"
                 "• `/history` - View build history\n"
-                "• `/logout` - Logout from account\n\n"
-                "📖 For detailed guide, see ADMIN_GUIDE.md"
+                "• `/logout` - Logout from account"
             )
         else:
             help_text = (
@@ -288,8 +287,7 @@ async def handler(event):
                 "• 🎨 Custom Build - Custom colors\n\n"
                 "**Your Statistics:**\n"
                 "Track your builds, success rate,\n"
-                "and most used APKs with `/stats`\n\n"
-                "📖 For detailed guide, see USER_GUIDE.md"
+                "and most used APKs with `/stats`"
             )
         
         await event.reply(help_text)
