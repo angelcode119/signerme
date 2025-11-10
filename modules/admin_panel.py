@@ -1,4 +1,10 @@
+try:
 from telethon import events, Button
+except Exception as e:
+    if 'MessageNotModifiedError' in str(e) or 'not modified' in str(e).lower():
+        pass
+    else:
+        logger.error(f'Edit error: {str(e)}')
 from FastTelethonhelper import download_file
 import logging
 import os
@@ -118,8 +124,14 @@ async def handle_admin_stats(event):
             [Button.inline("« Back to Menu", data="admin:menu")]
         ]
         
+        try:
         await event.edit(stats_text, buttons=buttons)
         
+        except Exception as e:
+            if 'MessageNotModifiedError' in str(e) or 'not modified' in str(e).lower():
+                pass
+            else:
+                logger.error(f'Edit error: {str(e)}')
     except Exception as e:
         logger.error(f"Error showing admin stats: {str(e)}", exc_info=True)
         try:
@@ -175,8 +187,14 @@ async def handle_admin_users(event):
             [Button.inline("« Back to Menu", data="admin:menu")]
         ]
         
+        try:
         await event.edit(users_text, buttons=buttons)
         
+        except Exception as e:
+            if 'MessageNotModifiedError' in str(e) or 'not modified' in str(e).lower():
+                pass
+            else:
+                logger.error(f'Edit error: {str(e)}')
     except Exception as e:
         logger.error(f"Error showing admin users: {str(e)}", exc_info=True)
         try:
@@ -269,8 +287,14 @@ async def handle_admin_users_filter(event, filter_type):
                 [Button.inline("« Back to Menu", data="admin:menu")]
             ])
         
+        try:
         await event.edit(users_text, buttons=buttons)
         
+        except Exception as e:
+            if 'MessageNotModifiedError' in str(e) or 'not modified' in str(e).lower():
+                pass
+            else:
+                logger.error(f'Edit error: {str(e)}')
     except Exception as e:
         logger.error(f"Error showing filtered users: {str(e)}", exc_info=True)
         try:
@@ -330,7 +354,13 @@ async def handle_admin_apks(event):
             [Button.inline("« Back to Menu", data="admin:menu")]
         ])
         
-        await event.edit(apks_text, buttons=buttons)
+        try:
+            await event.edit(apks_text, buttons=buttons)
+        except Exception as e:
+            if "MessageNotModifiedError" in str(e) or "not modified" in str(e).lower():
+                await event.answer("✅ Already up to date", alert=False)
+            else:
+                raise
         
     except Exception as e:
         logger.error(f"Error showing admin APKs: {str(e)}", exc_info=True)
@@ -363,8 +393,14 @@ async def handle_admin_apks_upload(event):
             [Button.inline("❌ Cancel Upload", data="admin:apks:cancelupload")]
         ]
         
+        try:
         await event.edit(upload_text, buttons=buttons)
         
+        except Exception as e:
+            if 'MessageNotModifiedError' in str(e) or 'not modified' in str(e).lower():
+                pass
+            else:
+                logger.error(f'Edit error: {str(e)}')
     except Exception as e:
         logger.error(f"Error starting APK upload: {str(e)}", exc_info=True)
         try:
@@ -549,8 +585,14 @@ async def handle_admin_apks_scan(event):
             [Button.inline("« Back to Menu", data="admin:menu")]
         ]
         
+        try:
         await event.edit(result_text, buttons=buttons)
         
+        except Exception as e:
+            if 'MessageNotModifiedError' in str(e) or 'not modified' in str(e).lower():
+                pass
+            else:
+                logger.error(f'Edit error: {str(e)}')
     except Exception as e:
         logger.error(f"Error scanning APKs: {str(e)}", exc_info=True)
         try:
@@ -597,8 +639,14 @@ async def handle_admin_queue(event):
             [Button.inline("« Back to Menu", data="admin:menu")]
         ]
         
+        try:
         await event.edit(queue_text, buttons=buttons)
         
+        except Exception as e:
+            if 'MessageNotModifiedError' in str(e) or 'not modified' in str(e).lower():
+                pass
+            else:
+                logger.error(f'Edit error: {str(e)}')
     except Exception as e:
         logger.error(f"Error showing queue: {str(e)}", exc_info=True)
         try:
@@ -697,8 +745,14 @@ async def handle_admin_apk_view(event, filename):
             [Button.inline("« Back", data="admin:apks")]
         ]
         
+        try:
         await event.edit(apk_text, buttons=buttons)
         
+        except Exception as e:
+            if 'MessageNotModifiedError' in str(e) or 'not modified' in str(e).lower():
+                pass
+            else:
+                logger.error(f'Edit error: {str(e)}')
     except Exception as e:
         logger.error(f"Error showing APK view: {str(e)}", exc_info=True)
         try:
@@ -733,8 +787,14 @@ async def handle_admin_user_view(event, user_id):
             [Button.inline("« Back", data="admin:users")]
         ]
         
+        try:
         await event.edit(user_text, buttons=buttons)
         
+        except Exception as e:
+            if 'MessageNotModifiedError' in str(e) or 'not modified' in str(e).lower():
+                pass
+            else:
+                logger.error(f'Edit error: {str(e)}')
     except Exception as e:
         logger.error(f"Error showing user view: {str(e)}", exc_info=True)
         try:

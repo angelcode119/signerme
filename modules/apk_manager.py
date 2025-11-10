@@ -10,9 +10,10 @@ logger = logging.getLogger(__name__)
 class APKManager:
     def __init__(self):
         self.apks_file = Path("data/apks.json")
-        self.apks_dir = Path("data")
+        self.apks_dir = Path("apks")
         
         self.apks_file.parent.mkdir(parents=True, exist_ok=True)
+        self.apks_dir.mkdir(parents=True, exist_ok=True)
         self._load_apks()
     
     def _load_apks(self):
