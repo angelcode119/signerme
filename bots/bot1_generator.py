@@ -1,5 +1,5 @@
 from telethon import TelegramClient, events, Button
-from FastTelethon import upload_file
+from FastTelethonhelper import upload_file
 import asyncio
 import os
 import sys

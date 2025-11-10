@@ -1,5 +1,5 @@
 from telethon import events, Button
-from FastTelethon import upload_file
+from FastTelethonhelper import upload_file
 import asyncio
 import os
 import logging
