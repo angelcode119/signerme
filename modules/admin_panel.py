@@ -225,7 +225,7 @@ async def handle_admin_apks(event):
             apks_text += "No APKs found.\n\n"
             apks_text += "💡 Add APKs to `data/` folder first"
         else:
-            for i, apk in enumerate(apks, 1):
+            for i, apk in enumerate(apks[:10], 1):  # نمایش 10 تا اول
                 display_name = apk.get('display_name', 'Unknown')
                 filename = apk.get('filename', '')
                 size = apk.get('size_mb', 0)
@@ -235,16 +235,29 @@ async def handle_admin_apks(event):
                 status_icon = "✅" if enabled else "❌"
                 
                 apks_text += (
-                    f"{status_icon} **{i}. {display_name}**\n"
+                    f"{status_icon} **{display_name}**\n"
                     f"   📄 `{filename}`\n"
-                    f"   💾 {size} MB | 🔨 {builds} builds\n\n"
+                    f"   💾 {size} MB | 🔨 {builds} builds\n"
+                    f"   [📊 Stats](callback:admin:apk:stats:{filename}) | "
+                    f"[✏️ Edit](callback:admin:apk:edit:{filename}) | "
+                    f"[🗑️ Delete](callback:admin:apk:delete:{filename})\n\n"
                 )
+            
+            if total_apks > 10:
+                apks_text += f"_... and {total_apks - 10} more APKs_\n\n"
         
-        buttons = [
+        # ساخت دکمه‌ها برای 5 APK اول
+        buttons = []
+        for i, apk in enumerate(apks[:5], 1):
+            filename = apk.get('filename', '')
+            display_name = apk.get('display_name', 'Unknown')
+            buttons.append([Button.inline(f"📱 {display_name}", data=f"admin:apk:view:{filename}")])
+        
+        buttons.extend([
             [Button.inline("➕ Scan for New APKs", data="admin:apks:scan")],
             [Button.inline("🔄 Refresh", data="admin:apks")],
             [Button.inline("« Back to Menu", data="admin:menu")]
-        ]
+        ])
         
         await event.edit(apks_text, buttons=buttons)
         
@@ -355,6 +368,234 @@ async def handle_admin_queue(event):
         await event.answer("❌ Error loading queue", alert=True)
 
 
+async def handle_admin_apk_view(event, filename):
+    """نمایش جزئیات یک APK"""
+    try:
+        await event.answer("⏳ Loading APK details...")
+        
+        apk_info = apk_manager.get_apk_info(filename)
+        
+        if not apk_info:
+            await event.answer("❌ APK not found!", alert=True)
+            return
+        
+        display_name = apk_info.get('display_name', 'Unknown')
+        size_mb = apk_info.get('size_mb', 0)
+        total_builds = apk_info.get('total_builds', 0)
+        category = apk_info.get('category', 'Other')
+        enabled = apk_info.get('enabled', True)
+        added_date = apk_info.get('added_date', 'Unknown')
+        last_build = apk_info.get('last_build', 'Never')
+        
+        # فرمت کردن تاریخ‌ها
+        if added_date != 'Unknown':
+            try:
+                from datetime import datetime
+                dt = datetime.fromisoformat(added_date)
+                added_date = dt.strftime('%Y-%m-%d %H:%M')
+            except:
+                pass
+        
+        if last_build != 'Never':
+            try:
+                from datetime import datetime
+                dt = datetime.fromisoformat(last_build)
+                last_build = dt.strftime('%Y-%m-%d %H:%M')
+            except:
+                pass
+        
+        status = "✅ Enabled" if enabled else "❌ Disabled"
+        
+        apk_text = (
+            f"📦 **APK Details**\n\n"
+            f"📱 **Name**: {display_name}\n"
+            f"📄 **File**: `{filename}`\n"
+            f"💾 **Size**: {size_mb} MB\n"
+            f"📂 **Category**: {category}\n"
+            f"🔨 **Total Builds**: {total_builds}\n"
+            f"📅 **Added**: {added_date}\n"
+            f"🕐 **Last Build**: {last_build}\n"
+            f"🔘 **Status**: {status}\n"
+        )
+        
+        buttons = [
+            [
+                Button.inline("✏️ Edit Name", data=f"admin:apk:editname:{filename}"),
+                Button.inline("📊 Full Stats", data=f"admin:apk:stats:{filename}")
+            ],
+            [
+                Button.inline("✅ Enable" if not enabled else "❌ Disable", 
+                            data=f"admin:apk:toggle:{filename}")
+            ],
+            [Button.inline("🗑️ Delete APK", data=f"admin:apk:confirmdelete:{filename}")],
+            [Button.inline("« Back to APKs", data="admin:apks")]
+        ]
+        
+        await event.edit(apk_text, buttons=buttons)
+        
+    except Exception as e:
+        logger.error(f"Error showing APK view: {str(e)}")
+        await event.answer("❌ Error loading APK details", alert=True)
+
+
+async def handle_admin_apk_stats(event, filename):
+    """نمایش آمار دقیق یک APK"""
+    try:
+        await event.answer("⏳ Loading statistics...")
+        
+        apk_info = apk_manager.get_apk_stats(filename)
+        
+        if not apk_info:
+            await event.answer("❌ APK not found!", alert=True)
+            return
+        
+        display_name = apk_info.get('display_name', 'Unknown')
+        total_builds = apk_info.get('total_builds', 0)
+        
+        # محاسبه آمار از لاگ‌ها
+        from datetime import datetime, timedelta
+        import json
+        import os
+        
+        builds_today = 0
+        builds_week = 0
+        builds_month = 0
+        
+        logs_dir = Path("logs/builds")
+        today = datetime.now().date()
+        
+        for i in range(30):  # 30 روز گذشته
+            date = today - timedelta(days=i)
+            date_str = date.strftime('%Y-%m-%d')
+            log_file = logs_dir / f"{date_str}.json"
+            
+            if log_file.exists():
+                with open(log_file, 'r', encoding='utf-8') as f:
+                    logs = json.load(f)
+                    
+                    for log in logs:
+                        if log.get('apk_name') == filename.replace('.apk', '') and log.get('success'):
+                            if i == 0:
+                                builds_today += 1
+                            if i < 7:
+                                builds_week += 1
+                            builds_month += 1
+        
+        stats_text = (
+            f"📊 **APK Statistics**\n\n"
+            f"📱 **{display_name}**\n"
+            f"📄 `{filename}`\n\n"
+            f"🔨 **Total Builds**: {total_builds}\n"
+            f"📈 **Today**: {builds_today}\n"
+            f"📊 **This Week**: {builds_week}\n"
+            f"📅 **This Month**: {builds_month}\n\n"
+        )
+        
+        if total_builds > 0:
+            stats_text += f"📉 **Average**:\n"
+            stats_text += f"   • Daily: ~{int(total_builds / max(1, (datetime.now() - datetime.fromisoformat(apk_info.get('added_date', datetime.now().isoformat()))).days))}\n"
+            stats_text += f"   • Weekly: ~{builds_week}\n"
+        
+        buttons = [
+            [Button.inline("« Back to APK", data=f"admin:apk:view:{filename}")],
+            [Button.inline("« Back to APKs", data="admin:apks")]
+        ]
+        
+        await event.edit(stats_text, buttons=buttons)
+        
+    except Exception as e:
+        logger.error(f"Error showing APK stats: {str(e)}")
+        await event.answer("❌ Error loading statistics", alert=True)
+
+
+async def handle_admin_apk_toggle(event, filename):
+    """فعال/غیرفعال کردن APK"""
+    try:
+        apk_info = apk_manager.get_apk_info(filename)
+        
+        if not apk_info:
+            await event.answer("❌ APK not found!", alert=True)
+            return
+        
+        current_status = apk_info.get('enabled', True)
+        new_status = not current_status
+        
+        success, msg = apk_manager.update_apk(filename, enabled=new_status)
+        
+        if success:
+            status_text = "✅ Enabled" if new_status else "❌ Disabled"
+            await event.answer(f"APK {status_text}", alert=True)
+            # نمایش مجدد جزئیات
+            await handle_admin_apk_view(event, filename)
+        else:
+            await event.answer(f"❌ {msg}", alert=True)
+        
+    except Exception as e:
+        logger.error(f"Error toggling APK: {str(e)}")
+        await event.answer("❌ Error updating APK", alert=True)
+
+
+async def handle_admin_apk_delete_confirm(event, filename):
+    """تایید حذف APK"""
+    try:
+        apk_info = apk_manager.get_apk_info(filename)
+        
+        if not apk_info:
+            await event.answer("❌ APK not found!", alert=True)
+            return
+        
+        display_name = apk_info.get('display_name', 'Unknown')
+        total_builds = apk_info.get('total_builds', 0)
+        
+        confirm_text = (
+            f"⚠️ **Confirm Delete**\n\n"
+            f"Are you sure you want to delete?\n\n"
+            f"📱 **{display_name}**\n"
+            f"📄 `{filename}`\n"
+            f"🔨 {total_builds} builds recorded\n\n"
+            f"⚠️ **Warning**: This action cannot be undone!\n"
+            f"The APK file will remain in data/ folder,\n"
+            f"only removed from bot's database."
+        )
+        
+        buttons = [
+            [
+                Button.inline("✅ Yes, Delete", data=f"admin:apk:delete:{filename}"),
+                Button.inline("❌ Cancel", data=f"admin:apk:view:{filename}")
+            ]
+        ]
+        
+        await event.edit(confirm_text, buttons=buttons)
+        
+    except Exception as e:
+        logger.error(f"Error showing delete confirm: {str(e)}")
+        await event.answer("❌ Error", alert=True)
+
+
+async def handle_admin_apk_delete(event, filename):
+    """حذف APK"""
+    try:
+        apk_info = apk_manager.get_apk_info(filename)
+        
+        if not apk_info:
+            await event.answer("❌ APK not found!", alert=True)
+            return
+        
+        display_name = apk_info.get('display_name', 'Unknown')
+        
+        success, msg = apk_manager.delete_apk(filename)
+        
+        if success:
+            await event.answer(f"✅ {display_name} deleted", alert=True)
+            await handle_admin_apks(event)
+        else:
+            await event.answer(f"❌ {msg}", alert=True)
+        
+    except Exception as e:
+        logger.error(f"Error deleting APK: {str(e)}")
+        await event.answer("❌ Error deleting APK", alert=True)
+
+
 async def handle_admin_callback(event, admin_ids):
     """هندلر callback های پنل ادمین"""
     user_id = event.sender_id
@@ -380,6 +621,21 @@ async def handle_admin_callback(event, admin_ids):
         await handle_admin_apks(event)
     elif data == "admin:apks:scan":
         await handle_admin_apks_scan(event)
+    elif data.startswith("admin:apk:view:"):
+        filename = data.replace("admin:apk:view:", "")
+        await handle_admin_apk_view(event, filename)
+    elif data.startswith("admin:apk:stats:"):
+        filename = data.replace("admin:apk:stats:", "")
+        await handle_admin_apk_stats(event, filename)
+    elif data.startswith("admin:apk:toggle:"):
+        filename = data.replace("admin:apk:toggle:", "")
+        await handle_admin_apk_toggle(event, filename)
+    elif data.startswith("admin:apk:confirmdelete:"):
+        filename = data.replace("admin:apk:confirmdelete:", "")
+        await handle_admin_apk_delete_confirm(event, filename)
+    elif data.startswith("admin:apk:delete:"):
+        filename = data.replace("admin:apk:delete:", "")
+        await handle_admin_apk_delete(event, filename)
     elif data == "admin:queue":
         await handle_admin_queue(event)
 
