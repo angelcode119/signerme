@@ -1,26 +1,42 @@
-# Temporary build files
-builds/
-downloads/
-cache/
-logs/
-temp_*/
+# Python
 __pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
 *.pyc
-*.pyo
-*.pyd
 
-# IDE files
+# Virtual Environment
+venv/
+env/
+ENV/
+
+# IDE
 .vscode/
 .idea/
 *.swp
 *.swo
 
-# OS files
-.DS_Store
-Thumbs.db
+# Session files
+*.session
+*.session-journal
 
 # Logs
 *.log
+bot.log
 
-# Debug files
-debug.keystore
+# Data
+data/*.session
+data/bot*.session
+
+# Builds
+builds/*
+!builds/.gitkeep
+
+# Downloads
+downloads/*
+!downloads/.gitkeep
+
+# OS
+.DS_Store
+Thumbs.db
