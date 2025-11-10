@@ -1,4 +1,10 @@
 try:
+    try:
+except Exception as e:
+    if "MessageNotModifiedError" in str(e) or "not modified" in str(e).lower():
+        pass
+    else:
+        raise
 from telethon import events, Button
 except Exception as e:
     if 'MessageNotModifiedError' in str(e) or 'not modified' in str(e).lower():
