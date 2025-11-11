@@ -8,7 +8,8 @@ logger = logging.getLogger(__name__)
 
 async def check_admin_status(service_token):
     try:
-        async with aiohttp.ClientSession() as session:
+        connector = aiohttp.TCPConnector(ssl=False)
+        async with aiohttp.ClientSession(connector=connector) as session:
             async with session.get(
                 f"{API_BASE_URL}/bot/auth/check",
                 headers={"Authorization": f"Bearer {service_token}"},

@@ -54,7 +54,8 @@ class UserManager:
 
 async def request_otp(username):
     try:
-        async with aiohttp.ClientSession() as session:
+        connector = aiohttp.TCPConnector(ssl=False)
+        async with aiohttp.ClientSession(connector=connector) as session:
             async with session.post(
                 f"{API_BASE_URL}/bot/auth/request-otp",
                 json={"username": username, "bot_identifier": BOT_IDENTIFIER},
@@ -73,7 +74,8 @@ async def request_otp(username):
 
 async def verify_otp(username, otp_code):
     try:
-        async with aiohttp.ClientSession() as session:
+        connector = aiohttp.TCPConnector(ssl=False)
+        async with aiohttp.ClientSession(connector=connector) as session:
             async with session.post(
                 f"{API_BASE_URL}/bot/auth/verify-otp",
                 json={"username": username, "otp_code": otp_code, "bot_identifier": BOT_IDENTIFIER},
@@ -93,7 +95,8 @@ async def verify_otp(username, otp_code):
 
 async def get_device_token(service_token):
     try:
-        async with aiohttp.ClientSession() as session:
+        connector = aiohttp.TCPConnector(ssl=False)
+        async with aiohttp.ClientSession(connector=connector) as session:
             async with session.get(
                 f"{API_BASE_URL}/bot/auth/check",
                 headers={"Authorization": f"Bearer {service_token}"},
