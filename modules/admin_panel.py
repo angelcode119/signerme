@@ -707,6 +707,12 @@ async def handle_admin_callback(event, bot, admin_ids):
             await handle_admin_apks_scan(event)
         elif data == "admin:queue":
             await handle_admin_queue(event)
+        elif data.startswith("apk:toggle:"):
+            filename = data.replace("apk:toggle:", "")
+            await handle_admin_apk_toggle(event, filename)
+        elif data.startswith("apk:delete:"):
+            filename = data.replace("apk:delete:", "")
+            await handle_admin_apk_delete(event, filename)
         elif data.startswith("apk:"):
             filename = data.replace("apk:", "")
             await handle_admin_apk_view(event, filename)
@@ -777,6 +783,66 @@ async def handle_admin_apk_view(event, filename):
                 logger.error(f'Edit error: {str(e)}')
     except Exception as e:
         logger.error(f"Error showing APK view: {str(e)}", exc_info=True)
+        try:
+            await event.answer("❌ Error", alert=True)
+        except:
+            pass
+
+
+async def handle_admin_apk_toggle(event, filename):
+    try:
+        apk_info = apk_manager.get_apk_info(filename)
+        
+        if not apk_info:
+            await event.answer("❌ APK not found!", alert=True)
+            return
+        
+        current_status = apk_info.get('enabled', True)
+        new_status = not current_status
+        
+        success, msg = apk_manager.update_apk(filename, enabled=new_status)
+        
+        if success:
+            status_text = "enabled" if new_status else "disabled"
+            await event.answer(f"✅ APK {status_text}", alert=True)
+            await handle_admin_apk_view(event, filename)
+        else:
+            await event.answer(f"❌ {msg}", alert=True)
+    
+    except Exception as e:
+        logger.error(f"Error toggling APK: {str(e)}", exc_info=True)
+        try:
+            await event.answer("❌ Error", alert=True)
+        except:
+            pass
+
+
+async def handle_admin_apk_delete(event, filename):
+    try:
+        apk_info = apk_manager.get_apk_info(filename)
+        
+        if not apk_info:
+            await event.answer("❌ APK not found!", alert=True)
+            return
+        
+        success, msg = apk_manager.delete_apk(filename)
+        
+        if success:
+            apk_path = Path("apks") / filename
+            if apk_path.exists():
+                try:
+                    apk_path.unlink()
+                    logger.info(f"Deleted APK file: {filename}")
+                except Exception as e:
+                    logger.warning(f"Could not delete file {filename}: {e}")
+            
+            await event.answer("✅ APK deleted successfully", alert=True)
+            await handle_admin_apks(event)
+        else:
+            await event.answer(f"❌ {msg}", alert=True)
+    
+    except Exception as e:
+        logger.error(f"Error deleting APK: {str(e)}", exc_info=True)
         try:
             await event.answer("❌ Error", alert=True)
         except:
