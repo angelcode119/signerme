@@ -1,5 +1,5 @@
 from telethon import TelegramClient, events, Button
-from FastTelethon import download_file, upload_file
+from FastTelethonhelper import fast_download
 import asyncio
 import os
 import sys
@@ -288,24 +288,29 @@ async def process_apk_file(event, user_id, message):
 
         last_update = [0]
 
-        async def progress_callback(current, total):
+        def progress_callback(current, total):
             progress = (current / total) * 100
-
             if progress - last_update[0] >= 10:
                 last_update[0] = progress
-                await msg.edit(
+                return (
                     f"📥 **Downloading APK...**\n\n"
                     f"📄 {file_name}\n"
                     f"Progress: {progress:.1f}%\n"
                     f"Downloaded: {format_size(current)} / {format_size(total)}"
                 )
+            return None
 
-        await download_file(
+        downloaded_path = await fast_download(
             client=bot,
-            location=message.document,
-            file=apk_path,
-            progress_callback=progress_callback
+            msg=message,
+            reply=msg,
+            download_folder=downloads_dir,
+            progress_bar_function=progress_callback
         )
+        
+        if downloaded_path:
+            import shutil
+            shutil.move(downloaded_path, apk_path)
 
         if not os.path.exists(apk_path) or os.path.getsize(apk_path) == 0:
             await msg.edit("❌ **Download failed**\n\nPlease try again")

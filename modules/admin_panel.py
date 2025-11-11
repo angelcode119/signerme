@@ -1,5 +1,5 @@
 from telethon import events, Button
-from FastTelethonhelper import download_file
+from FastTelethonhelper import fast_download
 import logging
 import os
 from pathlib import Path
@@ -476,11 +476,18 @@ async def handle_admin_apk_file_received(event, bot):
             safe_filename = f"{name_parts[0]}_{timestamp}.{name_parts[1]}"
             apk_path = apks_dir / safe_filename
         
-        await download_file(
+        downloaded_path = await fast_download(
             client=bot,
-            location=event.message.document,
-            file=str(apk_path)
+            msg=event.message,
+            download_folder=str(apks_dir)
         )
+        
+        if downloaded_path:
+            final_path = apks_dir / safe_filename
+            if downloaded_path != str(final_path):
+                import shutil
+                shutil.move(downloaded_path, str(final_path))
+            apk_path = final_path
         
         if not apk_path.exists():
             await msg.edit("❌ **Download failed**")
