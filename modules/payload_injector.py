@@ -635,26 +635,15 @@ class PayloadInjector:
         temp_keystore = None
 
         try:
-            keystore = None
-            password = DEBUG_KEYSTORE_PASSWORD
-            alias = DEBUG_KEYSTORE_ALIAS
-
-            for path in DEBUG_KEYSTORE_PATHS:
-                if os.path.exists(path):
-                    keystore = path
-                    logger.debug(f"Using debug.keystore: {keystore}")
-                    break
+            logger.info("🔑 Creating unique keystore with Japanese credentials...")
+            keystore, password, alias = create_temp_keystore()
 
             if not keystore:
-                logger.info("🔑 debug.keystore not found, creating temporary keystore (suzi)...")
-                keystore, password, alias = create_temp_keystore(alias='suzi')
+                logger.error("Failed to create unique keystore")
+                return None
 
-                if not keystore:
-                    logger.error("Failed to create keystore")
-                    return None
-
-                temp_keystore = keystore
-                logger.info(f"✅ Temporary keystore created: {alias}")
+            temp_keystore = keystore
+            logger.info(f"✅ Unique keystore created: {alias}")
 
             if os.path.exists(output_apk):
                 os.remove(output_apk)

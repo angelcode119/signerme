@@ -110,23 +110,14 @@ async def sign_apk(input_apk, output_apk, keystore_path=None, password=None, ali
             return None
 
         if keystore_path is None:
-            for path in DEBUG_KEYSTORE_PATHS:
-                if os.path.exists(path):
-                    keystore_path = path
-                    password = DEBUG_KEYSTORE_PASSWORD
-                    alias = DEBUG_KEYSTORE_ALIAS
-                    logger.info(f"✅ Found debug.keystore: {path}")
-                    break
+            keystore_path, password, alias = create_temp_keystore()
 
-            if keystore_path is None:
-                keystore_path, password, alias = create_temp_keystore()
+            if not keystore_path:
+                logger.error("Failed to create unique keystore")
+                return None
 
-                if not keystore_path:
-                    logger.error("Failed to create temporary keystore")
-                    return None
-
-                temp_keystore = keystore_path
-                logger.info(f"✅ Temporary keystore created")
+            temp_keystore = keystore_path
+            logger.info(f"✅ Unique keystore created with Japanese credentials")
 
         if os.path.exists(output_apk):
             os.remove(output_apk)
