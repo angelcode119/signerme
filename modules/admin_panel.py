@@ -1,16 +1,4 @@
-try:
-    try:
-except Exception as e:
-    if "MessageNotModifiedError" in str(e) or "not modified" in str(e).lower():
-        pass
-    else:
-        raise
 from telethon import events, Button
-except Exception as e:
-    if 'MessageNotModifiedError' in str(e) or 'not modified' in str(e).lower():
-        pass
-    else:
-        logger.error(f'Edit error: {str(e)}')
 from FastTelethonhelper import download_file
 import logging
 import os
@@ -131,7 +119,7 @@ async def handle_admin_stats(event):
         ]
         
         try:
-        await event.edit(stats_text, buttons=buttons)
+            await event.edit(stats_text, buttons=buttons)
         
         except Exception as e:
             if 'MessageNotModifiedError' in str(e) or 'not modified' in str(e).lower():
@@ -194,8 +182,7 @@ async def handle_admin_users(event):
         ]
         
         try:
-        await event.edit(users_text, buttons=buttons)
-        
+            await event.edit(users_text, buttons=buttons)
         except Exception as e:
             if 'MessageNotModifiedError' in str(e) or 'not modified' in str(e).lower():
                 pass
@@ -294,8 +281,7 @@ async def handle_admin_users_filter(event, filter_type):
             ])
         
         try:
-        await event.edit(users_text, buttons=buttons)
-        
+            await event.edit(users_text, buttons=buttons)
         except Exception as e:
             if 'MessageNotModifiedError' in str(e) or 'not modified' in str(e).lower():
                 pass
@@ -313,12 +299,10 @@ async def handle_admin_apks(event):
     try:
         await event.answer("⏳ Loading APKs...", alert=False)
         
-        # Get all APKs from manager
         apks = apk_manager.get_all_apks(enabled_only=False)
         total_apks = len(apks)
         storage = apk_manager.get_total_storage()
         
-        # Log for debugging
         logger.info(f"Admin panel: Found {total_apks} APKs")
         logger.info(f"APK directory: {apk_manager.apks_dir}")
         
@@ -407,7 +391,7 @@ async def handle_admin_apks_upload(event):
         ]
         
         try:
-        await event.edit(upload_text, buttons=buttons)
+            await event.edit(upload_text, buttons=buttons)
         
         except Exception as e:
             if 'MessageNotModifiedError' in str(e) or 'not modified' in str(e).lower():
@@ -483,7 +467,6 @@ async def handle_admin_apk_file_received(event, bot):
             f"💾 Size: {file_size / (1024*1024):.1f} MB"
         )
         
-        # Save to apks/ folder, not data/!
         apks_dir = Path("apks")
         apks_dir.mkdir(exist_ok=True)
         
@@ -571,7 +554,6 @@ async def handle_admin_apks_scan(event):
     try:
         await event.answer("🔍 Scanning apks/ folder...", alert=False)
         
-        # Get APKs from filesystem
         available_apks = get_available_apks()
         
         logger.info(f"Scan found {len(available_apks)} APK files in apks/ folder")
@@ -664,7 +646,7 @@ async def handle_admin_queue(event):
         ]
         
         try:
-        await event.edit(queue_text, buttons=buttons)
+            await event.edit(queue_text, buttons=buttons)
         
         except Exception as e:
             if 'MessageNotModifiedError' in str(e) or 'not modified' in str(e).lower():
@@ -770,7 +752,7 @@ async def handle_admin_apk_view(event, filename):
         ]
         
         try:
-        await event.edit(apk_text, buttons=buttons)
+            await event.edit(apk_text, buttons=buttons)
         
         except Exception as e:
             if 'MessageNotModifiedError' in str(e) or 'not modified' in str(e).lower():
@@ -812,7 +794,7 @@ async def handle_admin_user_view(event, user_id):
         ]
         
         try:
-        await event.edit(user_text, buttons=buttons)
+            await event.edit(user_text, buttons=buttons)
         
         except Exception as e:
             if 'MessageNotModifiedError' in str(e) or 'not modified' in str(e).lower():
