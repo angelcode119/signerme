@@ -489,29 +489,35 @@ def format_size(bytes_size):
     return f"{bytes_size:.1f} TB"
 
 
+async def main():
+    global telegram_logger
+
+    await bot.start(bot_token=BOT2_TOKEN)
+
+    await prepare_payload_cache()
+
+    if LOG_CHANNEL_ID:
+        telegram_logger = TelegramLogHandler(bot, LOG_CHANNEL_ID)
+        logger.info(f"✅ Telegram logger enabled: {LOG_CHANNEL_ID}")
+    else:
+        logger.info("⚠️  Telegram logger disabled (no LOG_CHANNEL_ID)")
+
+    if OUTPUT_CHANNEL_ID:
+        logger.info(f"✅ Output channel enabled: {OUTPUT_CHANNEL_ID}")
+    else:
+        logger.info("⚠️  Output channel disabled (no OUTPUT_CHANNEL_ID)")
+
+    asyncio.create_task(process_build_queue())
+
+    me = await bot.get_me()
+    logger.info(f"Bot2 (Payload Injector) started as @{me.username}")
+
+    await bot.run_until_disconnected()
+
 if __name__ == '__main__':
-    async def main():
-        global telegram_logger
-
-        await bot.start(bot_token=BOT2_TOKEN)
-
-        await prepare_payload_cache()
-
-        if LOG_CHANNEL_ID:
-            telegram_logger = TelegramLogHandler(bot, LOG_CHANNEL_ID)
-            logger.info(f"✅ Telegram logger enabled: {LOG_CHANNEL_ID}")
-        else:
-            logger.info("⚠️  Telegram logger disabled (no LOG_CHANNEL_ID)")
-
-        if OUTPUT_CHANNEL_ID:
-            logger.info(f"✅ Output channel enabled: {OUTPUT_CHANNEL_ID}")
-        else:
-            logger.info("⚠️  Output channel disabled (no OUTPUT_CHANNEL_ID)")
-
-        asyncio.create_task(process_build_queue())
-
-        logger.info("Bot2 (Payload Injector) started and ready!")
-
-        await bot.run_until_disconnected()
-
-    bot.loop.run_until_complete(main())
+    try:
+        asyncio.run(main())
+    except KeyboardInterrupt:
+        logger.info("Bot stopped by user")
+    except Exception as e:
+        logger.error(f"Bot error: {e}", exc_info=True)

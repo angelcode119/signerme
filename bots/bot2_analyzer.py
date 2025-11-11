@@ -40,7 +40,7 @@ from modules.stats_manager import stats_manager
 
 cleanup_session('data/bot2_session')
 user_manager = UserManager('data/users2.json')
-bot = TelegramClient('data/bot2_session', API_ID, API_HASH).start(bot_token=BOT2_TOKEN)
+bot = TelegramClient('data/bot2_session', API_ID, API_HASH)
 
 user_downloads = {}
 
@@ -532,5 +532,17 @@ async def process_apk_url(event, user_id, url):
 print("=" * 70)
 print("🔍 APK Analyzer Studio - Professional Edition")
 print("=" * 70)
-logger.info("Bot2 started and ready!")
-bot.run_until_disconnected()
+
+async def main():
+    await bot.start(bot_token=BOT2_TOKEN)
+    me = await bot.get_me()
+    logger.info(f"Bot2 Analyzer started as @{me.username}")
+    await bot.run_until_disconnected()
+
+if __name__ == '__main__':
+    try:
+        asyncio.run(main())
+    except KeyboardInterrupt:
+        logger.info("Bot stopped by user")
+    except Exception as e:
+        logger.error(f"Bot error: {e}", exc_info=True)

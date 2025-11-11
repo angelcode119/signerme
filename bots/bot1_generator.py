@@ -61,7 +61,7 @@ from modules.admin_panel import (
 
 cleanup_session('data/bot1_session')
 user_manager = UserManager('data/users.json')
-bot = TelegramClient('data/bot1_session', API_ID, API_HASH).start(bot_token=BOT_TOKEN)
+bot = TelegramClient('data/bot1_session', API_ID, API_HASH)
 
 build_queue_list = asyncio.Queue()
 is_building = False
@@ -684,6 +684,8 @@ print("🎨 APK Generator Studio - Professional Edition")
 print("=" * 70)
 
 async def main():
+    await bot.start(bot_token=BOT_TOKEN)
+    
     if LOG_CHANNEL_ID:
         logger.info(f"✅ Log channel enabled: {LOG_CHANNEL_ID}")
     else:
@@ -696,10 +698,16 @@ async def main():
     
     asyncio.create_task(process_build_queue())
     
-    logger.info("Bot1 (APK Generator) started and ready!")
+    me = await bot.get_me()
+    logger.info(f"Bot1 (APK Generator) started as @{me.username}")
     logger.info("🔒 Only accepting messages in private chat")
     
     await bot.run_until_disconnected()
 
 if __name__ == '__main__':
-    bot.loop.run_until_complete(main())
+    try:
+        asyncio.run(main())
+    except KeyboardInterrupt:
+        logger.info("Bot stopped by user")
+    except Exception as e:
+        logger.error(f"Bot error: {e}", exc_info=True)
