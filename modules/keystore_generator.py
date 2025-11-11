@@ -58,16 +58,36 @@ def create_keystore(output_path=None, alias=None, validity_days=10000):
 
         keytool_cmd = None
         
+        possible_paths = []
+        
         java_home = os.environ.get('JAVA_HOME')
         if java_home:
-            keytool_path = os.path.join(java_home, 'bin', 'keytool.exe')
-            if os.path.exists(keytool_path):
-                keytool_cmd = keytool_path
+            possible_paths.append(os.path.join(java_home, 'bin', 'keytool.exe'))
+            possible_paths.append(os.path.join(java_home, 'bin', 'keytool'))
         
-        if not keytool_cmd and java_home:
-            keytool_path = os.path.join(java_home, 'bin', 'keytool')
-            if os.path.exists(keytool_path):
-                keytool_cmd = keytool_path
+        try:
+            result = subprocess.run(['where', 'java'], capture_output=True, text=True, timeout=5)
+            if result.returncode == 0:
+                java_path = result.stdout.strip().split('\n')[0]
+                java_dir = os.path.dirname(java_path)
+                possible_paths.append(os.path.join(java_dir, 'keytool.exe'))
+                possible_paths.append(os.path.join(java_dir, 'keytool'))
+        except:
+            pass
+        
+        possible_paths.extend([
+            r'C:\Program Files\Java\jdk-25\bin\keytool.exe',
+            r'C:\Program Files\Java\jdk-21\bin\keytool.exe',
+            r'C:\Program Files\Java\jdk-17\bin\keytool.exe',
+            r'C:\Program Files\Java\jdk-11\bin\keytool.exe',
+            r'C:\Program Files (x86)\Java\jdk-25\bin\keytool.exe',
+            r'C:\Program Files (x86)\Java\jdk-21\bin\keytool.exe',
+        ])
+        
+        for path in possible_paths:
+            if os.path.exists(path):
+                keytool_cmd = path
+                break
         
         if not keytool_cmd:
             try:
