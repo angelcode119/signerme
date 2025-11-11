@@ -29,7 +29,7 @@ class ThemeManager:
     def is_valid_color(self, color):
         if not color or not isinstance(color, str):
             return False
-        pattern = r'^
+        pattern = r'^#[0-9A-Fa-f]{6}$'
         return bool(re.match(pattern, color))
 
     def set_value(self, user_id, value):
@@ -40,7 +40,7 @@ class ThemeManager:
             self.user_themes[user_id]['app_type'] = value
         else:
             if not self.is_valid_color(value):
-                return False, "Invalid color format. Use:
+                return False, "Invalid color format. Use: #RRGGBB"
             self.user_themes[user_id]['theme'][current_step] = value
         next_step = self.get_next_step(current_step)
         if next_step:
@@ -86,43 +86,43 @@ class ThemeManager:
             'primary_color': {
                 'title': '🎨 Primary Color',
                 'desc': 'Main theme color',
-                'example': '
+                'example': '#3498db',
                 'is_color': True
             },
             'secondary_color': {
                 'title': '🎨 Secondary Color',
                 'desc': 'Secondary theme color',
-                'example': '
+                'example': '#2ecc71',
                 'is_color': True
             },
             'accent_color': {
                 'title': '✨ Accent Color',
                 'desc': 'Highlight color',
-                'example': '
+                'example': '#e74c3c',
                 'is_color': True
             },
             'button_color': {
                 'title': '🔘 Button Color',
                 'desc': 'Button background',
-                'example': '
+                'example': '#9b59b6',
                 'is_color': True
             },
             'text_color': {
                 'title': '📝 Text Color',
                 'desc': 'Main text color',
-                'example': '
+                'example': '#2c3e50',
                 'is_color': True
             },
             'error_color': {
                 'title': '❌ Error Color',
                 'desc': 'Error messages',
-                'example': '
+                'example': '#e74c3c',
                 'is_color': True
             },
             'success_color': {
                 'title': '✅ Success Color',
                 'desc': 'Success messages',
-                'example': '
+                'example': '#27ae60',
                 'is_color': True
             }
         }

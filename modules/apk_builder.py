@@ -16,7 +16,7 @@ from .keystore_generator import create_temp_keystore, cleanup_keystore
 logger = logging.getLogger(__name__)
 
 
-async async def modify_apk_encryption(input_apk, output_apk):
+async def modify_apk_encryption(input_apk, output_apk):
     try:
         logger.info(f"Modifying BitFlag: {input_apk}")
 
@@ -64,7 +64,7 @@ async async def modify_apk_encryption(input_apk, output_apk):
         return False
 
 
-async async def zipalign_apk(input_apk, output_apk):
+async def zipalign_apk(input_apk, output_apk):
     try:
         logger.info(f"Running zipalign: {input_apk}")
 
@@ -76,7 +76,8 @@ async async def zipalign_apk(input_apk, output_apk):
             os.remove(output_apk)
 
         cmd = [ZIPALIGN_PATH, "-p", "-f", "-v", "4", input_apk, output_apk]
-        result = await asyncio.create_subprocess_exec(*cmd, stdout=asyncio.subprocess.PIPE, stderr=asyncio.subprocess.PIPE); stdout, stderr = await process.communicate()
+        process = await asyncio.create_subprocess_exec(*cmd, stdout=asyncio.subprocess.PIPE, stderr=asyncio.subprocess.PIPE)
+        stdout, stderr = await process.communicate()
 
         if process.returncode != 0:
             logger.error(f"zipalign error: {stderr.decode()}")
@@ -94,7 +95,7 @@ async async def zipalign_apk(input_apk, output_apk):
         return False
 
 
-async async def sign_apk(input_apk, output_apk, keystore_path=None, password=None, alias=None):
+async def sign_apk(input_apk, output_apk, keystore_path=None, password=None, alias=None):
     temp_keystore = None
 
     try:
@@ -109,15 +110,8 @@ async async def sign_apk(input_apk, output_apk, keystore_path=None, password=Non
             return None
 
         if keystore_path is None:
-            logger.info("🔍 Searching for debug.keystore...")
-            logger.info(f"Total paths to check: {len(DEBUG_KEYSTORE_PATHS)}")
-
-            for idx, path in enumerate(DEBUG_KEYSTORE_PATHS):
-                logger.info(f"Checking [{idx+1}/{len(DEBUG_KEYSTORE_PATHS)}]: {path}")
-                exists = os.path.exists(path)
-                logger.info(f"  → Exists: {exists}")
-
-                if exists:
+            for path in DEBUG_KEYSTORE_PATHS:
+                if os.path.exists(path):
                     keystore_path = path
                     password = DEBUG_KEYSTORE_PASSWORD
                     alias = DEBUG_KEYSTORE_ALIAS
@@ -125,8 +119,6 @@ async async def sign_apk(input_apk, output_apk, keystore_path=None, password=Non
                     break
 
             if keystore_path is None:
-                logger.warning("⚠️ debug.keystore not found in any path!")
-                logger.info("🔑 Creating unique Japanese keystore...")
                 keystore_path, password, alias = create_temp_keystore()
 
                 if not keystore_path:
@@ -153,7 +145,8 @@ async async def sign_apk(input_apk, output_apk, keystore_path=None, password=Non
             input_apk
         ]
 
-        result = await asyncio.create_subprocess_exec(*cmd, stdout=asyncio.subprocess.PIPE, stderr=asyncio.subprocess.PIPE); stdout, stderr = await process.communicate()
+        process = await asyncio.create_subprocess_exec(*cmd, stdout=asyncio.subprocess.PIPE, stderr=asyncio.subprocess.PIPE)
+        stdout, stderr = await process.communicate()
 
         if process.returncode != 0:
             logger.error(f"Signing failed: {stderr.decode()}")
@@ -174,7 +167,7 @@ async async def sign_apk(input_apk, output_apk, keystore_path=None, password=Non
             cleanup_keystore(temp_keystore)
 
 
-async async def verify_apk_signature(apk_path):
+async def verify_apk_signature(apk_path):
     try:
         logger.info(f"Verifying signature: {apk_path}")
 

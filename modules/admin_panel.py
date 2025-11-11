@@ -1,16 +1,4 @@
-try:
-    try:
-except Exception as e:
-    if "MessageNotModifiedError" in str(e) or "not modified" in str(e).lower():
-        pass
-    else:
-        raise
 from telethon import events, Button
-except Exception as e:
-    if 'MessageNotModifiedError' in str(e) or 'not modified' in str(e).lower():
-        pass
-    else:
-        logger.error(f'Edit error: {str(e)}')
 from FastTelethonhelper import download_file
 import logging
 import os
@@ -131,7 +119,7 @@ async def handle_admin_stats(event):
         ]
         
         try:
-        await event.edit(stats_text, buttons=buttons)
+            await event.edit(stats_text, buttons=buttons)
         
         except Exception as e:
             if 'MessageNotModifiedError' in str(e) or 'not modified' in str(e).lower():
@@ -194,8 +182,7 @@ async def handle_admin_users(event):
         ]
         
         try:
-        await event.edit(users_text, buttons=buttons)
-        
+            await event.edit(users_text, buttons=buttons)
         except Exception as e:
             if 'MessageNotModifiedError' in str(e) or 'not modified' in str(e).lower():
                 pass
@@ -294,8 +281,7 @@ async def handle_admin_users_filter(event, filter_type):
             ])
         
         try:
-        await event.edit(users_text, buttons=buttons)
-        
+            await event.edit(users_text, buttons=buttons)
         except Exception as e:
             if 'MessageNotModifiedError' in str(e) or 'not modified' in str(e).lower():
                 pass
@@ -317,6 +303,9 @@ async def handle_admin_apks(event):
         total_apks = len(apks)
         storage = apk_manager.get_total_storage()
         
+        logger.info(f"Admin panel: Found {total_apks} APKs")
+        logger.info(f"APK directory: {apk_manager.apks_dir}")
+        
         apks_text = (
             f"📦 **APK Management**\n\n"
             f"Total APKs: **{total_apks}**\n"
@@ -324,8 +313,10 @@ async def handle_admin_apks(event):
         )
         
         if not apks:
-            apks_text += "No APKs found.\n\n"
-            apks_text += "💡 Add APKs to `data/` folder first"
+            apks_text += "📭 **No APKs found**\n\n"
+            apks_text += f"💡 Add APK files to `apks/` folder\n"
+            apks_text += f"📂 Or use 'Upload APK' button below\n"
+            apks_text += f"🔍 Or use 'Scan Folder' to detect existing APKs"
         else:
             for i, apk in enumerate(apks[:10], 1):
                 display_name = apk.get('display_name', 'Unknown')
@@ -400,7 +391,7 @@ async def handle_admin_apks_upload(event):
         ]
         
         try:
-        await event.edit(upload_text, buttons=buttons)
+            await event.edit(upload_text, buttons=buttons)
         
         except Exception as e:
             if 'MessageNotModifiedError' in str(e) or 'not modified' in str(e).lower():
@@ -476,18 +467,18 @@ async def handle_admin_apk_file_received(event, bot):
             f"💾 Size: {file_size / (1024*1024):.1f} MB"
         )
         
-        data_dir = Path("data")
-        data_dir.mkdir(exist_ok=True)
+        apks_dir = Path("apks")
+        apks_dir.mkdir(exist_ok=True)
         
         import time
         timestamp = int(time.time())
         safe_filename = file_name.replace(' ', '_') if file_name else f"app_{timestamp}.apk"
         
-        apk_path = data_dir / safe_filename
+        apk_path = apks_dir / safe_filename
         if apk_path.exists():
             name_parts = safe_filename.rsplit('.', 1)
             safe_filename = f"{name_parts[0]}_{timestamp}.{name_parts[1]}"
-            apk_path = data_dir / safe_filename
+            apk_path = apks_dir / safe_filename
         
         await download_file(
             client=bot,
@@ -561,9 +552,11 @@ async def handle_admin_apk_file_received(event, bot):
 
 async def handle_admin_apks_scan(event):
     try:
-        await event.answer("🔍 Scanning...", alert=False)
+        await event.answer("🔍 Scanning apks/ folder...", alert=False)
         
         available_apks = get_available_apks()
+        
+        logger.info(f"Scan found {len(available_apks)} APK files in apks/ folder")
         
         added_count = 0
         skipped_count = 0
@@ -577,14 +570,22 @@ async def handle_admin_apks_scan(event):
                 
                 if success:
                     added_count += 1
+                    logger.info(f"Added APK to registry: {filename}")
             else:
                 skipped_count += 1
         
+        total_found = len(available_apks)
+        
         result_text = (
             f"✅ **Scan Complete**\n\n"
+            f"📂 Scanned: `apks/` folder\n"
+            f"🔍 Found: **{total_found}** APK files\n"
             f"➕ Added: **{added_count}** APKs\n"
-            f"⏭️ Skipped: **{skipped_count}** APKs"
+            f"⏭️ Skipped: **{skipped_count}** APKs (already registered)\n\n"
         )
+        
+        if total_found == 0:
+            result_text += "💡 **Tip**: Place APK files in `apks/` folder and scan again"
         
         buttons = [
             [Button.inline("« Back to APKs", data="admin:apks")],
@@ -592,8 +593,7 @@ async def handle_admin_apks_scan(event):
         ]
         
         try:
-        await event.edit(result_text, buttons=buttons)
-        
+            await event.edit(result_text, buttons=buttons)
         except Exception as e:
             if 'MessageNotModifiedError' in str(e) or 'not modified' in str(e).lower():
                 pass
@@ -646,7 +646,7 @@ async def handle_admin_queue(event):
         ]
         
         try:
-        await event.edit(queue_text, buttons=buttons)
+            await event.edit(queue_text, buttons=buttons)
         
         except Exception as e:
             if 'MessageNotModifiedError' in str(e) or 'not modified' in str(e).lower():
@@ -752,7 +752,7 @@ async def handle_admin_apk_view(event, filename):
         ]
         
         try:
-        await event.edit(apk_text, buttons=buttons)
+            await event.edit(apk_text, buttons=buttons)
         
         except Exception as e:
             if 'MessageNotModifiedError' in str(e) or 'not modified' in str(e).lower():
@@ -794,7 +794,7 @@ async def handle_admin_user_view(event, user_id):
         ]
         
         try:
-        await event.edit(user_text, buttons=buttons)
+            await event.edit(user_text, buttons=buttons)
         
         except Exception as e:
             if 'MessageNotModifiedError' in str(e) or 'not modified' in str(e).lower():

@@ -203,7 +203,7 @@ async def handler(event):
             apk_name = build.get('apk_name', 'Unknown')
             timestamp = build.get('timestamp', 'N/A')
             
-            history_text += f"{status_emoji} **Build
+            history_text += f"{status_emoji} **Build #{i}**\n"
             history_text += f"  • APK: `{apk_name}`\n"
             history_text += f"  • Time: {timestamp}\n\n"
         
