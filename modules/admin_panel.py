@@ -516,8 +516,22 @@ async def handle_admin_apk_file_received(event, bot):
             logger.warning(f"APK analysis failed: {str(e)}")
             app_name = safe_filename.replace('.apk', '')
         
+        final_filename = f"{app_name.replace(' ', '_')}.apk"
+        final_apk_path = apks_dir / final_filename
+        
+        if final_apk_path.exists():
+            import time
+            ts = int(time.time())
+            final_filename = f"{app_name.replace(' ', '_')}_{ts}.apk"
+            final_apk_path = apks_dir / final_filename
+        
+        if str(apk_path) != str(final_apk_path):
+            import shutil
+            shutil.move(str(apk_path), str(final_apk_path))
+            apk_path = final_apk_path
+        
         success, result_msg = apk_manager.add_apk(
-            filename=safe_filename,
+            filename=final_filename,
             display_name=app_name,
             category='Other',
             enabled=True
