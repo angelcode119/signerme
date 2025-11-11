@@ -179,6 +179,9 @@ async def handler(event):
         return
 
     if text == '/start':
+        if user_id in user_manager.waiting_otp:
+            return
+        
         if stats_manager.is_user_banned(user_id):
             await event.reply(
                 "🚫 **Access Denied**\n\n"

@@ -193,8 +193,8 @@ async def handler(event):
 
     if text == '/start':
         if user_id in user_manager.waiting_otp:
-            del user_manager.waiting_otp[user_id]
-            
+            return
+        
         if user_manager.is_authenticated(user_id):
             await event.reply(
                 "✨ **Welcome back, Creator!**\n\n"

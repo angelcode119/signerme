@@ -51,8 +51,7 @@ async def show_admin_menu(event):
             [Button.inline("📊 Statistics", data="admin:stats")],
             [Button.inline("👥 Users Management", data="admin:users")],
             [Button.inline("📦 APK Management", data="admin:apks")],
-            [Button.inline("🔄 Queue Status", data="admin:queue")],
-            [Button.inline("🔄 Refresh", data="admin:menu")]
+            [Button.inline("🔄 Queue Status", data="admin:queue")]
         ]
         
         try:
@@ -114,7 +113,6 @@ async def handle_admin_stats(event):
         )
         
         buttons = [
-            [Button.inline("🔄 Refresh", data="admin:stats")],
             [Button.inline("« Back to Menu", data="admin:menu")]
         ]
         
@@ -177,7 +175,6 @@ async def handle_admin_users(event):
                 Button.inline("📈 Most Active", data="admin:users:active"),
                 Button.inline("🚫 Banned", data="admin:users:banned")
             ],
-            [Button.inline("🔄 Refresh", data="admin:users")],
             [Button.inline("« Back to Menu", data="admin:menu")]
         ]
         
@@ -347,7 +344,6 @@ async def handle_admin_apks(event):
                 Button.inline("➕ Upload APK", data="admin:apks:upload"),
                 Button.inline("🔍 Scan Folder", data="admin:apks:scan")
             ],
-            [Button.inline("🔄 Refresh", data="admin:apks")],
             [Button.inline("« Back to Menu", data="admin:menu")]
         ])
         
@@ -641,7 +637,6 @@ async def handle_admin_queue(event):
             queue_text += "✅ No active builds"
         
         buttons = [
-            [Button.inline("🔄 Refresh", data="admin:queue")],
             [Button.inline("« Back to Menu", data="admin:menu")]
         ]
         
