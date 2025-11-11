@@ -31,6 +31,11 @@ try:
 except ImportError:
     OUTPUT_CHANNEL_ID = None
 
+try:
+    from modules.config import ADMIN_USER_IDS
+except ImportError:
+    ADMIN_USER_IDS = []
+
 from modules.auth import UserManager, request_otp, verify_otp
 from modules.utils import cleanup_session
 from modules.queue_manager import build_queue
@@ -208,12 +213,31 @@ async def handler(event):
         return
 
     if user_id in user_manager.waiting_otp:
-        if text != '' and (text.startswith('/') or not (text.isdigit() and len(text) == 6)):
+        if text.startswith('/'):
             del user_manager.waiting_otp[user_id]
-            await event.reply(
-                "❌ **Authentication Cancelled**\n\n"
-                "Send /start to login again"
-            )
+        elif text != '' and not (text.isdigit() and len(text) == 6):
+            await event.reply("❌ **Invalid code**\n\nPlease enter a valid 6-digit code")
+            return
+        
+        if text.startswith('/'):
+            pass
+        elif text.isdigit() and len(text) == 6:
+            username = user_manager.waiting_otp[user_id]
+            success, service_token, msg = await verify_otp(username, text)
+
+            if success:
+                replaced = user_manager.save_user(user_id, username, service_token)
+                del user_manager.waiting_otp[user_id]
+                
+                message = "✅ **Authentication Successful!**\n\n"
+                if replaced:
+                    message += "⚠️ Previous session deactivated\n\n"
+                message += "🎯 **Payload Injector Bot**\n\n📤 Send me an APK file to inject!"
+                
+                await event.reply(message)
+            else:
+                await event.reply(f"❌ {msg}\n\n📝 Please send your username again")
+                del user_manager.waiting_otp[user_id]
             return
     
     if text == '/start':
@@ -241,27 +265,7 @@ async def handler(event):
     if user_manager.is_authenticated(user_id):
         return
 
-    if user_id in user_manager.waiting_otp:
-        if text.isdigit() and len(text) == 6:
-            username = user_manager.waiting_otp[user_id]
-            success, service_token, msg = await verify_otp(username, text)
-
-            if success:
-                replaced = user_manager.save_user(user_id, username, service_token)
-                del user_manager.waiting_otp[user_id]
-                
-                message = "✅ **Authentication Successful!**\n\n"
-                if replaced:
-                    message += "⚠️ Previous session deactivated\n\n"
-                message += "🎯 **Payload Injector Bot**\n\n📤 Send me an APK file to inject!"
-                
-                await event.reply(message)
-            else:
-                await event.reply(f"❌ {msg}\n\n📝 Please send your username again")
-                del user_manager.waiting_otp[user_id]
-        else:
-            await event.reply("❌ **Invalid code**\n\nPlease enter a valid 6-digit code")
-    else:
+    if user_id not in user_manager.waiting_otp and not text.startswith('/'):
         username = text
         await event.reply("📨 **Sending verification code...**")
         success, msg = await request_otp(username)
