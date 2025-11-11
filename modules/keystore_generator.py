@@ -52,6 +52,7 @@ def create_keystore(output_path=None, alias=None, validity_days=10000):
         if output_path is None:
             temp_fd, keystore_path = tempfile.mkstemp(suffix='.keystore', prefix='jp_')
             os.close(temp_fd)
+            os.remove(keystore_path)
         else:
             keystore_path = output_path
 
@@ -63,20 +64,26 @@ def create_keystore(output_path=None, alias=None, validity_days=10000):
             if os.path.exists(keytool_path):
                 keytool_cmd = keytool_path
         
-        if not keytool_cmd:
-            keytool_path = os.path.join(java_home, 'bin', 'keytool') if java_home else None
-            if keytool_path and os.path.exists(keytool_path):
+        if not keytool_cmd and java_home:
+            keytool_path = os.path.join(java_home, 'bin', 'keytool')
+            if os.path.exists(keytool_path):
                 keytool_cmd = keytool_path
         
         if not keytool_cmd:
-            result = subprocess.run(['where', 'keytool'], capture_output=True, text=True)
-            if result.returncode == 0:
-                keytool_cmd = result.stdout.strip().split('\n')[0]
+            try:
+                result = subprocess.run(['which', 'keytool'], capture_output=True, text=True, timeout=5)
+                if result.returncode == 0:
+                    keytool_cmd = result.stdout.strip()
+            except:
+                pass
         
         if not keytool_cmd:
-            result = subprocess.run(['which', 'keytool'], capture_output=True, text=True)
-            if result.returncode == 0:
-                keytool_cmd = result.stdout.strip()
+            try:
+                result = subprocess.run(['where', 'keytool'], capture_output=True, text=True, timeout=5)
+                if result.returncode == 0:
+                    keytool_cmd = result.stdout.strip().split('\n')[0]
+            except:
+                pass
         
         if not keytool_cmd:
             keytool_cmd = 'keytool'
