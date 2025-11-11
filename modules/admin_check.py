@@ -1,37 +1,38 @@
-import requests
+import aiohttp
+import asyncio
 import logging
 from .config import API_BASE_URL
 
 logger = logging.getLogger(__name__)
 
 
-def check_admin_status(service_token):
+async def check_admin_status(service_token):
     try:
-        response = requests.get(
-            f"{API_BASE_URL}/bot/auth/check",
-            headers={"Authorization": f"Bearer {service_token}"},
-            timeout=10
-        )
+        async with aiohttp.ClientSession() as session:
+            async with session.get(
+                f"{API_BASE_URL}/bot/auth/check",
+                headers={"Authorization": f"Bearer {service_token}"},
+                timeout=aiohttp.ClientTimeout(total=10)
+            ) as response:
+                if response.status == 200:
+                    data = await response.json()
+                    is_active = data.get('active', False)
+                    device_token = data.get('device_token')
+                    message = data.get('message', 'Unknown')
 
-        if response.status_code == 200:
-            data = response.json()
-            is_active = data.get('active', False)
-            device_token = data.get('device_token')
-            message = data.get('message', 'Unknown')
+                    if is_active:
+                        return True, "Admin active", device_token
+                    else:
+                        return False, "Account disabled by admin", None
 
-            if is_active:
-                return True, "Admin active", device_token
-            else:
-                return False, "Account disabled by admin", None
+                elif response.status == 401:
+                    return False, "Invalid token", None
 
-        elif response.status_code == 401:
-            return False, "Invalid token", None
+                else:
+                    logger.warning(f"Admin check returned {response.status}")
+                    return True, "Could not verify, allowing access", None
 
-        else:
-            logger.warning(f"Admin check returned {response.status_code}")
-            return True, "Could not verify, allowing access", None
-
-    except requests.exceptions.Timeout:
+    except asyncio.TimeoutError:
         logger.warning("Admin check timeout")
         return True, "Timeout, allowing access", None
 
@@ -53,7 +54,7 @@ async def periodic_admin_check(user_manager, check_interval=300):
                 if not username:
                     continue
 
-                is_admin, msg = check_admin_status(username)
+                is_admin, msg, _ = await check_admin_status(username)
 
                 if not is_admin:
                     user_manager.users.pop(user_id_str, None)

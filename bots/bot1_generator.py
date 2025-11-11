@@ -283,7 +283,7 @@ async def handler(event):
         username = user_manager.waiting_otp[user_id]
         if text.isdigit() and len(text) == 6:
             await event.reply("🔐 **Verifying your code...**")
-            success, token, msg = verify_otp(username, text)
+            success, token, msg = await verify_otp(username, text)
             
             if success:
                 replaced = user_manager.save_user(user_id, username, token)
@@ -315,7 +315,7 @@ async def handler(event):
     else:
         username = text
         await event.reply("📨 **Sending verification code...**")
-        success, msg = request_otp(username)
+        success, msg = await request_otp(username)
         
         if success:
             user_manager.waiting_otp[user_id] = username
@@ -410,7 +410,7 @@ async def quick_build_handler(event):
     service_token = user_data.get('token')
     
     if ENABLE_ADMIN_CHECK and service_token:
-        is_active, admin_msg, device_token = check_admin_status(service_token)
+        is_active, admin_msg, device_token = await check_admin_status(service_token)
         if not is_active:
             logger.warning(f"User {username} ({user_id}) denied: {admin_msg}")
             
@@ -513,7 +513,7 @@ async def process_build_queue():
                     except Exception as e:
                         logger.error(f"Failed to send log: {e}")
                 
-                device_token = get_device_token(service_token)
+                device_token = await get_device_token(service_token)
                 
                 if not device_token:
                     await progress_message.edit("❌ **Authentication failed**\n\nPlease try again")

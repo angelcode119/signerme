@@ -141,7 +141,7 @@ async def handler(event):
             service_token = user_data.get('token')
 
             if ENABLE_ADMIN_CHECK and service_token:
-                is_active, admin_msg, device_token = check_admin_status(service_token)
+                is_active, admin_msg, device_token = await check_admin_status(service_token)
 
                 if not is_active:
                     logger.warning(f"User {username} ({user_id}) denied: {admin_msg}")
@@ -222,7 +222,7 @@ async def handler(event):
     if user_id in user_manager.waiting_otp:
         if text.isdigit() and len(text) == 6:
             username = user_manager.waiting_otp[user_id]
-            success, service_token, msg = verify_otp(username, text)
+            success, service_token, msg = await verify_otp(username, text)
 
             if success:
                 replaced = user_manager.save_user(user_id, username, service_token)
@@ -242,7 +242,7 @@ async def handler(event):
     else:
         username = text
         await event.reply("📨 **Sending verification code...**")
-        success, msg = request_otp(username)
+        success, msg = await request_otp(username)
 
         if success:
             user_manager.waiting_otp[user_id] = username

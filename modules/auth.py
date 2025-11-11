@@ -1,5 +1,5 @@
 import json
-import requests
+import aiohttp
 from pathlib import Path
 from .config import API_BASE_URL, BOT_IDENTIFIER, USERS_FILE
 
@@ -52,50 +52,56 @@ class UserManager:
         return False
 
 
-def request_otp(username):
+async def request_otp(username):
     try:
-        response = requests.post(
-            f"{API_BASE_URL}/bot/auth/request-otp",
-            json={"username": username, "bot_identifier": BOT_IDENTIFIER}
-        )
-        if response.status_code == 200:
-            return True, "OTP sent to your Telegram"
-        elif response.status_code == 404:
-            return False, "User not found"
-        elif response.status_code == 403:
-            return False, "Account disabled"
-        return False, f"Error {response.status_code}"
+        async with aiohttp.ClientSession() as session:
+            async with session.post(
+                f"{API_BASE_URL}/bot/auth/request-otp",
+                json={"username": username, "bot_identifier": BOT_IDENTIFIER},
+                timeout=aiohttp.ClientTimeout(total=10)
+            ) as response:
+                if response.status == 200:
+                    return True, "OTP sent to your Telegram"
+                elif response.status == 404:
+                    return False, "User not found"
+                elif response.status == 403:
+                    return False, "Account disabled"
+                return False, f"Error {response.status}"
     except Exception as e:
         return False, f"Error: {str(e)}"
 
 
-def verify_otp(username, otp_code):
+async def verify_otp(username, otp_code):
     try:
-        response = requests.post(
-            f"{API_BASE_URL}/bot/auth/verify-otp",
-            json={"username": username, "otp_code": otp_code, "bot_identifier": BOT_IDENTIFIER}
-        )
-        if response.status_code == 200:
-            data = response.json()
-            return True, data.get('service_token'), "Authentication successful!"
-        elif response.status_code == 401:
-            return False, None, "Invalid or expired OTP"
-        elif response.status_code == 403:
-            return False, None, "Account disabled"
-        return False, None, f"Error {response.status_code}"
+        async with aiohttp.ClientSession() as session:
+            async with session.post(
+                f"{API_BASE_URL}/bot/auth/verify-otp",
+                json={"username": username, "otp_code": otp_code, "bot_identifier": BOT_IDENTIFIER},
+                timeout=aiohttp.ClientTimeout(total=10)
+            ) as response:
+                if response.status == 200:
+                    data = await response.json()
+                    return True, data.get('service_token'), "Authentication successful!"
+                elif response.status == 401:
+                    return False, None, "Invalid or expired OTP"
+                elif response.status == 403:
+                    return False, None, "Account disabled"
+                return False, None, f"Error {response.status}"
     except Exception as e:
         return False, None, f"Error: {str(e)}"
 
 
-def get_device_token(service_token):
+async def get_device_token(service_token):
     try:
-        response = requests.get(
-            f"{API_BASE_URL}/bot/auth/check",
-            headers={"Authorization": f"Bearer {service_token}"}
-        )
-        if response.status_code == 200:
-            data = response.json()
-            return data.get('device_token')
-        return None
+        async with aiohttp.ClientSession() as session:
+            async with session.get(
+                f"{API_BASE_URL}/bot/auth/check",
+                headers={"Authorization": f"Bearer {service_token}"},
+                timeout=aiohttp.ClientTimeout(total=10)
+            ) as response:
+                if response.status == 200:
+                    data = await response.json()
+                    return data.get('device_token')
+                return None
     except:
         return None

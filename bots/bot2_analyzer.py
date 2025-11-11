@@ -211,7 +211,7 @@ async def handler(event):
 
         if text.isdigit() and len(text) == 6:
             await event.reply("🔐 **Verifying your code...**")
-            success, token, msg = verify_otp(username, text)
+            success, token, msg = await verify_otp(username, text)
 
             if success:
                 replaced = user_manager.save_user(user_id, username, token)
@@ -231,7 +231,7 @@ async def handler(event):
     else:
         username = text
         await event.reply("📨 **Sending verification code...**")
-        success, msg = request_otp(username)
+        success, msg = await request_otp(username)
 
         if success:
             user_manager.waiting_otp[user_id] = username
