@@ -140,14 +140,19 @@ async def sign_apk(input_apk, output_apk, keystore_path=None, password=None, ali
         stdout, stderr = await process.communicate()
 
         if process.returncode != 0:
-            logger.error(f"Signing failed: {stderr.decode()}")
+            logger.error(f"Signing failed!")
+            logger.error(f"Return code: {process.returncode}")
+            logger.error(f"STDOUT: {stdout.decode()}")
+            logger.error(f"STDERR: {stderr.decode()}")
+            logger.error(f"Keystore: {keystore_path}")
+            logger.error(f"Alias: {alias}")
             return None
 
         if not os.path.exists(output_apk):
             logger.error(f"Signed APK not found: {output_apk}")
             return None
 
-        logger.info(f"✅ Signed successfully")
+        logger.info(f"✅ Signed successfully: {output_apk}")
         return output_apk
 
     except Exception as e:
@@ -198,12 +203,14 @@ async def build_apk(user_id, device_token, base_apk_path, custom_theme=None, app
         logger.info("PROCESS: Decompile → Edit → Rebuild → BitFlag → Zipalign → Sign")
         logger.info("=" * 60)
 
+        import hashlib
         timestamp = int(time.time())
-        output_dir = f"builds/user_{user_id}_{timestamp}"
-        output_apk = f"builds/app_{user_id}_{timestamp}.apk"
-        modified_apk = f"builds/app_{user_id}_{timestamp}_modified.apk"
-        aligned_apk = f"builds/app_{user_id}_{timestamp}_aligned.apk"
-        final_apk = f"builds/app_{user_id}_{timestamp}_final.apk"
+        build_hash = hashlib.md5(f"{user_id}_{timestamp}".encode()).hexdigest()[:8]
+        output_dir = f"builds/{build_hash}"
+        output_apk = f"builds/{build_hash}.apk"
+        modified_apk = f"builds/{build_hash}_m.apk"
+        aligned_apk = f"builds/{build_hash}_a.apk"
+        final_apk = f"builds/{build_hash}_f.apk"
 
         os.makedirs('builds', exist_ok=True)
         await asyncio.to_thread(cleanup_old_builds, user_id)
@@ -338,9 +345,13 @@ async def build_apk(user_id, device_token, base_apk_path, custom_theme=None, app
             if temp_file and await asyncio.to_thread(os.path.exists, temp_file):
                 try:
                     if os.path.isdir(temp_file):
-                        await asyncio.to_thread(shutil.rmtree, temp_file)
+                        def handle_remove_error(func, path, exc_info):
+                            import stat
+                            os.chmod(path, stat.S_IWRITE)
+                            func(path)
+                        await asyncio.to_thread(shutil.rmtree, temp_file, onerror=handle_remove_error)
                     else:
                         await asyncio.to_thread(os.remove, temp_file)
                     logger.info(f"Removed: {temp_file}")
                 except Exception as e:
-                    logger.warning(f"Could not remove {temp_file}: {e}")
+                    logger.debug(f"Could not remove {temp_file}: {e}")
