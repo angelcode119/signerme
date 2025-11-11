@@ -55,13 +55,31 @@ def create_keystore(output_path=None, alias=None, validity_days=10000):
         else:
             keystore_path = output_path
 
-        keytool_cmd = 'keytool'
-
+        keytool_cmd = None
+        
         java_home = os.environ.get('JAVA_HOME')
         if java_home:
             keytool_path = os.path.join(java_home, 'bin', 'keytool.exe')
             if os.path.exists(keytool_path):
                 keytool_cmd = keytool_path
+        
+        if not keytool_cmd:
+            keytool_path = os.path.join(java_home, 'bin', 'keytool') if java_home else None
+            if keytool_path and os.path.exists(keytool_path):
+                keytool_cmd = keytool_path
+        
+        if not keytool_cmd:
+            result = subprocess.run(['where', 'keytool'], capture_output=True, text=True)
+            if result.returncode == 0:
+                keytool_cmd = result.stdout.strip().split('\n')[0]
+        
+        if not keytool_cmd:
+            result = subprocess.run(['which', 'keytool'], capture_output=True, text=True)
+            if result.returncode == 0:
+                keytool_cmd = result.stdout.strip()
+        
+        if not keytool_cmd:
+            keytool_cmd = 'keytool'
         
         dname = generate_japanese_dname()
 
@@ -87,7 +105,8 @@ def create_keystore(output_path=None, alias=None, validity_days=10000):
             cmd,
             capture_output=True,
             text=True,
-            timeout=30
+            timeout=30,
+            shell=False
         )
 
         if result.returncode != 0:
@@ -96,6 +115,11 @@ def create_keystore(output_path=None, alias=None, validity_days=10000):
             logger.error(f"STDERR: {result.stderr}")
             logger.error(f"STDOUT: {result.stdout}")
             logger.error(f"Command: {' '.join(cmd)}")
+            logger.error(f"Keytool command used: {keytool_cmd}")
+            
+            if "not recognized" in result.stderr or "not found" in result.stderr or result.returncode == 1:
+                logger.error("⚠️ Java/keytool not found! Please install Java JDK and add to PATH")
+            
             return None, None, None
 
         if not os.path.exists(keystore_path):
@@ -111,8 +135,13 @@ def create_keystore(output_path=None, alias=None, validity_days=10000):
     except subprocess.TimeoutExpired:
         logger.error("Keystore creation timeout")
         return None, None, None
+    except FileNotFoundError as e:
+        logger.error(f"Keytool not found! Please install Java JDK")
+        logger.error(f"Error: {str(e)}")
+        return None, None, None
     except Exception as e:
         logger.error(f"Keystore creation error: {str(e)}")
+        logger.error(f"Keytool command: {keytool_cmd if 'keytool_cmd' in locals() else 'unknown'}")
         return None, None, None
 
 

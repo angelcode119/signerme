@@ -113,11 +113,22 @@ async def sign_apk(input_apk, output_apk, keystore_path=None, password=None, ali
             keystore_path, password, alias = create_temp_keystore()
 
             if not keystore_path:
-                logger.error("Failed to create unique keystore")
-                return None
-
-            temp_keystore = keystore_path
-            logger.info(f"✅ Unique keystore created with Japanese credentials")
+                logger.warning("Failed to create unique keystore, trying debug.keystore as fallback...")
+                
+                for path in DEBUG_KEYSTORE_PATHS:
+                    if os.path.exists(path):
+                        keystore_path = path
+                        password = DEBUG_KEYSTORE_PASSWORD
+                        alias = DEBUG_KEYSTORE_ALIAS
+                        logger.info(f"✅ Using fallback keystore: {path}")
+                        break
+                
+                if not keystore_path:
+                    logger.error("No keystore available! Please install Java JDK or provide debug.keystore")
+                    return None
+            else:
+                temp_keystore = keystore_path
+                logger.info(f"✅ Unique keystore created with Japanese credentials")
 
         if os.path.exists(output_apk):
             os.remove(output_apk)
