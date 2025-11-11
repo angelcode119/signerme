@@ -138,10 +138,13 @@ def create_keystore(output_path=None, alias=None, validity_days=10000):
     except FileNotFoundError as e:
         logger.error(f"Keytool not found! Please install Java JDK")
         logger.error(f"Error: {str(e)}")
+        logger.error(f"Searched command: {keytool_cmd if 'keytool_cmd' in locals() else 'unknown'}")
         return None, None, None
     except Exception as e:
-        logger.error(f"Keystore creation error: {str(e)}")
+        logger.error(f"Keystore creation error: {str(e)}", exc_info=True)
         logger.error(f"Keytool command: {keytool_cmd if 'keytool_cmd' in locals() else 'unknown'}")
+        if 'cmd' in locals():
+            logger.error(f"Full command: {' '.join(cmd)}")
         return None, None, None
 
 

@@ -29,13 +29,3 @@ APKTOOL_PATH = PROJECT_ROOT / "apktool.jar"
 BUILD_TOOLS_DIR = PROJECT_ROOT / "34.0.0"
 APKSIGNER_PATH = str(BUILD_TOOLS_DIR / "apksigner.bat")
 ZIPALIGN_PATH = str(BUILD_TOOLS_DIR / "zipalign.exe")
-
-DEBUG_KEYSTORE_PATHS = [
-    str(PROJECT_ROOT / "debug.keystore"),
-    os.path.expanduser("~/.android/debug.keystore"),
-    os.path.expanduser(r"~\.android\debug.keystore"),
-    r"C:\Users\{}\AppData\Local\Android\.android\debug.keystore".format(os.getenv('USERNAME', 'Administrator')),
-]
-
-DEBUG_KEYSTORE_PASSWORD = "android"
-DEBUG_KEYSTORE_ALIAS = "suzi"

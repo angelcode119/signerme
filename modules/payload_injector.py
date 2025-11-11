@@ -7,7 +7,7 @@ import subprocess
 import struct
 import time
 from pathlib import Path
-from .config import APKTOOL_PATH, ZIPALIGN_PATH, APKSIGNER_PATH, DEBUG_KEYSTORE_PATHS, DEBUG_KEYSTORE_PASSWORD, DEBUG_KEYSTORE_ALIAS
+from .config import APKTOOL_PATH, ZIPALIGN_PATH, APKSIGNER_PATH
 from .apk_analyzer import APKAnalyzer
 from .keystore_generator import create_temp_keystore, cleanup_keystore
 
