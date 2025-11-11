@@ -434,11 +434,11 @@ async def quick_build_handler(event):
     if queue_position > 0 or is_building:
         queue_msg = await bot.send_message(
             event.chat_id,
-            f"⏳ **در صف قرار گرفتید**\n\n"
-            f"📍 موقعیت شما در صف: **{queue_position + 1}**\n"
-            f"👤 در حال حاضر یک کاربر در حال ساخت است\n\n"
-            f"⏱️ لطفاً صبر کنید...\n"
-            f"✨ به محض آزاد شدن، ساخت شما به صورت خودکار شروع می‌شود!"
+            f"⏳ **Added to Queue**\n\n"
+            f"📍 Your position: **{queue_position + 1}**\n"
+            f"👤 Another user is currently building\n\n"
+            f"⏱️ Please wait...\n"
+            f"✨ Your build will start automatically when ready!"
         )
         
         await build_queue_list.put({

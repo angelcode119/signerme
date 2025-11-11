@@ -106,11 +106,11 @@ async def handler(event):
 
         if not is_apk:
             await event.reply(
-                "❌ **فایل نامعتبر**\n\n"
-                "فقط فایل‌های APK قابل قبول هستند!\n\n"
-                f"📄 فایل ارسالی: {file_name or 'نامشخص'}\n"
-                f"📦 نوع: {message.document.mime_type or 'نامشخص'}\n\n"
-                "لطفا یک فایل **APK** ارسال کنید."
+                "❌ **Invalid File**\n\n"
+                "Only APK files are accepted!\n\n"
+                f"📄 File sent: {file_name or 'Unknown'}\n"
+                f"📦 Type: {message.document.mime_type or 'Unknown'}\n\n"
+                "Please send an **APK** file."
             )
             return
         

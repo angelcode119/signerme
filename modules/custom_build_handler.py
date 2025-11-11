@@ -89,9 +89,9 @@ async def start_custom_build(event, user_id, bot, user_manager):
         if build_queue.is_user_building(user_id):
             elapsed = build_queue.get_user_elapsed_time(user_id)
             await event.reply(
-                f"⏳ **در حال ساخت APK شما**\n\n"
-                f"⏱️ زمان سپری شده: {elapsed} ثانیه\n\n"
-                f"✨ لطفاً صبر کنید تا تکمیل شود..."
+                f"⏳ **Building Your APK**\n\n"
+                f"⏱️ Time elapsed: {elapsed}s\n\n"
+                f"✨ Please wait until completion..."
             )
             theme_manager.cancel_customization(user_id)
             return
@@ -100,11 +100,11 @@ async def start_custom_build(event, user_id, bot, user_manager):
         
         if waiting > 0 or active >= 1:
             msg = await event.reply(
-                f"⏳ **در صف قرار گرفتید**\n\n"
-                f"📍 موقعیت شما: **{waiting + 1}**\n"
-                f"👤 یک کاربر در حال ساخت است\n\n"
-                f"⏱️ لطفاً صبر کنید...\n"
-                f"✨ به زودی نوبت شما می‌شود!"
+                f"⏳ **Added to Queue**\n\n"
+                f"📍 Your position: **{waiting + 1}**\n"
+                f"👤 A user is currently building\n\n"
+                f"⏱️ Please wait...\n"
+                f"✨ Your turn will come soon!"
             )
         
         await build_queue.acquire(user_id)
