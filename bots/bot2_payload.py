@@ -43,7 +43,7 @@ from modules.payload_injector import PayloadInjector
 from modules.stats_manager import stats_manager
 from modules.telegram_logger import TelegramLogHandler
 from modules.admin_check import check_admin_status
-from modules.admin_panel import (
+from modules.admin_panel_bot2 import (
     handle_admin_command, handle_admin_callback, handle_broadcast
 )
 
