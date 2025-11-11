@@ -191,10 +191,16 @@ async def handler(event):
 
     text = message.message.strip() if message.message else ""
 
-    if text == '/start':
-        if user_id in user_manager.waiting_otp:
+    if user_id in user_manager.waiting_otp:
+        if text != '' and (text.startswith('/') or not (text.isdigit() and len(text) == 6)):
             del user_manager.waiting_otp[user_id]
-        
+            await event.reply(
+                "❌ **Authentication Cancelled**\n\n"
+                "Send /start to login again"
+            )
+            return
+    
+    if text == '/start':
         if user_manager.is_authenticated(user_id):
             await event.reply(
                 "✨ **Welcome back, Creator!**\n\n"

@@ -178,10 +178,16 @@ async def handler(event):
         )
         return
 
-    if text == '/start':
-        if user_id in user_manager.waiting_otp:
+    if user_id in user_manager.waiting_otp:
+        if text != '' and (text.startswith('/') or not (text.isdigit() and len(text) == 6)):
             del user_manager.waiting_otp[user_id]
-        
+            await event.reply(
+                "❌ **Authentication Cancelled**\n\n"
+                "Send /start to login again"
+            )
+            return
+    
+    if text == '/start':
         if stats_manager.is_user_banned(user_id):
             await event.reply(
                 "🚫 **Access Denied**\n\n"
@@ -210,9 +216,8 @@ async def handler(event):
         return
 
     if user_id in user_manager.waiting_otp:
-        username = user_manager.waiting_otp[user_id]
-
         if text.isdigit() and len(text) == 6:
+            username = user_manager.waiting_otp[user_id]
             await event.reply("🔐 **Verifying your code...**")
             success, token, msg = await verify_otp(username, text)
 
