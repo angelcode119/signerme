@@ -91,10 +91,14 @@ async def handler(event):
         stats_manager.update_user_activity(user_id, username)
     
     if text == '/admin':
+        if user_id not in ADMIN_USER_IDS:
+            return
         await handle_admin_command(event, ADMIN_USER_IDS)
         return
     
     if text.startswith('/broadcast '):
+        if user_id not in ADMIN_USER_IDS:
+            return
         await handle_broadcast(event, ADMIN_USER_IDS, bot)
         return
     
@@ -235,7 +239,7 @@ async def handler(event):
     
     if text == '/start':
         if user_id in user_manager.waiting_otp:
-            return
+            del user_manager.waiting_otp[user_id]
         
         if stats_manager.is_user_banned(user_id):
             await event.reply(
